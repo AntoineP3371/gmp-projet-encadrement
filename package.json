@@ -1,7 +1,7 @@
 {
   "name": "p4-scheduler",
   "productName": "Encadrement projet",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Lecture d'agendas iCal, planning en liste, periodes communes, et affectation des enseignants aux seances de projet (P4)",
   "main": "main.js",
   "author": "antoine.pietri@u-bordeaux.fr",
