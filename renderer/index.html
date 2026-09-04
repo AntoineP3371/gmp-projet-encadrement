@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';" />
+  <title>Encadrement projet</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="tabs">
+      <span class="brand">Encadrement projet <span class="ver">v1.2</span></span>
+      <button class="tab" data-tab="sources">Agendas</button>
+      <button class="tab" data-tab="planning">Planning (liste)</button>
+      <button class="tab" data-tab="common">Periodes communes</button>
+      <button class="tab" data-tab="scheduling">Affectation</button>
+      <button class="tab" data-tab="assistant">Assistant</button>
+      <span class="spacer"></span>
+      <label class="range">
+        Du <input type="date" id="range-from" />
+        au <input type="date" id="range-to" />
+      </label>
+      <button id="btn-refresh" title="Recharger tous les agendas actifs">&#8635; Rafraichir</button>
+      <button id="btn-export-proj" title="Exporter le projet (JSON)">Exporter</button>
+      <button id="btn-import-proj" title="Importer un projet (JSON)">Importer</button>
+    </nav>
+    <main id="view"></main>
+    <div id="toast" class="hidden"></div>
+  </div>
+
+  <script src="./lib/freebusy.js"></script>
+  <script src="./lib/scheduler.js"></script>
+  <script src="./lib/ics-export.js"></script>
+  <script src="./app.js"></script>
+  <script src="./views/sources.js"></script>
+  <script src="./views/planning.js"></script>
+  <script src="./views/common.js"></script>
+  <script src="./views/scheduling.js"></script>
+  <script src="./views/assistant.js"></script>
+  <script src="./boot.js"></script>
+</body>
+</html>
