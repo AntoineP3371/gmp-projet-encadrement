@@ -145,6 +145,38 @@
     return P4.state.sources.filter((s) => s.type === type);
   };
 
+  /* Remove every source of a given type ("teacher" or "project") and clean
+     up everything in scheduling state that could reference their id :
+     per-teacher settings, team-matrix cells (as a teacher column or, for a
+     removed project, the whole project row), locked picks pointing at a
+     removed teacher or at a session that no longer exists once its project
+     is gone, and stray "sans encadrant" flags on those same sessions. The
+     cached lastResult is dropped so the next render/run recomputes cleanly
+     from this now-consistent state. Returns how many sources were removed. */
+  P4.removeAllOfType = function (type) {
+    const targets = P4.sourcesOfType(type);
+    if (!targets.length) return 0;
+    const ids = new Set(targets.map((s) => s.id));
+    P4.state.sources = P4.state.sources.filter((s) => !ids.has(s.id));
+
+    const sch = P4.state.scheduling;
+    ids.forEach((id) => { delete sch.teachers[id]; delete sch.teams[id]; });
+    Object.keys(sch.teams).forEach((pid) => {
+      const team = sch.teams[pid];
+      ids.forEach((id) => { delete team[id]; });
+    });
+
+    const validSessionIds = new Set(P4.sessions().map((s) => s.id));
+    Object.keys(sch.locked).forEach((sid) => {
+      if (!validSessionIds.has(sid)) { delete sch.locked[sid]; return; }
+      sch.locked[sid] = (sch.locked[sid] || []).filter((tid) => !ids.has(tid));
+      if (!sch.locked[sid].length) delete sch.locked[sid];
+    });
+    Object.keys(sch.noSup || {}).forEach((sid) => { if (!validSessionIds.has(sid)) delete sch.noSup[sid]; });
+    sch.lastResult = null;
+    return ids.size;
+  };
+
   /* Each source (encadrant or projet) can now carry several iCal feeds
      (ex. agenda personnel + agenda etablissement) : `src.feeds` = [{ id,
      url, pasted, events, error, lastSync }]. `normalizeSource` migrates the

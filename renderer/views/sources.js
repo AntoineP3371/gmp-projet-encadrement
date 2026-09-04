@@ -106,11 +106,17 @@
 
       <div class="grid2">
         <div class="panel">
-          <h2>Enseignants (${teachers.length})</h2>
+          <div class="spread" style="align-items:center;margin-bottom:8px">
+            <h2 style="margin:0">Enseignants (${teachers.length})</h2>
+            ${teachers.length ? '<button class="small danger" id="del-all-teachers">supprimer tous les encadrants</button>' : ''}
+          </div>
           <div id="list-teacher">${teachers.map((t) => card(t, P4.state.sources.indexOf(t))).join('') || '<p class="muted">Aucun.</p>'}</div>
         </div>
         <div class="panel">
-          <h2>Projets (${projects.length})</h2>
+          <div class="spread" style="align-items:center;margin-bottom:8px">
+            <h2 style="margin:0">Projets (${projects.length})</h2>
+            ${projects.length ? '<button class="small danger" id="del-all-projects">supprimer tous les projets</button>' : ''}
+          </div>
           <div id="list-project">${projects.map((p) => card(p, P4.state.sources.indexOf(p))).join('') || '<p class="muted">Aucun.</p>'}</div>
         </div>
       </div>`;
@@ -131,6 +137,29 @@
       P4.rerender();
       if (url) P4.refreshSource(src.id);
     });
+
+    const delAllTeachers = root.querySelector('#del-all-teachers');
+    if (delAllTeachers) {
+      delAllTeachers.addEventListener('click', () => {
+        const n = P4.sourcesOfType('teacher').length;
+        if (!confirm('Supprimer les ' + n + ' encadrant(s) ? Cette action est irreversible.')) return;
+        P4.removeAllOfType('teacher');
+        P4.save();
+        P4.rerender();
+        P4.toast(n + ' encadrant(s) supprime(s)', 'ok');
+      });
+    }
+    const delAllProjects = root.querySelector('#del-all-projects');
+    if (delAllProjects) {
+      delAllProjects.addEventListener('click', () => {
+        const n = P4.sourcesOfType('project').length;
+        if (!confirm('Supprimer les ' + n + ' projet(s) ? Cette action est irreversible.')) return;
+        P4.removeAllOfType('project');
+        P4.save();
+        P4.rerender();
+        P4.toast(n + ' projet(s) supprime(s)', 'ok');
+      });
+    }
 
     root.querySelector('#dl-template').addEventListener('click', async () => {
       const r = await window.api.downloadTemplate();

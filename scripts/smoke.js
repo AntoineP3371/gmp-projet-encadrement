@@ -323,6 +323,45 @@ ok('projectUnsupTarget percent 100 -> 0', P4.projectUnsupTarget({ supervision: '
 ok('projectUnsupTarget 0 for a "total" project',
   P4.projectUnsupTarget({ supervision: 'full', supMode: 'percent', supPercent: 50, events: evs8 }) === 0);
 
+/* ---- 3g. suppression en masse (encadrants / projets) ---- */
+console.log('\n[3g] suppression en masse');
+(function () {
+  function fixture() {
+    P4.state = P4.migrate({ range: { from: '2026-09-01', to: '2027-01-31' } });
+    P4.state.sources = [
+      { id: 'T1', name: 'Martin', type: 'teacher', enabled: true, color: '#000', events: [] },
+      { id: 'T2', name: 'Durand', type: 'teacher', enabled: true, color: '#000', events: [] },
+      { id: 'PJ', name: 'Projet', type: 'project', enabled: true, color: '#000', supervision: 'full',
+        events: [{ start: '2026-09-21T06:00:00.000Z', end: '2026-09-21T10:00:00.000Z', allDay: false, uid: 'e1' }] }
+    ];
+    P4.teacherEntry('T1').maxHours = 20;
+    P4.state.scheduling.teams.PJ = { T1: { on: true, w: 2 }, T2: { on: true, w: 1 } };
+    const sid = P4.sessions()[0].id;
+    P4.state.scheduling.locked[sid] = ['T1', 'T2'];
+    P4.state.scheduling.lastResult = { assignments: { [sid]: ['T1', 'T2'] } };
+    return sid;
+  }
+
+  fixture();
+  const removed = P4.removeAllOfType('teacher');
+  ok('removeAllOfType returns the count removed', removed === 2);
+  ok('sources: teachers gone, project kept', P4.state.sources.length === 1 && P4.state.sources[0].id === 'PJ');
+  ok('scheduling.teachers entry dropped', !P4.state.scheduling.teachers.T1);
+  ok('team cells for both teachers dropped from the project row',
+    !P4.state.scheduling.teams.PJ.T1 && !P4.state.scheduling.teams.PJ.T2);
+  ok('locked picks referencing a removed teacher are cleared (session still valid, array now empty)',
+    Object.keys(P4.state.scheduling.locked).length === 0);
+  ok('lastResult reset so the next render recomputes cleanly', P4.state.scheduling.lastResult === null);
+
+  const sid2 = fixture();
+  const removedP = P4.removeAllOfType('project');
+  ok('removeAllOfType (project) returns 1', removedP === 1);
+  ok('sources: project gone, teachers kept', P4.state.sources.length === 2 && P4.state.sources.every((s) => s.type === 'teacher'));
+  ok('team row for the removed project dropped entirely', !P4.state.scheduling.teams.PJ);
+  ok('locked pick on a now-nonexistent session (project removed) is pruned', !P4.state.scheduling.locked[sid2]);
+  ok('removeAllOfType on an empty type is a no-op returning 0', P4.removeAllOfType('project') === 0);
+})();
+
 /* ---- 4. exporters ---- */
 console.log('\n[4] CSV / ICS export');
 const csv = P4.exp.toCSV(['A', 'B'], [['x', 'y;z']]);

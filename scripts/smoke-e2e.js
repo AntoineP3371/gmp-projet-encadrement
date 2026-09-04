@@ -376,6 +376,32 @@ function attach(win, deps) {
         console.log('SMOKE-SHOT ' + shotArg.slice(7));
       }
 
+      // "supprimer tous les encadrants" / "supprimer tous les projets" —
+      // run last : leaves the app (and its real persisted project.json,
+      // --smoke uses the same userData path) with an empty project once the
+      // suite finishes, and every earlier test above still ran against the
+      // full Martin/Durand/Projet P4 fixture.
+      const wipe = await win.webContents.executeJavaScript(`(() => {
+        window.confirm = () => true; // auto-accept the confirmation dialogs
+        const P4 = window.P4;
+        P4.setTab('sources');
+        P4.rerender();
+        const before = { teachers: P4.sourcesOfType('teacher').length, projects: P4.sourcesOfType('project').length };
+        document.querySelector('#del-all-teachers').click();
+        const afterTeachers = { teachers: P4.sourcesOfType('teacher').length, teacherBtn: !!document.querySelector('#del-all-teachers') };
+        document.querySelector('#del-all-projects').click();
+        const afterProjects = { projects: P4.sourcesOfType('project').length, projectBtn: !!document.querySelector('#del-all-projects') };
+        return JSON.stringify({
+          before, afterTeachers, afterProjects,
+          sourcesEmpty: P4.state.sources.length === 0,
+          teamsEmpty: Object.keys(P4.state.scheduling.teams).length === 0,
+          lockedEmpty: Object.keys(P4.state.scheduling.locked).length === 0,
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-WIPE ' + wipe);
+      await new Promise((r) => setTimeout(r, 500)); // let the debounced P4.save() flush to disk
+
       const finalErrors = await win.webContents.executeJavaScript('JSON.stringify(window.__errors)');
       console.log('SMOKE-ERRORS ' + finalErrors);
       app.exit(finalErrors === '[]' ? 0 : 1);

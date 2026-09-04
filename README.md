@@ -67,6 +67,12 @@ disponibilités, affectation) n'y voit que du feu.
 
 Les agendas importés restent **entièrement modifiables** dans cet onglet.
 
+*Supprimer tous les encadrants* / *Supprimer tous les projets* (au-dessus de
+chaque liste, avec confirmation) vident d'un coup toute une catégorie —
+pratique pour repartir d'une base propre. La suppression nettoie aussi les
+réglages qui pointaient sur les agendas retirés (colonne dans la matrice
+équipe/poids, périodes préférées, séances verrouillées).
+
 Pour un agenda de type **Projet**, on choisit son mode d'**encadrement** :
 - *total* — chaque séance doit avoir un encadrant (défaut) ;
 - *partiel* — des séances peuvent rester sans encadrant. La cible d'heures *non*
