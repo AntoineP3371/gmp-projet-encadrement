@@ -860,8 +860,9 @@
       * { box-sizing: border-box; }
       body { font: 12px -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2430; }
       h1 { font-size: 19px; margin: 0 0 2px; color: #1e3a8a; }
-      h2 { font-size: 14px; margin: 22px 0 6px; color: #fff; background: #2563eb; padding: 4px 8px; border-radius: 4px; }
-      h3 { font-size: 13px; margin: 12px 0 4px; }
+      h2 { font-size: 14px; margin: 22px 0 6px; color: #fff; background: #2563eb; padding: 4px 8px; border-radius: 4px;
+        page-break-after: avoid; break-after: avoid; }
+      h3 { font-size: 13px; margin: 12px 0 4px; page-break-after: avoid; break-after: avoid; }
       .edited { color: #b45309; font-weight: 600; margin: 0 0 2px; }
       p.meta { color: #666; margin: 0 0 12px; }
       p.sub { color: #666; margin: 0 0 4px; font-size: 11px; }
@@ -869,13 +870,18 @@
       th, td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; vertical-align: top; }
       th { background: #e8f0fe; color: #1e3a8a; }
       td.r, th.r { text-align: right; }
+      tr { page-break-inside: avoid; break-inside: avoid; }
       tbody tr:nth-child(even) td { background: #f7f9fc; }
       tr.tot td { font-weight: 700; background: #eef2f7; }
       .kpi { margin: 0 0 4px; }
       .kpi span { display: inline-block; margin-right: 8px; padding: 3px 9px; border-radius: 999px; background: #eef2f7; }
       .kpi span.bad { background: #fdecec; color: #b91c1c; }
       .kpi span.neutral { background: #eef0f3; color: #555; }
-      .tb.pagebreak { page-break-before: always; break-before: page; }
+      /* chaque nouvelle section (et, dans "Repartition par encadrant" /
+         "Seances par projet", chaque encadrant / projet a partir du 2e)
+         demarre sur une page vierge - jamais a cheval sur la fin de la
+         section precedente. */
+      .pagebreak { page-break-before: always; break-before: page; }
       .muted { color: #888; }
       .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; vertical-align: middle; }
       td.st-ok { background: #e7f6ec; color: #15803d; }
@@ -911,10 +917,10 @@
       ${bilanSeanceRows || '<tr><td colspan="8" class="muted">Aucune seance.</td></tr>'}
       </tbody></table>
 
-      <h2>Repartition par encadrant</h2>
+      <h2 class="pagebreak">Repartition par encadrant</h2>
       ${teacherBlocks || '<p class="muted">Aucun encadrant.</p>'}
 
-      <h2>Seances par projet</h2>
+      <h2 class="pagebreak">Seances par projet</h2>
       ${sessBlocks || '<p class="muted">Aucune seance.</p>'}
     </body></html>`;
   }
