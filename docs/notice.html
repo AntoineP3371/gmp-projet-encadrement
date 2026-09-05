@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Encadrement projet — Notice d'utilisation</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 15mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font: 10.8pt/1.48 Georgia, "Times New Roman", serif;
+    color: #1f2430;
+    margin: 0;
+  }
+  p, li { orphans: 2; widows: 2; }
+  h1, h2, h3, .ui, .lead, th, .tag, figcaption, .cover .meta {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  }
+
+  /* cover */
+  .cover { min-height: 60vh; padding-top: 8mm; }
+  .cover .kicker { font: 600 10pt/1 "Segoe UI", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #2563eb; }
+  .cover h1 { font-size: 30pt; line-height: 1.1; margin: 6mm 0 3mm; color: #1e3a8a; }
+  .cover .lead { font-size: 12.5pt; color: #45505f; max-width: 130mm; margin: 0 0 8mm; }
+  .cover .meta { font-size: 9.5pt; color: #6b7280; border-top: 1px solid #d8dce2; padding-top: 3mm; }
+
+  section { page-break-before: always; }
+  section:first-of-type { page-break-before: avoid; }
+
+  h2 {
+    font-size: 15pt; color: #fff; background: #2563eb;
+    padding: 3mm 4mm; border-radius: 3px; margin: 0 0 4mm;
+  }
+  h3 { font-size: 12pt; color: #1e3a8a; margin: 6mm 0 2mm; }
+  h2 + h3, h2 + p { margin-top: 0; }
+  p { margin: 0 0 2.5mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  li > ul { margin-top: 1.2mm; }
+  b, strong { color: #14202b; }
+  .ui { font-weight: 600; color: #1e3a8a; }
+  code { font-family: "Consolas", "SFMono-Regular", monospace; font-size: 9.5pt; background: #eef2f7; padding: .5mm 1.5mm; border-radius: 2px; }
+
+  .lead { font-size: 11.5pt; color: #45505f; }
+
+  figure { margin: 4mm 0; page-break-inside: avoid; }
+  figure img { display: block; width: 100%; max-width: 160mm; border: 1px solid #cbd5e1; border-radius: 3px; }
+  figcaption { font-size: 8.5pt; color: #6b7280; margin-top: 1.5mm; }
+
+  table { border-collapse: collapse; width: 100%; margin: 3mm 0 4mm; font-size: 10pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #cbd5e1; padding: 1.8mm 2.5mm; text-align: left; vertical-align: top; }
+  th { background: #e8f0fe; color: #1e3a8a; font-size: 9pt; }
+  tr { page-break-inside: avoid; }
+
+  .callout { border-left: 3px solid #2563eb; background: #f4f8ff; padding: 2.5mm 4mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid; break-inside: avoid; }
+  .callout.warn { border-left-color: #d97706; background: #fdf6ec; }
+
+  .deg { display: inline-block; min-width: 5mm; text-align: center; font-weight: 700; border-radius: 2px; padding: 0 1.5mm; }
+  .deg0 { background: #e7f6ec; color: #15803d; }
+  .deg1 { background: #fdf0e0; color: #b45309; }
+  .deg2 { background: #fdecec; color: #b91c1c; }
+
+  .toc { font-family: "Segoe UI", sans-serif; font-size: 10.5pt; }
+  .toc ol { padding-left: 6mm; }
+  .toc li { margin-bottom: 1.5mm; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">Notice d'utilisation</div>
+  <h1>Encadrement&nbsp;projet</h1>
+  <p class="lead">Application de bureau pour lire les agendas iCal des encadrants et des projets,
+  comparer les disponibilités, et répartir automatiquement les encadrants sur les séances de projet.</p>
+  <div class="toc">
+    <b>Sommaire</b>
+    <ol>
+      <li>Présentation &amp; démarrage</li>
+      <li>Onglet Agendas</li>
+      <li>Onglet Planning (liste)</li>
+      <li>Onglet Périodes communes</li>
+      <li>Onglet Affectation</li>
+      <li>Onglet Assistant</li>
+      <li>Réglages de l'affectation (référence)</li>
+      <li>Astuces &amp; dépannage</li>
+    </ol>
+  </div>
+  <p class="meta">Version 1.2 &nbsp;·&nbsp; IUT de Bordeaux &nbsp;·&nbsp; les libellés de cette notice reprennent exactement ceux de l'application.</p>
+</div>
+
+<section>
+  <h2>1 — Présentation &amp; démarrage</h2>
+
+  <p>L'application s'organise en cinq onglets, dans l'ordre où l'on s'en sert :
+  on renseigne les <span class="ui">Agendas</span>, on vérifie le <span class="ui">Planning</span>,
+  on repère les <span class="ui">Périodes communes</span>, on lance l'<span class="ui">Affectation</span>,
+  et on interroge l'<span class="ui">Assistant</span>.</p>
+
+  <h3>Lancer l'application</h3>
+  <ul>
+    <li>Raccourci créé à l'installation, ou <code>npm start</code> depuis le dossier du projet.</li>
+    <li>En haut de la fenêtre : la <span class="ui">plage de dates analysée</span> (« Du … au … »).
+    Elle borne les séances chargées et l'expansion des événements récurrents. Par défaut : mois courant → +9&nbsp;mois.</li>
+    <li><span class="ui">Rafraîchir</span> recharge tous les agendas ; <span class="ui">Exporter</span> /
+    <span class="ui">Importer</span> échangent un fichier <code>.json</code> autonome (sauvegarde, transfert à un collègue).</li>
+  </ul>
+
+  <div class="callout">
+    <b>Tout reste sur le poste.</b> Aucune donnée n'est envoyée à l'extérieur : agendas, réglages et
+    affectations sont enregistrés automatiquement dans <code>%APPDATA%\Encadrement projet\project.json</code>.
+  </div>
+</section>
+
+<section>
+  <h2>2 — Onglet Agendas</h2>
+  <p class="lead">Chaque encadrant et chaque projet possède son ou ses agendas iCal.</p>
+
+  <figure>
+    <img src="img/agendas.png" alt="Onglet Agendas">
+    <figcaption>L'onglet Agendas : ajout d'un agenda, import Excel, listes Enseignants / Projets, et — sur une carte enseignant — le bloc « Indisponibilités récurrentes ».</figcaption>
+  </figure>
+
+  <h3>Ajouter un agenda</h3>
+  <ul>
+    <li>Saisir un <span class="ui">nom</span>, choisir <span class="ui">Enseignant</span> ou <span class="ui">Projet</span>,
+    coller l'<span class="ui">URL iCal</span> (ou, à défaut, le contenu <code>.ics</code> dans le champ prévu), puis <span class="ui">Ajouter</span>.</li>
+    <li>Le téléchargement passe par l'application, pas par un navigateur : les flux d'emploi du temps
+    (Pronote, ADE…) qui bloquent l'accès direct fonctionnent normalement.</li>
+  </ul>
+
+  <h3>Plusieurs agendas pour un même encadrant (ou projet)</h3>
+  <p>Un encadrant suit rarement un seul calendrier (agenda personnel + agenda d'établissement…).
+  Dans sa carte, <span class="ui">+ ajouter un agenda</span> ajoute une URL (ou un contenu <code>.ics</code>) ;
+  <span class="ui">retirer</span> en supprime une dès qu'il y en a plus d'une. Tous les événements des
+  agendas d'une même carte sont fusionnés — le reste de l'application n'y voit que du feu.</p>
+
+  <h3>Import en lot (Excel)</h3>
+  <ul>
+    <li><span class="ui">Télécharger le modèle Excel</span> produit un fichier <code>modele-agendas.xlsx</code>
+    (+ une feuille <em>Notice</em>) avec les colonnes : <em>Nom</em>, <em>Projet ou encadrant</em>,
+    <em>Encadrement (total / partiel)</em>, <em>Heures totales</em>, <em>Heures encadrées</em>,
+    <em>% séances encadrées</em>, <em>Adresse iCal 1</em>, <em>Adresse iCal 2</em>, <em>Adresse iCal 3</em>
+    (colonnes <em>Adresse iCal 4</em>… également reconnues).</li>
+    <li><span class="ui">Importer un tableau (.xlsx)</span> crée les agendas. Une ligne dont le <em>nom</em>
+    correspond à un agenda existant le met à jour ; les adresses iCal qu'elle apporte et qui ne sont pas
+    déjà connues sont <b>ajoutées</b> (aucune n'est retirée par un import). En-têtes reconnus de façon
+    tolérante ; les lignes douteuses sont importées et listées en avertissement.</li>
+  </ul>
+  <p>Les agendas importés restent <b>entièrement modifiables</b> dans l'onglet.</p>
+
+  <h3>Ordre d'affichage &amp; suppression en masse</h3>
+  <ul>
+    <li>Partout dans l'application, encadrants et projets sont affichés <b>par ordre alphabétique</b>
+    (accents et casse ignorés, tri naturel des nombres). L'ordre d'ajout n'a aucune incidence.</li>
+    <li><span class="ui">Supprimer tous les encadrants</span> / <span class="ui">Supprimer tous les projets</span>
+    (au-dessus de chaque liste, avec confirmation) vident une catégorie entière. Le nettoyage retire aussi
+    les réglages qui pointaient vers les agendas supprimés (colonnes de la matrice équipe/poids, périodes
+    préférées, séances verrouillées).</li>
+  </ul>
+
+  <h3>Indisponibilités récurrentes en demi-journées (encadrants)</h3>
+  <p>Sur chaque carte <span class="ui">Enseignant</span>, sans passer par l'Excel, on peut déclarer une ou
+  plusieurs plages hebdomadaires <span class="ui">de &lt;demi-journée&gt; à &lt;demi-journée&gt;</span>
+  (de <em>lun. matin</em> à <em>ven. après-midi</em> ; coupure du midi à 12&nbsp;h), avec un <b>degré</b> :</p>
+  <table>
+    <thead><tr><th style="width:14mm">Degré</th><th>Effet sur l'affectation automatique</th></tr></thead>
+    <tbody>
+      <tr><td><span class="deg deg0">0</span></td><td>Disponible — aucune restriction (ne rien saisir).</td></tr>
+      <tr><td><span class="deg deg1">1</span></td><td><b>À éviter</b> : une séance n'y est placée qu'en <b>dernier recours</b>, lorsqu'aucun autre encadrant n'est possible.</td></tr>
+      <tr><td><span class="deg deg2">2</span></td><td><b>Bloqué</b> : <b>aucune</b> séance n'y est jamais placée automatiquement (comme une indisponibilité d'agenda). Un choix manuel reste possible mais est signalé « indispo (récurrent) ».</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mode d'encadrement d'un projet</h3>
+  <ul>
+    <li><span class="ui">total</span> — chaque séance doit avoir un encadrant (défaut).</li>
+    <li><span class="ui">partiel</span> — des séances peuvent rester sans encadrant. La cible d'heures
+    <em>non</em> encadrées s'exprime au choix (champ <span class="ui">Répartition</span>) :
+      <ul>
+        <li><b>en heures</b> : <em>Heures totales</em> − <em>Heures encadrées</em> ;</li>
+        <li><b>en % de séances encadrées</b> : <code>X %</code> ⇒ <code>volume horaire × (1 − X/100)</code>.</li>
+      </ul>
+      L'affectation laisse alors volontairement ce volume d'heures sans encadrant, en commençant par les
+      séances les plus difficiles à pourvoir. Un poids dans la colonne <span class="ui">Sans encadrant</span>
+      de la matrice (onglet Affectation) l'emporte sur ce réglage.
+    </li>
+  </ul>
+</section>
+
+<section>
+  <h2>3 — Onglet Planning (liste)</h2>
+  <p>Vue chronologique de tous les événements des agendas actifs, groupés par jour.</p>
+  <ul>
+    <li>Filtres par <span class="ui">type</span> (encadrant / projet), par <span class="ui">agenda</span>
+    (cases à cocher) et recherche plein texte.</li>
+    <li>Chaque ligne : horaire, pastille de couleur de l'agenda, intitulé, lieu.</li>
+    <li><span class="ui">Exporter CSV</span> pour retravailler la liste dans un tableur.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>4 — Onglet Périodes communes</h2>
+  <p>Comparer plusieurs agendas pour trouver quand tout le monde est libre — ou au contraire tous occupés.</p>
+  <ol>
+    <li>Cocher au moins deux agendas.</li>
+    <li>Choisir <span class="ui">Créneaux libres communs</span> ou <span class="ui">Créneaux occupés communs</span>.</li>
+    <li>Régler la fenêtre de travail (heures — 8&nbsp;h–20&nbsp;h par défaut ; jours — lun.–ven. par défaut),
+    puis <span class="ui">Calculer</span>.</li>
+  </ol>
+  <p>Résultat groupé par jour, avec le total d'heures et un <span class="ui">Exporter CSV</span>.</p>
+</section>
+
+<section>
+  <h2>5 — Onglet Affectation</h2>
+  <p class="lead">Répartir automatiquement les encadrants sur les séances de projet, en respectant
+  qui est libre, qui encadre quoi, et dans quelles proportions.</p>
+
+  <h3>Séances</h3>
+  <p>Ce sont tous les événements des agendas de type <span class="ui">Projet</span>, hors « journée entière »
+  et hors blocs plus longs que la <span class="ui">Durée max d'une séance</span> (12&nbsp;h par défaut —
+  écarte les blocs « vacances » émis par certains flux). Le bandeau du haut résume : nombre de séances,
+  couvertes, manque encadrant, sans encadrant, partielles, à arbitrer, heures affectées.</p>
+
+  <h3>Bilan par projet</h3>
+  <p>Un tableau, une ligne par projet : <em>Séances</em>, <em>Couvertes</em>, <em>Manque</em> (sous le
+  minimum alors qu'un encadrement est attendu — rouge), <em>Sans encadrant</em> (pour un projet partiel :
+  <code>heures effectives / cible</code>), <em>Partielles</em>, <em>À arbitrer</em> (≥ 2 encadrants
+  éligibles libres sur toute la séance), <em>Heures affectées</em>.</p>
+
+  <h3>Équipe par projet &amp; poids des encadrants</h3>
+  <p>Une matrice projets × enseignants, plus une colonne <span class="ui">Sans encadrant</span>. Chaque case
+  a une <b>coche</b> (« concerné par le projet ») et un <b>poids relatif</b> (1 par défaut). Aucune coche sur
+  un projet ⇒ tous les enseignants éligibles, poids 1.</p>
+  <p>Les <b>poids définissent le nombre de séances</b> : pour un projet, la part de chacun =
+  <code>poids / somme des poids du projet</code> (colonne <em>Sans encadrant</em> comprise), appliquée au
+  volume horaire. Un encadrant présent sur plusieurs projets <b>cumule</b> une cible de chacun. Le même
+  barème compare donc les encadrants entre eux, les projets entre eux, et « avec / sans encadrant ».</p>
+  <p>Sous chaque case : <code>N&nbsp;aff.</code> (séances affectées) · <code>cible&nbsp;≈</code> (d'après les
+  poids) · <code>dispo : X compl. + Y part.</code> (séances où l'encadrant est libre).</p>
+
+  <h3>Enseignants &amp; périodes préférées</h3>
+  <ul>
+    <li>Un <span class="ui">plafond d'heures</span> optionnel par encadrant.</li>
+    <li>Des <span class="ui">périodes préférées</span> : une ou plusieurs plages <code>mois → mois</code>.
+    Une séance dont le mois tombe dans une plage préférée pèse ≈ une séance de plus dans le choix.</li>
+    <li>Une barre de charge avec un repère de cible.</li>
+  </ul>
+
+  <h3>Lancer &amp; ajuster</h3>
+  <ol>
+    <li>Vérifier les <span class="ui">Réglages</span> (voir §7), puis <span class="ui">Affecter automatiquement</span>.</li>
+    <li>Ajuster à la main : chaque encadrant proposé est un menu déroulant (échanger, ou
+    <em>— retirer —</em>) ; <span class="ui">+ ajouter un encadrant…</span> en propose un second ;
+    une case <span class="ui">séance sans encadrant</span> par ligne. Les choix manuels sont <b>verrouillés</b>
+    et ne bougent plus au prochain calcul.</li>
+    <li>Un encadrant marqué <span class="deg deg2">2</span> (indispo récurrente) apparaît « indispo (récurrent) »
+    dans les menus ; un <span class="deg deg1">1</span> apparaît « à éviter » et « (à éviter) » dans la
+    colonne <em>Disponibilités</em>.</li>
+  </ol>
+
+  <h3>Trois façons de lire le résultat</h3>
+  <p>En haut du tableau des séances, <span class="ui">Vue :</span> bascule entre
+  <span class="ui">Par séance</span> (liste chronologique, modifiable),
+  <span class="ui">Par projet</span> (groupé, modifiable) et
+  <span class="ui">Par encadrant</span> (synthèse en lecture seule : séances et heures par projet, cible).</p>
+
+  <h3>Exports</h3>
+  <figure>
+    <img src="img/rapport.png" alt="Extrait du rapport PDF">
+    <figcaption>Extrait du rapport PDF : daté et horodaté, statuts en couleur, une section « Bilan par séance » et une page par encadrant / par projet.</figcaption>
+  </figure>
+  <ul>
+    <li><span class="ui">Export PDF</span> — rapport <b>daté et horodaté</b>, en couleurs : <em>Bilan par
+    projet</em>, <em>Bilan par séance</em> (toutes les séances, toutes dates confondues, avec les mêmes
+    colonnes que la vue <em>Par séance</em> — dont les <b>disponibilités de tous les encadrants éligibles</b>),
+    puis <em>Répartition par encadrant</em> et <em>Séances par projet</em> avec <b>une page par encadrant et
+    une page par projet</b>. Pour une séance partiellement encadrée, les <b>créneaux réellement couverts</b>
+    sont précisés (ex. <code>Durand (15:00–17:00)</code>).</li>
+    <li><span class="ui">Export CSV</span> — le tableau des affectations, colonne disponibilités comprise.</li>
+    <li><span class="ui">Export ICS</span> — un événement par séance, encadrant(s) dans le titre, à réimporter
+    dans un agenda.</li>
+  </ul>
+
+  <div class="callout">
+    <b>Effacer / recommencer.</b> <span class="ui">Effacer (garder les verrouillés)</span> repart d'un calcul
+    propre en conservant les choix manuels ; <span class="ui">Tout effacer</span> vide aussi les verrous et
+    les séances déclarées sans encadrant (les agendas et la matrice équipe/poids sont conservés).
+  </div>
+</section>
+
+<section>
+  <h2>6 — Onglet Assistant</h2>
+  <p class="lead">Une poignée de questions d'organisation, reconnues par mots-clés — pas de langage libre,
+  mais tout est calculé sur le poste (aucune donnée envoyée à l'extérieur).</p>
+
+  <figure>
+    <img src="img/assistant.png" alt="Onglet Assistant">
+    <figcaption>Chaque réponse propose une action directe (ici, <em>Remplacer</em> applique le changement dans l'onglet Affectation).</figcaption>
+  </figure>
+
+  <p>Écrire le <b>nom d'un ou deux encadrants</b> (tel qu'il apparaît dans l'onglet Agendas) plus l'un de
+  ces mots-clés :</p>
+  <table>
+    <thead><tr><th>Exemple</th><th>Réponse</th></tr></thead>
+    <tbody>
+      <tr><td>séances où <em>Dupont</em> peut remplacer <em>Martin</em></td><td>Liste des séances de Martin que Dupont peut reprendre (couverture complète / partielle / indisponible) + bouton <em>Remplacer</em>.</td></tr>
+      <tr><td>rééquilibrer les heures entre <em>Dupont</em> et <em>Martin</em></td><td>Proposition de transferts de séances du plus chargé vers le moins chargé + bouton <em>Appliquer</em>.</td></tr>
+      <tr><td>créneaux libres communs de <em>Dupont</em> et <em>Martin</em></td><td>Créneaux où les deux sont libres dans la fenêtre de travail.</td></tr>
+      <tr><td>charge de <em>Dupont</em></td><td>Heures affectées vs cible, par projet.</td></tr>
+      <tr><td>qui est libre le 12/11 après-midi ?</td><td>Encadrants disponibles à cette date / demi-journée.</td></tr>
+    </tbody>
+  </table>
+  <p>Si un nom correspond à plusieurs encadrants, l'assistant le signale et demande de préciser plutôt que
+  de deviner.</p>
+</section>
+
+<section>
+  <h2>7 — Réglages de l'affectation (référence)</h2>
+  <table>
+    <thead><tr><th style="width:52mm">Réglage</th><th>Rôle</th></tr></thead>
+    <tbody>
+      <tr><td>Nombre cible d'encadrants par séance</td><td>Combien d'encadrants l'affectation automatique cherche à placer sur chaque séance.</td></tr>
+      <tr><td>Nombre minimum d'encadrants par séance</td><td>Seuil sous lequel la séance est marquée « non couverte » (rouge). En général 1.</td></tr>
+      <tr><td>Durée cible (h)</td><td>Longueur de référence d'une séance (4&nbsp;h). Sert au badge « ≠ 4 h » et au calcul « X h sur 4 h ».</td></tr>
+      <tr><td>Durée max d'une séance (h)</td><td>Au-delà, l'événement n'est pas considéré comme une séance (12&nbsp;h par défaut). Écarte les blocs « vacances » / multi-jours.</td></tr>
+      <tr><td>Poids préférence</td><td>Multiplie l'avantage accordé à un encadrant dont une période préférée couvre le mois de la séance.</td></tr>
+      <tr><td>Respecter le plafond d'heures</td><td>Si coché, aucun encadrant n'est affecté au-delà de son plafond.</td></tr>
+      <tr><td>Journée entière = indisponible</td><td>Un événement « journée entière » (congés, mission) rend l'encadrant indisponible ce jour-là.</td></tr>
+    </tbody>
+  </table>
+  <p>Le nombre de séances de chaque encadrant découle de sa <b>cible</b> = volume horaire du projet × son
+  poids / somme des poids du projet, cumulée sur tous ses projets. L'affectation privilégie à chaque séance
+  l'encadrant le plus loin sous sa cible, parmi ceux <b>libres sur toute la séance</b> (sinon un
+  partiellement disponible, puis en tout dernier recours un encadrant en indisponibilité de degré&nbsp;1),
+  puis un passage de rééquilibrage rapproche les charges des cibles.</p>
+</section>
+
+<section>
+  <h2>8 — Astuces &amp; dépannage</h2>
+  <table>
+    <thead><tr><th style="width:58mm">Situation</th><th>À faire</th></tr></thead>
+    <tbody>
+      <tr><td>Rien ne s'affiche après un import</td><td>Vérifier la <span class="ui">plage de dates</span> en haut de l'écran, puis <span class="ui">Rafraîchir</span>.</td></tr>
+      <tr><td>Des séances « fantômes » de plusieurs jours</td><td>Certains flux publient les vacances comme des événements longs : le réglage <span class="ui">Durée max d'une séance</span> (Affectation → Réglages) les écarte.</td></tr>
+      <tr><td>Reprendre un projet sur un autre poste</td><td><span class="ui">Exporter</span> (barre du haut) → fichier <code>.json</code> → <span class="ui">Importer</span> sur l'autre poste.</td></tr>
+      <tr><td>Tout recommencer sur un projet</td><td>Affectation → <span class="ui">Tout effacer</span> (conserve les agendas et l'équipe).</td></tr>
+      <tr><td>Un encadrant ne doit jamais être placé un jour donné</td><td>Sur sa carte (onglet Agendas), ajouter une <span class="ui">indisponibilité récurrente</span> de degré <span class="deg deg2">2</span> sur la ou les demi-journées concernées.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</body>
+</html>

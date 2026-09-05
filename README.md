@@ -33,6 +33,16 @@ npm run dist:linux    # AppImage
 
 Le résultat est dans `dist/`.
 
+## Notice utilisateur
+
+Une notice d'utilisation destinée aux utilisateurs finaux (pas aux
+développeurs) : [`docs/notice.pdf`](docs/notice.pdf), générée depuis
+[`docs/notice.html`](docs/notice.html) par :
+
+```bash
+npm run notice      # -> docs/notice.pdf (rendu A4 via Electron)
+```
+
 ## Utilisation
 
 ### 1. Onglet *Agendas*
