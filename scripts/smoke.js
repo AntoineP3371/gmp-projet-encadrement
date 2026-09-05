@@ -383,6 +383,50 @@ console.log('\n[3h] ordre alphabetique');
     PE.state.sources.map((s) => s.id).join(',') === 'a,b,c,d,e');
 })();
 
+/* ---- 3i. indisponibilites recurrentes (demi-journees) ---- */
+console.log('\n[3i] indisponibilites recurrentes');
+(function () {
+  const monPM = { start: new Date(2026, 8, 7, 13, 0), end: new Date(2026, 8, 7, 17, 0) };  // lundi 13-17 -> slot 1
+  const tueAM = { start: new Date(2026, 8, 8, 9, 0), end: new Date(2026, 8, 8, 12, 0) };    // mardi 9-12  -> slot 2
+  const wedMid = { start: new Date(2026, 8, 9, 10, 0), end: new Date(2026, 8, 9, 14, 0) };  // mer 10-14   -> slots 4 & 5
+  ok('sessionSlots lundi 13-17 -> [1]', JSON.stringify(S.sessionSlots(monPM)) === '[1]');
+  ok('sessionSlots mardi 9-12 -> [2]', JSON.stringify(S.sessionSlots(tueAM)) === '[2]');
+  ok('sessionSlots mer 10-14 (a cheval sur midi) -> [4,5]', JSON.stringify(S.sessionSlots(wedMid)) === '[4,5]');
+
+  const indi = [{ from: 0, to: 3, degree: 2 }]; // lun matin -> mar apres-midi
+  ok('indispoDegree = 2 dans la plage', S.indispoDegree(indi, monPM) === 2 && S.indispoDegree(indi, tueAM) === 2);
+  ok('indispoDegree = 0 hors plage', S.indispoDegree(indi, wedMid) === 0);
+  ok('degre 1 remonte', S.indispoDegree([{ from: 1, to: 1, degree: 1 }], monPM) === 1);
+  ok('from/to inverses toleres', S.indispoDegree([{ from: 3, to: 0, degree: 2 }], monPM) === 2);
+
+  const sess = [0, 1, 2].map((i) => ({
+    id: 'ss' + i, projectId: 'PR', project: 'PR', label: 's' + i, hours: 4,
+    start: new Date(2026, 8, 7 + i * 7, 13, 0).toISOString(),
+    end: new Date(2026, 8, 7 + i * 7, 17, 0).toISOString()
+  })); // 3 lundis apres-midi (slot 1)
+  const opts = { targetPerSession: 1, minPerSession: 1, prefWeight: 0 };
+
+  const Bhard = { id: 'B', name: 'B', events: [], indispo: [{ from: 1, to: 1, degree: 2 }] };
+  const rH = S.run(sess, [{ id: 'A', name: 'A', events: [] }, Bhard], opts);
+  ok('degre 2 : B jamais affecte', Object.values(rH.assignments).every((a) => a.indexOf('B') === -1));
+  ok('degre 2 : tout va sur A', sess.every((s) => (rH.assignments[s.id] || [])[0] === 'A'));
+
+  const Abusy1 = { id: 'A', name: 'A', events: [{ start: sess[1].start, end: sess[1].end, allDay: false }] };
+  const Bsoft = { id: 'B', name: 'B', events: [], indispo: [{ from: 1, to: 1, degree: 1 }] };
+  const rS = S.run(sess, [Abusy1, Bsoft], opts);
+  ok('degre 1 : B ne prend QUE la seance ou personne d\'autre ne peut',
+    (rS.assignments.ss1 || [])[0] === 'B' && (rS.assignments.ss0 || [])[0] === 'A' && (rS.assignments.ss2 || [])[0] === 'A');
+
+  const rS2 = S.run(sess, [{ id: 'A', name: 'A', events: [] }, Bsoft], opts);
+  ok('degre 1 : ignore quand un autre encadrant est libre',
+    sess.every((s) => (rS2.assignments[s.id] || [])[0] === 'A'));
+
+  const evS = S.evaluate(sess, [{ id: 'A', name: 'A', events: [] }, Bsoft], { minPerSession: 1 }, { ss0: [], ss1: [], ss2: [] });
+  ok('availList : degre 1 present avec soft=true', (evS.availList.ss1 || []).some((x) => x.tid === 'B' && x.soft === true));
+  const evH = S.evaluate(sess, [{ id: 'A', name: 'A', events: [] }, Bhard], { minPerSession: 1 }, { ss0: [], ss1: [], ss2: [] });
+  ok('availList : degre 2 absent', (evH.availList.ss1 || []).every((x) => x.tid !== 'B'));
+})();
+
 /* ---- 4. exporters ---- */
 console.log('\n[4] CSV / ICS export');
 const csv = PE.exp.toCSV(['A', 'B'], [['x', 'y;z']]);

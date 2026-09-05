@@ -357,7 +357,46 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-ASSISTANT ' + assist);
 
+      // recurring half-day unavailability, added directly in the Agendas tab
+      const indispo = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE;
+        PE.state.scheduling.teams = {}; PE.state.scheduling.locked = {};
+        PE.state.scheduling.noSup = {}; PE.state.scheduling.lastResult = null;
+        const D = PE.state.sources.find((s) => s.name === 'Durand');
+        PE.setTab('sources'); PE.rerender();
+        const card = document.querySelector('.src-card[data-id="' + D.id + '"]');
+        const hasBlock = !!card.querySelector('.indispo-block');
+        card.querySelector('.id-add').click();
+        // sessions of the sample project are all Friday afternoons -> slot 9
+        const row = document.querySelector('.src-card[data-id="' + D.id + '"] .indispo-row');
+        const setSel = (sel, v) => { const el = row.querySelector(sel); el.value = String(v); el.dispatchEvent(new Event('change')); };
+        setSel('.id-from', 9); setSel('.id-to', 9); setSel('.id-deg', 2);
+        const stored = JSON.stringify(PE.state.scheduling.teachers[D.id].indispo);
+        PE.setTab('scheduling');
+        document.querySelector('#o-run').click();
+        return new Promise((res) => setTimeout(() => {
+          const lr = PE.state.scheduling.lastResult;
+          const asg = Object.values(lr.assignments);
+          res(JSON.stringify({
+            hasBlock: hasBlock,
+            stored: stored,
+            durandStaffed: asg.filter((a) => a.indexOf(D.id) !== -1).length,
+            errors: window.__errors.length
+          }));
+        }, 500));
+      })()`);
+      console.log('SMOKE-E2E-INDISPO ' + indispo);
+
       const shotArg = process.argv.find((a) => a.startsWith('--shot='));
+      if (shotArg) {
+        await win.webContents.executeJavaScript('window.PE.setTab("sources")');
+        await new Promise((r) => setTimeout(r, 300));
+        win.setContentSize(1440, 1200);
+        await new Promise((r) => setTimeout(r, 300));
+        const im = await win.webContents.capturePage();
+        fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-indispo.png', im.toPNG());
+        console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-indispo.png');
+      }
       if (shotArg) {
         await win.webContents.executeJavaScript(`(() => {
           const PE = window.PE;

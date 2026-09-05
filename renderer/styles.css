@@ -142,6 +142,10 @@ label { font-size: 13px; }
 .feed-row { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
 .feed-row + .feed-row { margin-top: 6px; }
 .f-add { align-self: flex-start; }
+.indispo-block { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+.indispo-row { margin-bottom: 4px; }
+.indispo-row select { font-size: 12px; }
+.avail-item.soft { color: var(--muted); }
 
 /* ---------- planning list ---------- */
 .day-group { margin-bottom: 14px; }

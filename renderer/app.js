@@ -304,8 +304,9 @@
 
   PE.teacherEntry = function (sourceId) {
     const t = PE.state.scheduling.teachers;
-    if (!t[sourceId]) t[sourceId] = { preferred: [], maxHours: null };
+    if (!t[sourceId]) t[sourceId] = { preferred: [], maxHours: null, indispo: [] };
     if (!Array.isArray(t[sourceId].preferred)) t[sourceId].preferred = [];
+    if (!Array.isArray(t[sourceId].indispo)) t[sourceId].indispo = [];
     return t[sourceId];
   };
 
@@ -315,7 +316,7 @@
       .filter((s) => s.enabled !== false)
       .map((s) => {
         const e = PE.teacherEntry(s.id);
-        return { id: s.id, name: s.name, color: s.color, events: s.events || [], preferred: e.preferred, maxHours: e.maxHours };
+        return { id: s.id, name: s.name, color: s.color, events: s.events || [], preferred: e.preferred, maxHours: e.maxHours, indispo: e.indispo };
       });
   };
 

@@ -74,9 +74,11 @@
       const other = (ivsMap[tid] || []).filter((iv) => iv.sid !== s.id);
       return S.coverage(busyMap[tid] || [], other, sMs);
     }
+    const idgOf = (tid, s) => S.indispoDegree((byTeacher[tid] && byTeacher[tid].indispo) || [], s);
 
     // per (project, teacher) : sessions affected + sessions the teacher is
-    // available for (complete vs partial coverage, team membership ignored).
+    // available for (complete vs partial coverage, team membership ignored ;
+    // a hard "indisponible" half-day counts as unavailable).
     const pairCount = {};
     const pairAvail = {};
     projects.forEach((p) => {
@@ -85,6 +87,7 @@
         let full = 0;
         let part = 0;
         ps.forEach((s) => {
+          if (idgOf(t.id, s) === 2) return;
           const c = covFor(t.id, s);
           if (c.frac >= 1 - 1e-9) full++;
           else if (c.frac > 1e-9) part++;
@@ -469,9 +472,12 @@
       const c = covFor(t.id, s);
       const pref = S.inPreferred(t.preferred, +new Date(s.start));
       const elig = PE.isEligible(s.projectId, t.id);
+      const idg = S.indispoDegree(t.indispo || [], s);
       let tag = '';
-      if (c.frac <= 1e-9) tag = ' — indispo';
+      if (idg === 2) tag = ' — indispo (recurrent)';
+      else if (c.frac <= 1e-9) tag = ' — indispo';
       else if (c.frac < 1 - 1e-9) tag = ' — ' + fmtH(hoursOf(c.freeMs)) + ' seulement';
+      if (idg === 1) tag += ' — a eviter';
       if (!elig) tag += ' — hors equipe';
       return `<option value="${t.id}" ${t.id === opts.current ? 'selected' : ''}>${pref ? '★ ' : ''}${U.esc(t.name)}${tag}</option>`;
     }).join('');
@@ -491,7 +497,8 @@
     const dispoCell = (list.length ? list.map((x) => {
       const color = byTeacher[x.tid] ? byTeacher[x.tid].color : '#999';
       const slots = x.full ? '' : ' <span class="muted">' + fmtSlots(covFor(x.tid, s).free) + '</span>';
-      return `<span class="avail-item ${x.full ? '' : 'part'}"><span class="dot" style="background:${color}"></span>${U.esc(x.name)}&nbsp;${fmtH(x.hours)}${x.full ? '' : ' ⚠' + slots}</span>`;
+      const soft = x.soft ? ' <span class="muted">(a eviter)</span>' : '';
+      return `<span class="avail-item ${x.full ? '' : 'part'}${x.soft ? ' soft' : ''}"><span class="dot" style="background:${color}"></span>${U.esc(x.name)}&nbsp;${fmtH(x.hours)}${x.full ? '' : ' ⚠' + slots}${soft}</span>`;
     }).join('') : '<span class="muted">aucun encadrant eligible disponible</span>');
 
     const eligT = T.filter((t) => PE.isEligible(s.projectId, t.id));

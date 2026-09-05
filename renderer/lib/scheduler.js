@@ -22,6 +22,51 @@
     return preferred.some((p) => p && p.from && p.to && p.from <= mk && mk <= p.to);
   }
 
+  /* Weekly half-day slots, Mon..Fri x {AM, PM} -> index 0..9
+     (0 = lun. matin, 1 = lun. apres-midi, ... 8 = ven. matin, 9 = ven. apres-midi).
+     AM/PM split at 12:00 local. A session usually touches one slot, two if it
+     straddles noon, more if it spans several days. */
+  function sessionSlots(s) {
+    const a = ms(s.start);
+    const b = ms(s.end);
+    const out = {};
+    let cur = new Date(a);
+    cur.setHours(0, 0, 0, 0);
+    let guard = 0;
+    while (cur.getTime() < b && guard++ < 60) {
+      const dow = cur.getDay(); // 0 Sun .. 6 Sat
+      if (dow >= 1 && dow <= 5) {
+        const d0 = cur.getTime();
+        const noon = d0 + 12 * 3600000;
+        const d1 = d0 + 24 * 3600000;
+        if (Math.min(b, noon) > Math.max(a, d0)) out[(dow - 1) * 2] = 1;
+        if (Math.min(b, d1) > Math.max(a, noon)) out[(dow - 1) * 2 + 1] = 1;
+      }
+      cur = new Date(cur.getTime() + 24 * 3600000);
+      cur.setHours(0, 0, 0, 0);
+    }
+    return Object.keys(out).map(Number);
+  }
+
+  /* Recurring half-day unavailability for a teacher, as a degree for a given
+     session : 0 = none, 1 = soft (place a session there only as a last
+     resort), 2 = hard (never place a session there). `indispo` is a list of
+     { from, to, degree } weekly slot ranges (see sessionSlots). */
+  function indispoDegree(indispo, s) {
+    if (!indispo || !indispo.length) return 0;
+    const slots = sessionSlots(s);
+    if (!slots.length) return 0;
+    let deg = 0;
+    for (const e of indispo) {
+      const d = +(e && e.degree);
+      if (d !== 1 && d !== 2) continue;
+      const lo = Math.min(+e.from, +e.to);
+      const hi = Math.max(+e.from, +e.to);
+      for (const sl of slots) if (sl >= lo && sl <= hi && d > deg) deg = d;
+    }
+    return deg;
+  }
+
   /* Busy intervals for a teacher, from their calendar events. */
   function teacherBusy(events, allDayBusy) {
     const out = [];
@@ -87,6 +132,7 @@
       name: t.name,
       busy: teacherBusy(t.events, allDayBusy),
       preferred: t.preferred || [],
+      indispo: t.indispo || [],
       maxHours: (t.maxHours == null || t.maxHours === '') ? null : Number(t.maxHours),
       load: 0,
       ivs: [],            // { start, end, sid }
@@ -193,14 +239,16 @@
       const list = [];
       T.forEach((t) => {
         if (!eligibleFor(o.teams, s, t.id)) return;
+        const idg = indispoDegree(t.indispo, s);
+        if (idg === 2) return;
         const c = coverage(t.busy, otherIvs(t, s.id), sMs);
         if (c.freeMs > 1000) {
-          list.push({ tid: t.id, name: t.name, hours: Math.round(c.freeMs / 3600) / 1000, full: c.frac >= FULL });
+          list.push({ tid: t.id, name: t.name, hours: Math.round(c.freeMs / 3600) / 1000, full: c.frac >= FULL, soft: idg === 1 });
         }
       });
-      list.sort((a, b) => b.hours - a.hours);
+      list.sort((a, b) => (a.soft - b.soft) || (b.hours - a.hours));
       availList[s.id] = list;
-      availFull[s.id] = list.filter((x) => x.full).length;
+      availFull[s.id] = list.filter((x) => x.full && !x.soft).length;
       partial[s.id] = [];
       indispo[s.id] = [];
       outOfTeam[s.id] = [];
@@ -218,6 +266,7 @@
         const t = byId[tid];
         if (!t) return;
         if (!eligibleFor(o.teams, s, tid)) outOfTeam[s.id].push(tid);
+        if (indispoDegree(t.indispo, s) === 2) { indispo[s.id].push(tid); return; }
         const c = coverage(t.busy, otherIvs(t, s.id), sMs);
         if (c.frac <= 1e-9) indispo[s.id].push(tid);
         else if (c.frac < FULL) partial[s.id].push(tid);
@@ -298,6 +347,7 @@
         const sMs = { start: ms(s.start), end: ms(s.end) };
         s._fullCount = T.reduce((n, t) => {
           if (!eligibleFor(o.teams, s, t.id)) return n;
+          if (indispoDegree(t.indispo, s) !== 0) return n;
           return coverage(t.busy, otherIvs(t, s.id), sMs).frac >= FULL ? n + 1 : n;
         }, 0);
       });
@@ -321,15 +371,21 @@
         for (const t of T) {
           if (assignments[s.id].indexOf(t.id) !== -1) continue;
           if (!eligibleFor(o.teams, s, t.id)) continue;
+          const idg = indispoDegree(t.indispo, s);
+          if (idg === 2) continue;
           if (o.respectMaxHours && t.maxHours != null && t.load + dur > t.maxHours + 1e-9) continue;
           const c = coverage(t.busy, otherIvs(t, s.id), sMs);
           if (c.frac <= 1e-9) continue;
-          cands.push({ t: t, frac: c.frac });
+          cands.push({ t: t, frac: c.frac, soft: idg === 1 });
         }
         if (!cands.length) break;
 
-        const fulls = cands.filter((x) => x.frac >= FULL);
+        // full-availability, non-"a eviter" teachers first ; a soft-indispo
+        // teacher only enters the pool when nothing else is left, and even
+        // then carries a heavy score penalty so they are the last picked.
+        const fulls = cands.filter((x) => x.frac >= FULL && !x.soft);
         const pool = fulls.length ? fulls : cands;
+        const SOFT_PENALTY = 1e7;
 
         let best = null;
         let bestScore = -Infinity;
@@ -338,7 +394,8 @@
           // deficit = hours still owed toward this teacher's weight-derived
           // target ; a preferred month is worth ~one session.
           const deficit = (targetH[x.t.id] || 0) - x.t.load;
-          const score = o.prefWeight * pref * SCALE + deficit + x.frac * 1e-3 + x.t._rnd;
+          const score = o.prefWeight * pref * SCALE + deficit + x.frac * 1e-3 + x.t._rnd
+            - (x.soft ? SOFT_PENALTY : 0);
           if (score > bestScore) { bestScore = score; best = x.t; }
         }
         if (!best) break;
@@ -369,6 +426,7 @@
         if (!arr || arr.indexOf(over.id) === -1 || arr.indexOf(under.id) !== -1) continue;
         if ((o.locked[s.id] || []).indexOf(over.id) !== -1) continue;
         if (!eligibleFor(o.teams, s, under.id)) continue;
+        if (indispoDegree(under.indispo, s) !== 0) continue;
         const sMs = { start: ms(s.start), end: ms(s.end) };
         const dur = (sMs.end - sMs.start) / 3600000;
         if (coverage(under.busy, under.ivs.filter((iv) => iv.sid !== s.id), sMs).frac < FULL) continue;
@@ -417,6 +475,7 @@
   }
 
   window.PE.scheduler = {
-    run, evaluate, teacherBusy, coverage, eligibleFor, weightFor, inPreferred, monthKey
+    run, evaluate, teacherBusy, coverage, eligibleFor, weightFor, inPreferred, monthKey,
+    sessionSlots, indispoDegree
   };
 })();
