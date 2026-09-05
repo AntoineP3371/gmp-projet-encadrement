@@ -10,7 +10,7 @@ Application de bureau (Electron) pour :
 3. **Comparer les agendas** pour trouver les **périodes communes** — créneaux où
    tout le monde est libre, ou au contraire tous occupés — dans une fenêtre de
    travail paramétrable (jours + heures).
-4. **Répartir les enseignants sur les séances de projet (P4)** : au moins un
+4. **Répartir les enseignants sur les séances de projet ** : au moins un
    enseignant par séance de 4 h, uniquement quand il est libre, avec équilibrage
    de la charge et prise en compte de **périodes préférées (en mois)** par
    enseignant.
