@@ -1,21 +1,21 @@
 (function () {
   'use strict';
-  const P4 = window.P4;
-  const U = P4.util;
-  const FB = P4.fb;
+  const PE = window.PE;
+  const U = PE.util;
+  const FB = PE.fb;
   const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
   function busyOf(src) {
-    return P4.scheduler.teacherBusy(src.events || [], true);
+    return PE.scheduler.teacherBusy(src.events || [], true);
   }
 
   function compute() {
-    const c = P4.state.common;
-    const chosen = P4.state.sources.filter((s) => c.selected.indexOf(s.id) !== -1 && s.enabled !== false);
+    const c = PE.state.common;
+    const chosen = PE.state.sources.filter((s) => c.selected.indexOf(s.id) !== -1 && s.enabled !== false).sort(PE.byName);
     if (chosen.length < 2) return { error: 'Selectionnez au moins 2 agendas.' };
 
-    const wStart = +new Date(P4.state.range.from);
-    const wEnd = +new Date(P4.state.range.to + 'T23:59:59');
+    const wStart = +new Date(PE.state.range.from);
+    const wEnd = +new Date(PE.state.range.to + 'T23:59:59');
     const grid = FB.workingWindow(wStart, wEnd, c.work.startH, c.work.endH, c.work.days);
     if (!grid.length) return { error: 'La fenetre de travail est vide (jours / heures).' };
 
@@ -35,8 +35,8 @@
   }
 
   function render(root) {
-    const c = P4.state.common;
-    const srcs = P4.state.sources;
+    const c = PE.state.common;
+    const srcs = PE.sortedSources();
 
     root.innerHTML = `
       <div class="view-head">
@@ -80,18 +80,18 @@
 
     root.querySelectorAll('.cm-src').forEach((cb) => cb.addEventListener('change', () => {
       c.selected = Array.from(root.querySelectorAll('.cm-src')).filter((x) => x.checked).map((x) => x.value);
-      P4.save();
+      PE.save();
     }));
-    root.querySelector('#cm-mode').addEventListener('change', (e) => { c.mode = e.target.value; P4.save(); });
-    root.querySelector('#cm-h1').addEventListener('change', (e) => { c.work.startH = +e.target.value; P4.save(); });
-    root.querySelector('#cm-h2').addEventListener('change', (e) => { c.work.endH = +e.target.value; P4.save(); });
+    root.querySelector('#cm-mode').addEventListener('change', (e) => { c.mode = e.target.value; PE.save(); });
+    root.querySelector('#cm-h1').addEventListener('change', (e) => { c.work.startH = +e.target.value; PE.save(); });
+    root.querySelector('#cm-h2').addEventListener('change', (e) => { c.work.endH = +e.target.value; PE.save(); });
     root.querySelectorAll('.cm-day').forEach((cb) => cb.addEventListener('change', () => {
       c.work.days = Array.from(root.querySelectorAll('.cm-day')).filter((x) => x.checked).map((x) => +x.value);
-      P4.save();
+      PE.save();
     }));
     root.querySelector('#cm-run').addEventListener('click', () => {
       c.result = compute();
-      P4.save();
+      PE.save();
       paint(root.querySelector('#cm-out'));
     });
 
@@ -99,7 +99,7 @@
   }
 
   function paint(out) {
-    const r = P4.state.common.result;
+    const r = PE.state.common.result;
     if (!r) { out.innerHTML = ''; return; }
     if (r.error) { out.innerHTML = `<div class="panel"><span class="badge danger">${U.esc(r.error)}</span></div>`; return; }
 
@@ -114,7 +114,7 @@
     out.innerHTML = `
       <div class="panel">
         <div class="spread">
-          <h2 style="margin:0">${P4.state.common.mode === 'free' ? 'Libres ensemble' : 'Occupes ensemble'} — ${U.esc(r.names.join(', '))}</h2>
+          <h2 style="margin:0">${PE.state.common.mode === 'free' ? 'Libres ensemble' : 'Occupes ensemble'} — ${U.esc(r.names.join(', '))}</h2>
           <div class="row">
             <span class="badge ok">${total} h</span>
             <span class="badge">${r.intervals.length} creneau(x)</span>
@@ -141,11 +141,11 @@
         U.fmtShort(iv.start), U.fmtTime(iv.start), U.fmtTime(iv.end),
         Math.round((iv.end - iv.start) / 360000) / 10
       ]);
-      const csv = P4.exp.toCSV(['Date', 'Debut', 'Fin', 'Duree (h)'], rows);
+      const csv = PE.exp.toCSV(['Date', 'Debut', 'Fin', 'Duree (h)'], rows);
       const rr = await window.api.saveText({ defaultName: 'periodes-communes.csv', content: csv });
-      if (rr.ok) P4.toast('CSV enregistre', 'ok');
+      if (rr.ok) PE.toast('CSV enregistre', 'ok');
     });
   }
 
-  P4.views.common = { render };
+  PE.views.common = { render };
 })();

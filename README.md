@@ -10,7 +10,7 @@ Application de bureau (Electron) pour :
 3. **Comparer les agendas** pour trouver les **périodes communes** — créneaux où
    tout le monde est libre, ou au contraire tous occupés — dans une fenêtre de
    travail paramétrable (jours + heures).
-4. **Répartir les enseignants sur les séances de projet ** : au moins un
+4. **Répartir les enseignants sur les séances de projet** : au moins un
    enseignant par séance de 4 h, uniquement quand il est libre, avec équilibrage
    de la charge et prise en compte de **périodes préférées (en mois)** par
    enseignant.
@@ -18,7 +18,7 @@ Application de bureau (Electron) pour :
 ## Installation
 
 ```bash
-cd p4-scheduler
+cd projet-encadrement
 npm install
 npm start
 ```
@@ -66,6 +66,10 @@ disponibilités, affectation) n'y voit que du feu.
   avertissement.
 
 Les agendas importés restent **entièrement modifiables** dans cet onglet.
+
+Partout dans l'application, encadrants et projets sont affichés **par ordre
+alphabétique** (accents et casse ignorés, tri naturel des nombres) ; l'ordre
+d'ajout est conservé en interne mais n'a aucune incidence.
 
 *Supprimer tous les encadrants* / *Supprimer tous les projets* (au-dessus de
 chaque liste, avec confirmation) vident d'un coup toute une catégorie —

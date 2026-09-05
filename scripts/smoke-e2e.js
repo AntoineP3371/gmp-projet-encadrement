@@ -21,15 +21,15 @@ function attach(win, deps) {
     try {
       await new Promise((r) => setTimeout(r, 2000));
       const probe = await win.webContents.executeJavaScript(
-        'JSON.stringify({ hasP4: !!window.P4, tab: window.P4 && window.P4.state && window.P4.state.ui.tab,' +
-        ' views: window.P4 && Object.keys(window.P4.views || {}),' +
+        'JSON.stringify({ hasPE: !!window.PE, tab: window.PE && window.PE.state && window.PE.state.ui.tab,' +
+        ' views: window.PE && Object.keys(window.PE.views || {}),' +
         ' viewChildren: document.getElementById("view").children.length,' +
         ' tabsWired: document.querySelectorAll(".tab").length, errors: window.__errors })'
       );
       console.log('SMOKE-PROBE ' + probe);
       // exercise each tab
       for (const t of ['planning', 'common', 'scheduling', 'sources']) {
-        await win.webContents.executeJavaScript('window.P4.setTab(' + JSON.stringify(t) + ')');
+        await win.webContents.executeJavaScript('window.PE.setTab(' + JSON.stringify(t) + ')');
         await new Promise((r) => setTimeout(r, 250));
         const st = await win.webContents.executeJavaScript(
           'JSON.stringify({ tab: ' + JSON.stringify(t) + ', children: document.getElementById("view").children.length, errors: window.__errors.length })'
@@ -41,30 +41,30 @@ function attach(win, deps) {
       const e2e = {
         martin: rd('enseignant-martin.ics'),
         durand: rd('enseignant-durand.ics'),
-        projet: rd('projet-p4.ics')
+        projet: rd('projet-encadrement.ics')
       };
       await win.webContents.executeJavaScript(`(async () => {
-        const P4 = window.P4;
-        P4.state.range.from = '2026-09-01'; P4.state.range.to = '2027-01-31';
-        const mk = (name, type, txt, i) => ({ id: P4.util.uid(), name, type,
-          enabled: true, color: P4.util.color(i),
-          feeds: [{ id: P4.util.uid(), url: '', pasted: txt, events: [], error: null, lastSync: null }],
+        const PE = window.PE;
+        PE.state.range.from = '2026-09-01'; PE.state.range.to = '2027-01-31';
+        const mk = (name, type, txt, i) => ({ id: PE.util.uid(), name, type,
+          enabled: true, color: PE.util.color(i),
+          feeds: [{ id: PE.util.uid(), url: '', pasted: txt, events: [], error: null, lastSync: null }],
           events: [], error: null, lastSync: null });
-        P4.state.sources = [
+        PE.state.sources = [
           mk('Martin', 'teacher', ${JSON.stringify(e2e.martin)}, 0),
           mk('Durand', 'teacher', ${JSON.stringify(e2e.durand)}, 1),
-          mk('Projet P4', 'project', ${JSON.stringify(e2e.projet)}, 2)
+          mk('Projet projet-encadrement', 'project', ${JSON.stringify(e2e.projet)}, 2)
         ];
-        await P4.refreshAll();
+        await PE.refreshAll();
       })()`);
       await new Promise((r) => setTimeout(r, 800));
       const e2eProbe = await win.webContents.executeJavaScript(
-        'JSON.stringify({ evTotal: window.P4.enabledEvents().length,' +
-        ' sessions: window.P4.sessions().length,' +
-        ' srcErrors: window.P4.state.sources.map((s) => s.error).filter(Boolean) })'
+        'JSON.stringify({ evTotal: window.PE.enabledEvents().length,' +
+        ' sessions: window.PE.sessions().length,' +
+        ' srcErrors: window.PE.state.sources.map((s) => s.error).filter(Boolean) })'
       );
       console.log('SMOKE-E2E-LOAD ' + e2eProbe);
-      await win.webContents.executeJavaScript('window.P4.setTab("scheduling")');
+      await win.webContents.executeJavaScript('window.PE.setTab("scheduling")');
       await new Promise((r) => setTimeout(r, 300));
       const auto = await win.webContents.executeJavaScript(
         'document.querySelector("#o-run").click();' +
@@ -72,15 +72,15 @@ function attach(win, deps) {
         ' rows: document.querySelectorAll("table.grid:last-of-type tbody tr").length,' +
         ' unfilled: document.querySelectorAll("table.grid:last-of-type tbody tr.unfilled").length,' +
         ' choice: document.querySelectorAll("table.grid:last-of-type tbody tr.choice").length,' +
-        ' load: window.P4.state.scheduling.lastResult && window.P4.state.scheduling.lastResult.load,' +
+        ' load: window.PE.state.scheduling.lastResult && window.PE.state.scheduling.lastResult.load,' +
         ' errors: window.__errors.length })), 400))'
       );
       console.log('SMOKE-E2E-AUTO ' + auto);
 
       // per-project team: tick only Durand's checkbox via the UI, re-run, expect gaps
       const team = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
-        const durand = P4.state.sources.find((s) => s.name === 'Durand');
+        const PE = window.PE;
+        const durand = PE.state.sources.find((s) => s.name === 'Durand');
         const cb = document.querySelector('.team-on[data-tid="' + durand.id + '"]');
         const before = { checkboxes: document.querySelectorAll('.team-on').length,
           wDisabledBefore: (document.querySelector('.team-w[data-tid="' + durand.id + '"]') || {}).disabled };
@@ -88,7 +88,7 @@ function attach(win, deps) {
         return new Promise((res) => setTimeout(() => {
           document.querySelector('#o-run').click();
           setTimeout(() => {
-            const lr = P4.state.scheduling.lastResult;
+            const lr = PE.state.scheduling.lastResult;
             const asg = Object.values(lr.assignments);
             res(JSON.stringify(Object.assign(before, {
               wEnabledAfter: !(document.querySelector('.team-w[data-tid="' + durand.id + '"]') || {}).disabled,
@@ -103,9 +103,9 @@ function attach(win, deps) {
 
       // swap the proposed encadrant on the first still-filled row
       const swap = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
-        P4.state.scheduling.teams = {};
-        P4.rerender();
+        const PE = window.PE;
+        PE.state.scheduling.teams = {};
+        PE.rerender();
         document.querySelector('#o-run').click();
         return new Promise((res) => setTimeout(() => {
           const sel = document.querySelector('table.grid:last-of-type select.swap');
@@ -129,7 +129,7 @@ function attach(win, deps) {
           await new Promise((r) => setTimeout(r, 200));
           out[v] = { groups: document.querySelectorAll('.grp-head').length,
             tables: document.querySelectorAll('.panel table.grid').length,
-            stored: window.P4.state.scheduling.view };
+            stored: window.PE.state.scheduling.view };
         }
         out.errors = window.__errors.length;
         return JSON.stringify(out);
@@ -148,21 +148,21 @@ function attach(win, deps) {
 
       // weight-driven distribution + "sans encadrant" weight column (fully-free team)
       const weights = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
-        const proj = P4.state.sources.find((s) => s.type === 'project');
-        const M = P4.state.sources.find((s) => s.name === 'Martin');
-        const D = P4.state.sources.find((s) => s.name === 'Durand');
+        const PE = window.PE;
+        const proj = PE.state.sources.find((s) => s.type === 'project');
+        const M = PE.state.sources.find((s) => s.name === 'Martin');
+        const D = PE.state.sources.find((s) => s.name === 'Durand');
         // free both teachers so the weights actually drive the split
         M.feeds[0].pasted = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//x//EN\\nEND:VCALENDAR';
         D.feeds[0].pasted = M.feeds[0].pasted; M.events = []; D.events = [];
-        P4.state.scheduling.teams = { [proj.id]: {
+        PE.state.scheduling.teams = { [proj.id]: {
           [M.id]: { on: true, w: 3 }, [D.id]: { on: true, w: 1 }, __nosup__: { on: true, w: 2 }
         } };
-        P4.rerender();
+        PE.rerender();
         const nosupCell = document.querySelector('.team-on[data-tid="__nosup__"]');
         document.querySelector('#o-run').click();
         return new Promise((res) => setTimeout(() => {
-          const lr = P4.state.scheduling.lastResult;
+          const lr = PE.state.scheduling.lastResult;
           const asg = Object.values(lr.assignments);
           const m = asg.filter((a) => a[0] === M.id).length;
           const d = asg.filter((a) => a[0] === D.id).length;
@@ -180,25 +180,25 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-WEIGHTS ' + weights);
       await win.webContents.executeJavaScript(`(async () => {
-        const P4 = window.P4;
-        P4.state.scheduling.teams = {}; P4.state.scheduling.lastResult = null;
-        const M = P4.state.sources.find((s) => s.name === 'Martin');
-        const D = P4.state.sources.find((s) => s.name === 'Durand');
+        const PE = window.PE;
+        PE.state.scheduling.teams = {}; PE.state.scheduling.lastResult = null;
+        const M = PE.state.sources.find((s) => s.name === 'Martin');
+        const D = PE.state.sources.find((s) => s.name === 'Durand');
         M.feeds[0].pasted = ${JSON.stringify(e2e.martin)}; D.feeds[0].pasted = ${JSON.stringify(e2e.durand)};
-        await P4.refreshAll();
+        await PE.refreshAll();
       })()`);
 
       // partial supervision + explicit "sans encadrant"
       const nosup = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
-        const proj = P4.state.sources.find((s) => s.type === 'project');
+        const PE = window.PE;
+        const proj = PE.state.sources.find((s) => s.type === 'project');
         proj.supervision = 'partial';
         proj.unsupHours = 8;
-        P4.state.scheduling.view = 'session';
-        P4.rerender();
+        PE.state.scheduling.view = 'session';
+        PE.rerender();
         document.querySelector('#o-run').click();
         return new Promise((res) => setTimeout(() => {
-          const lr = P4.state.scheduling.lastResult;
+          const lr = PE.state.scheduling.lastResult;
           const before = { autoNoSup: (lr.noSup || []).length, unfilled: lr.unfilled.length };
           const cb = document.querySelector('.nosup-cb');
           const sid = cb.dataset.sid;
@@ -207,7 +207,7 @@ function attach(win, deps) {
             res(JSON.stringify(Object.assign(before, {
               declaredSid: sid,
               nosupRows: document.querySelectorAll('table.grid tr.nosup').length,
-              explicitStored: !!P4.state.scheduling.noSup[sid],
+              explicitStored: !!PE.state.scheduling.noSup[sid],
               errors: window.__errors.length
             })));
           }, 350);
@@ -215,11 +215,11 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-NOSUP ' + nosup);
 
-      await win.webContents.executeJavaScript('window.P4.setTab("common")');
+      await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
       const common = await win.webContents.executeJavaScript(`(() => {
-        const c = window.P4.state.common;
-        c.selected = window.P4.state.sources.filter((s) => s.type === 'teacher').map((s) => s.id);
+        const c = window.PE.state.common;
+        c.selected = window.PE.state.sources.filter((s) => s.type === 'teacher').map((s) => s.id);
         c.mode = 'free';
         document.querySelector('#cm-run') && document.querySelector('#cm-run').click();
         return JSON.stringify({ hasResult: !!c.result, intervals: c.result && c.result.intervals && c.result.intervals.length });
@@ -227,14 +227,14 @@ function attach(win, deps) {
       console.log('SMOKE-E2E-COMMON ' + common);
 
       const imp = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
-        P4.setTab('sources');
-        const proj = P4.state.sources.find((s) => s.type === 'project');
+        const PE = window.PE;
+        PE.setTab('sources');
+        const proj = PE.state.sources.find((s) => s.type === 'project');
         proj.supervision = 'partial'; proj.supMode = 'percent'; proj.supPercent = 75;
-        P4.rerender();
+        PE.rerender();
         const sel = document.querySelector('.src-card[data-id="' + proj.id + '"] .s-supmode');
         const pctIn = document.querySelector('.src-card[data-id="' + proj.id + '"] .s-pct');
-        const target = P4.projectUnsupTarget(proj); // 8 sessions x 4h = 32h ; 75% -> 8h
+        const target = PE.projectUnsupTarget(proj); // 8 sessions x 4h = 32h ; 75% -> 8h
         return JSON.stringify({
           dlBtn: !!document.querySelector('#dl-template'),
           impBtn: !!document.querySelector('#imp-xlsx'),
@@ -249,8 +249,8 @@ function attach(win, deps) {
 
       // multiple iCal feeds per encadrant, added/removed directly in the app
       const feeds = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
-        const M = P4.state.sources.find((s) => s.name === 'Martin');
+        const PE = window.PE;
+        const M = PE.state.sources.find((s) => s.name === 'Martin');
         const before = M.feeds.length;
         const card = () => document.querySelector('.src-card[data-id="' + M.id + '"]');
         card().querySelector('.f-add').click();
@@ -260,7 +260,7 @@ function attach(win, deps) {
         urlInput.value = 'https://exemple.fr/martin-etab.ics';
         urlInput.dispatchEvent(new Event('change'));
         const savedUrl = M.feeds[1].url;
-        const mergedEvents = P4.teacherModels().find((t) => t.id === M.id).events.length;
+        const mergedEvents = PE.teacherModels().find((t) => t.id === M.id).events.length;
         const feedRows = card().querySelectorAll('.feed-row');
         const delBtn = feedRows[feedRows.length - 1].querySelector('.f-del');
         const hasDel = !!delBtn;
@@ -272,29 +272,29 @@ function attach(win, deps) {
       try {
         // force a partially-available encadrant so the report shows supervision slots
         await win.webContents.executeJavaScript(`(async () => {
-          const P4 = window.P4;
-          const D = P4.state.sources.find((s) => s.name === 'Durand');
+          const PE = window.PE;
+          const D = PE.state.sources.find((s) => s.name === 'Durand');
           // Durand busy 13:00-15:00 on 25/09 -> partial cover of that 13-17 session
           D.feeds[0].pasted = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//x//EN\\nBEGIN:VEVENT\\nUID:pp1\\nDTSTAMP:20260101T000000Z\\nDTSTART;TZID=Europe/Paris:20260925T130000\\nDTEND;TZID=Europe/Paris:20260925T150000\\nSUMMARY:reunion\\nEND:VEVENT\\nEND:VCALENDAR';
-          P4.state.scheduling.teams = {}; P4.state.scheduling.locked = {}; P4.state.scheduling.noSup = {};
-          await P4.refreshAll();
-          P4.setTab('scheduling');
+          PE.state.scheduling.teams = {}; PE.state.scheduling.locked = {}; PE.state.scheduling.noSup = {};
+          await PE.refreshAll();
+          PE.setTab('scheduling');
         })()`);
         await new Promise((r) => setTimeout(r, 400));
         // pin Durand on the 25/09 session (he only covers 15:00-17:00)
         await win.webContents.executeJavaScript(`(() => {
-          const P4 = window.P4;
-          const D = P4.state.sources.find((s) => s.name === 'Durand');
-          const s = P4.sessions().find((x) => x.start.indexOf('2026-09-25') !== -1);
-          P4.state.scheduling.locked[s.id] = [D.id];
-          P4.state.scheduling.lastResult = null;
-          P4.rerender();
+          const PE = window.PE;
+          const D = PE.state.sources.find((s) => s.name === 'Durand');
+          const s = PE.sessions().find((x) => x.start.indexOf('2026-09-25') !== -1);
+          PE.state.scheduling.locked[s.id] = [D.id];
+          PE.state.scheduling.lastResult = null;
+          PE.rerender();
           document.querySelector('#o-run').click();
         })()`);
         await new Promise((r) => setTimeout(r, 400));
-        const html = await win.webContents.executeJavaScript('window.P4.views.scheduling._report()');
+        const html = await win.webContents.executeJavaScript('window.PE.views.scheduling._report()');
         const rw = new BrowserWindow({ show: false, width: 900, height: 1400, webPreferences: { javascript: false } });
-        const rt = path.join(app.getPath('temp'), 'p4-smoke-report-' + Date.now() + '.html');
+        const rt = path.join(app.getPath('temp'), 'projet-encadrement-smoke-report-' + Date.now() + '.html');
         fs.writeFileSync(rt, html, 'utf8');
         await rw.loadFile(rt);
         await new Promise((r) => setTimeout(r, 250));
@@ -331,18 +331,18 @@ function attach(win, deps) {
       }
 
       const assist = await win.webContents.executeJavaScript(`(() => {
-        const P4 = window.P4;
+        const PE = window.PE;
         // ensure a plain auto assignment so loads exist
-        P4.state.scheduling.teams = {}; P4.state.scheduling.locked = {}; P4.state.scheduling.noSup = {};
-        P4.state.scheduling.lastResult = null; P4.rerender();
+        PE.state.scheduling.teams = {}; PE.state.scheduling.locked = {}; PE.state.scheduling.noSup = {};
+        PE.state.scheduling.lastResult = null; PE.rerender();
         document.querySelector('#o-run') && document.querySelector('#o-run').click();
-        const A = P4.views.assistant;
+        const A = PE.views.assistant;
         const r1 = A._answer('seances ou Martin peut remplacer Durand');
         const r2 = A._answer('reequilibrer les heures entre Martin et Durand');
         const r3 = A._answer('creneaux libres communs de Martin et Durand');
         const r4 = A._answer('charge de Martin');
         const r5 = A._answer('qui est libre le 25/09 apres-midi');
-        P4.setTab('assistant');
+        PE.setTab('assistant');
         const hasTab = !!document.querySelector('.tab[data-tab="assistant"]');
         const hasForm = !!document.querySelector('#as-form');
         return JSON.stringify({
@@ -360,13 +360,13 @@ function attach(win, deps) {
       const shotArg = process.argv.find((a) => a.startsWith('--shot='));
       if (shotArg) {
         await win.webContents.executeJavaScript(`(() => {
-          const P4 = window.P4;
-          const A = P4.views.assistant;
-          P4.state.assistant.log = [];
-          const ask = (q) => { P4.state.assistant.log.push({ role: 'user', text: q }); P4.state.assistant.log.push({ role: 'bot', html: A._answer(q).html }); };
+          const PE = window.PE;
+          const A = PE.views.assistant;
+          PE.state.assistant.log = [];
+          const ask = (q) => { PE.state.assistant.log.push({ role: 'user', text: q }); PE.state.assistant.log.push({ role: 'bot', html: A._answer(q).html }); };
           ask('seances ou Martin peut remplacer Durand');
           ask('reequilibrer les heures entre Martin et Durand');
-          P4.setTab('assistant');
+          PE.setTab('assistant');
         })()`);
         await new Promise((r) => setTimeout(r, 500));
         win.setContentSize(1440, 1700);
@@ -380,27 +380,27 @@ function attach(win, deps) {
       // run last : leaves the app (and its real persisted project.json,
       // --smoke uses the same userData path) with an empty project once the
       // suite finishes, and every earlier test above still ran against the
-      // full Martin/Durand/Projet P4 fixture.
+      // full Martin/Durand/Projet projet-encadrement fixture.
       const wipe = await win.webContents.executeJavaScript(`(() => {
         window.confirm = () => true; // auto-accept the confirmation dialogs
-        const P4 = window.P4;
-        P4.setTab('sources');
-        P4.rerender();
-        const before = { teachers: P4.sourcesOfType('teacher').length, projects: P4.sourcesOfType('project').length };
+        const PE = window.PE;
+        PE.setTab('sources');
+        PE.rerender();
+        const before = { teachers: PE.sourcesOfType('teacher').length, projects: PE.sourcesOfType('project').length };
         document.querySelector('#del-all-teachers').click();
-        const afterTeachers = { teachers: P4.sourcesOfType('teacher').length, teacherBtn: !!document.querySelector('#del-all-teachers') };
+        const afterTeachers = { teachers: PE.sourcesOfType('teacher').length, teacherBtn: !!document.querySelector('#del-all-teachers') };
         document.querySelector('#del-all-projects').click();
-        const afterProjects = { projects: P4.sourcesOfType('project').length, projectBtn: !!document.querySelector('#del-all-projects') };
+        const afterProjects = { projects: PE.sourcesOfType('project').length, projectBtn: !!document.querySelector('#del-all-projects') };
         return JSON.stringify({
           before, afterTeachers, afterProjects,
-          sourcesEmpty: P4.state.sources.length === 0,
-          teamsEmpty: Object.keys(P4.state.scheduling.teams).length === 0,
-          lockedEmpty: Object.keys(P4.state.scheduling.locked).length === 0,
+          sourcesEmpty: PE.state.sources.length === 0,
+          teamsEmpty: Object.keys(PE.state.scheduling.teams).length === 0,
+          lockedEmpty: Object.keys(PE.state.scheduling.locked).length === 0,
           errors: window.__errors.length
         });
       })()`);
       console.log('SMOKE-E2E-WIPE ' + wipe);
-      await new Promise((r) => setTimeout(r, 500)); // let the debounced P4.save() flush to disk
+      await new Promise((r) => setTimeout(r, 500)); // let the debounced PE.save() flush to disk
 
       const finalErrors = await win.webContents.executeJavaScript('JSON.stringify(window.__errors)');
       console.log('SMOKE-ERRORS ' + finalErrors);

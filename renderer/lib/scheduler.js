@@ -4,11 +4,11 @@
      only falls back to partial availability when no full one is left.
    - per project, each teacher can carry a relative weight (team matrix) ; the
      score also rewards a matching preferred month.
-   Pure module, depends only on P4.fb. */
+   Pure module, depends only on PE.fb. */
 (function () {
   'use strict';
-  window.P4 = window.P4 || {};
-  const FB = window.P4.fb;
+  window.PE = window.PE || {};
+  const FB = window.PE.fb;
 
   function ms(x) { return +new Date(x); }
 
@@ -416,7 +416,7 @@
       T, byId, Object.assign({}, o, { assignments: assignments }));
   }
 
-  window.P4.scheduler = {
+  window.PE.scheduler = {
     run, evaluate, teacherBusy, coverage, eligibleFor, weightFor, inPreferred, monthKey
   };
 })();

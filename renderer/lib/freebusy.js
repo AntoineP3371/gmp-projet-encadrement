@@ -1,7 +1,7 @@
 /* Interval arithmetic. An interval = { start: ms, end: ms }. Pure, no DOM. */
 (function () {
   'use strict';
-  window.P4 = window.P4 || {};
+  window.PE = window.PE || {};
 
   function normalize(intervals) {
     const arr = (intervals || [])
@@ -109,7 +109,7 @@
     return normalize(intervals).reduce((a, i) => a + (i.end - i.start), 0) / 3600000;
   }
 
-  window.P4.fb = {
+  window.PE.fb = {
     normalize, intersectTwo, intersectMany, invert, overlaps, overlapsAny,
     clampToWorkingHours, workingWindow, totalHours
   };

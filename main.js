@@ -82,7 +82,7 @@ ipcMain.handle('project:save', async (_e, data) => {
 ipcMain.handle('project:export', async (_e, data) => {
   const r = await dialog.showSaveDialog(win, {
     title: 'Exporter le projet',
-    defaultPath: 'p4-projet.json',
+    defaultPath: 'projet-encadrement.json',
     filters: [{ name: 'JSON', extensions: ['json'] }]
   });
   if (r.canceled || !r.filePath) return { ok: false, canceled: true };
@@ -116,7 +116,7 @@ ipcMain.handle('pdf:save', async (_e, { html, defaultName }) => {
   });
   if (r.canceled || !r.filePath) return { ok: false, canceled: true };
 
-  const tmp = path.join(app.getPath('temp'), 'p4-report-' + Date.now() + '.html');
+  const tmp = path.join(app.getPath('temp'), 'projet-encadrement-report-' + Date.now() + '.html');
   let pdfWin = null;
   try {
     fs.writeFileSync(tmp, html, 'utf8');

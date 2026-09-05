@@ -1,14 +1,14 @@
 (function () {
   'use strict';
-  const P4 = window.P4;
-  const U = P4.util;
+  const PE = window.PE;
+  const U = PE.util;
 
   function filtered() {
-    const f = P4.state.planning;
-    const from = +new Date(P4.state.range.from);
-    const to = +new Date(P4.state.range.to + 'T23:59:59');
+    const f = PE.state.planning;
+    const from = +new Date(PE.state.range.from);
+    const to = +new Date(PE.state.range.to + 'T23:59:59');
     const q = (f.q || '').toLowerCase();
-    return P4.enabledEvents().filter((e) => {
+    return PE.enabledEvents().filter((e) => {
       if (f.type !== 'all' && e.type !== f.type) return false;
       if (Array.isArray(f.sources) && f.sources.indexOf(e.sourceId) === -1) return false;
       const s = +new Date(e.start);
@@ -19,8 +19,8 @@
   }
 
   function render(root) {
-    const f = P4.state.planning;
-    const srcs = P4.state.sources;
+    const f = PE.state.planning;
+    const srcs = PE.sortedSources();
     const evs = filtered();
 
     const groups = {};
@@ -77,16 +77,16 @@
         }).join('') : '<p class="muted">Aucun evenement. Chargez des agendas et verifiez la plage de dates.</p>'}
       </div>`;
 
-    root.querySelector('#pl-type').addEventListener('change', (e) => { f.type = e.target.value; P4.save(); P4.rerender(); });
-    root.querySelector('#pl-q').addEventListener('input', (e) => { f.q = e.target.value; P4.save(); P4.rerender(); });
-    root.querySelector('#pl-all').addEventListener('click', () => { f.sources = null; P4.save(); P4.rerender(); });
-    root.querySelector('#pl-none').addEventListener('click', () => { f.sources = []; P4.save(); P4.rerender(); });
+    root.querySelector('#pl-type').addEventListener('change', (e) => { f.type = e.target.value; PE.save(); PE.rerender(); });
+    root.querySelector('#pl-q').addEventListener('input', (e) => { f.q = e.target.value; PE.save(); PE.rerender(); });
+    root.querySelector('#pl-all').addEventListener('click', () => { f.sources = null; PE.save(); PE.rerender(); });
+    root.querySelector('#pl-none').addEventListener('click', () => { f.sources = []; PE.save(); PE.rerender(); });
     root.querySelectorAll('.pl-src').forEach((cb) => {
       cb.addEventListener('change', () => {
         const on = Array.from(root.querySelectorAll('.pl-src')).filter((x) => x.checked).map((x) => x.value);
         f.sources = on;
-        P4.save();
-        P4.rerender();
+        PE.save();
+        PE.rerender();
       });
     });
 
@@ -95,11 +95,11 @@
         U.fmtShort(e.start), e.allDay ? '' : U.fmtTime(e.start), e.allDay ? '' : U.fmtTime(e.end),
         e.type === 'teacher' ? 'Enseignant' : 'Projet', e.sourceName, e.summary, e.location
       ]);
-      const csv = P4.exp.toCSV(['Date', 'Debut', 'Fin', 'Type', 'Agenda', 'Intitule', 'Lieu'], rows);
+      const csv = PE.exp.toCSV(['Date', 'Debut', 'Fin', 'Type', 'Agenda', 'Intitule', 'Lieu'], rows);
       const r = await window.api.saveText({ defaultName: 'planning.csv', content: csv });
-      if (r.ok) P4.toast('CSV enregistre', 'ok');
+      if (r.ok) PE.toast('CSV enregistre', 'ok');
     });
   }
 
-  P4.views.planning = { render };
+  PE.views.planning = { render };
 })();

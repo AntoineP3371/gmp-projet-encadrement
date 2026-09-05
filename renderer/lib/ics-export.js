@@ -1,7 +1,7 @@
 /* CSV + ICS serialisation helpers. */
 (function () {
   'use strict';
-  window.P4 = window.P4 || {};
+  window.PE = window.PE || {};
 
   function csvCell(v) {
     const s = v == null ? '' : String(v);
@@ -40,7 +40,7 @@
     const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Encadrement projet//' + (prodName || 'export') + '//FR', 'CALSCALE:GREGORIAN'];
     events.forEach((e, i) => {
       L.push('BEGIN:VEVENT');
-      L.push('UID:p4-' + now.getTime() + '-' + i + '@p4scheduler');
+      L.push('UID:pe-' + now.getTime() + '-' + i + '@projet-encadrement');
       L.push('DTSTAMP:' + icsDate(now));
       L.push('DTSTART:' + icsDate(e.start));
       L.push('DTEND:' + icsDate(e.end));
@@ -53,5 +53,5 @@
     return L.join('\r\n');
   }
 
-  window.P4.exp = { toCSV, toICS };
+  window.PE.exp = { toCSV, toICS };
 })();

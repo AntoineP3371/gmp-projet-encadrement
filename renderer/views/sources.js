@@ -1,7 +1,7 @@
 (function () {
   'use strict';
-  const P4 = window.P4;
-  const U = P4.util;
+  const PE = window.PE;
+  const U = PE.util;
 
   function feedRow(f, total) {
     return `
@@ -66,7 +66,7 @@
               <span class="s-mode-pct" ${src.supMode === 'percent' ? '' : 'hidden'}>
                 <label>% de seances encadrees <input type="number" class="s-pct" min="0" max="100" step="5" value="${src.supPercent == null ? 100 : src.supPercent}" style="width:64px" /></label>
               </span>
-              <span class="muted">&rarr; ${P4.projectUnsupTarget(src)} h non encadrees (cible)</span>
+              <span class="muted">&rarr; ${PE.projectUnsupTarget(src)} h non encadrees (cible)</span>
             </span>
           </div>` : ''}
         </div>
@@ -74,9 +74,9 @@
   }
 
   function render(root) {
-    const s = P4.state;
-    const teachers = P4.sourcesOfType('teacher');
-    const projects = P4.sourcesOfType('project');
+    const s = PE.state;
+    const teachers = PE.sourcesOfType('teacher');
+    const projects = PE.sourcesOfType('project');
 
     root.innerHTML = `
       <div class="view-head">
@@ -110,14 +110,14 @@
             <h2 style="margin:0">Enseignants (${teachers.length})</h2>
             ${teachers.length ? '<button class="small danger" id="del-all-teachers">supprimer tous les encadrants</button>' : ''}
           </div>
-          <div id="list-teacher">${teachers.map((t) => card(t, P4.state.sources.indexOf(t))).join('') || '<p class="muted">Aucun.</p>'}</div>
+          <div id="list-teacher">${teachers.map((t) => card(t, PE.state.sources.indexOf(t))).join('') || '<p class="muted">Aucun.</p>'}</div>
         </div>
         <div class="panel">
           <div class="spread" style="align-items:center;margin-bottom:8px">
             <h2 style="margin:0">Projets (${projects.length})</h2>
             ${projects.length ? '<button class="small danger" id="del-all-projects">supprimer tous les projets</button>' : ''}
           </div>
-          <div id="list-project">${projects.map((p) => card(p, P4.state.sources.indexOf(p))).join('') || '<p class="muted">Aucun.</p>'}</div>
+          <div id="list-project">${projects.map((p) => card(p, PE.state.sources.indexOf(p))).join('') || '<p class="muted">Aucun.</p>'}</div>
         </div>
       </div>`;
 
@@ -125,52 +125,52 @@
       const name = root.querySelector('#add-name').value.trim();
       const url = root.querySelector('#add-url').value.trim();
       const type = root.querySelector('#add-type').value;
-      if (!name) { P4.toast('Nom requis', 'err'); return; }
+      if (!name) { PE.toast('Nom requis', 'err'); return; }
       const src = {
         id: U.uid(), name, type, enabled: true,
-        color: U.color(P4.state.sources.length),
+        color: U.color(PE.state.sources.length),
         feeds: [{ id: U.uid(), url, pasted: '', events: [], error: null, lastSync: null }],
         events: [], error: null, lastSync: null
       };
-      P4.state.sources.push(src);
-      P4.save();
-      P4.rerender();
-      if (url) P4.refreshSource(src.id);
+      PE.state.sources.push(src);
+      PE.save();
+      PE.rerender();
+      if (url) PE.refreshSource(src.id);
     });
 
     const delAllTeachers = root.querySelector('#del-all-teachers');
     if (delAllTeachers) {
       delAllTeachers.addEventListener('click', () => {
-        const n = P4.sourcesOfType('teacher').length;
+        const n = PE.sourcesOfType('teacher').length;
         if (!confirm('Supprimer les ' + n + ' encadrant(s) ? Cette action est irreversible.')) return;
-        P4.removeAllOfType('teacher');
-        P4.save();
-        P4.rerender();
-        P4.toast(n + ' encadrant(s) supprime(s)', 'ok');
+        PE.removeAllOfType('teacher');
+        PE.save();
+        PE.rerender();
+        PE.toast(n + ' encadrant(s) supprime(s)', 'ok');
       });
     }
     const delAllProjects = root.querySelector('#del-all-projects');
     if (delAllProjects) {
       delAllProjects.addEventListener('click', () => {
-        const n = P4.sourcesOfType('project').length;
+        const n = PE.sourcesOfType('project').length;
         if (!confirm('Supprimer les ' + n + ' projet(s) ? Cette action est irreversible.')) return;
-        P4.removeAllOfType('project');
-        P4.save();
-        P4.rerender();
-        P4.toast(n + ' projet(s) supprime(s)', 'ok');
+        PE.removeAllOfType('project');
+        PE.save();
+        PE.rerender();
+        PE.toast(n + ' projet(s) supprime(s)', 'ok');
       });
     }
 
     root.querySelector('#dl-template').addEventListener('click', async () => {
       const r = await window.api.downloadTemplate();
-      if (r && r.ok) P4.toast('Modele enregistre', 'ok');
-      else if (r && r.error) P4.toast(r.error, 'err');
+      if (r && r.ok) PE.toast('Modele enregistre', 'ok');
+      else if (r && r.error) PE.toast(r.error, 'err');
     });
 
     root.querySelector('#imp-xlsx').addEventListener('click', async () => {
       const r = await window.api.importXlsx();
       if (!r || r.canceled) return;
-      if (!r.ok) { P4.toast(r.error || 'Import impossible', 'err'); return; }
+      if (!r.ok) { PE.toast(r.error || 'Import impossible', 'err'); return; }
       let created = 0;
       let updated = 0;
       let skipped = 0;
@@ -179,20 +179,20 @@
       (r.rows || []).forEach((row) => {
         if (!row.name) { skipped++; return; }
         const urls = row.urls || [];
-        let src = P4.state.sources.find((x) => x.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+        let src = PE.state.sources.find((x) => x.name.trim().toLowerCase() === row.name.trim().toLowerCase());
         if (!src) {
           src = {
             id: U.uid(), name: row.name, type: row.type, enabled: true,
-            color: U.color(P4.state.sources.length),
+            color: U.color(PE.state.sources.length),
             feeds: urls.length ? urls.map((u) => ({ id: U.uid(), url: u, pasted: '', events: [], error: null, lastSync: null }))
               : [{ id: U.uid(), url: '', pasted: '', events: [], error: null, lastSync: null }],
             events: [], error: null, lastSync: null
           };
-          P4.state.sources.push(src);
+          PE.state.sources.push(src);
           created++;
         } else {
           updated++;
-          P4.normalizeSource(src);
+          PE.normalizeSource(src);
           const known = new Set(src.feeds.map((f) => (f.url || '').trim()).filter(Boolean));
           urls.forEach((u) => {
             if (!known.has(u)) {
@@ -216,59 +216,59 @@
         }
         (row.warnings || []).forEach((w) => warns.push('Ligne ' + row.row + ' (' + (row.name || '?') + ') : ' + w));
       });
-      P4.save();
-      P4.rerender();
-      P4.toast(created + ' cree(s) · ' + updated + ' mis a jour' + (addedFeeds ? ' · +' + addedFeeds + ' agenda(s) ajoute(s)' : '') + (skipped ? ' · ' + skipped + ' ignore(s)' : '') + (warns.length ? ' · ' + warns.length + ' avertissement(s)' : ''), warns.length ? 'err' : 'ok');
+      PE.save();
+      PE.rerender();
+      PE.toast(created + ' cree(s) · ' + updated + ' mis a jour' + (addedFeeds ? ' · +' + addedFeeds + ' agenda(s) ajoute(s)' : '') + (skipped ? ' · ' + skipped + ' ignore(s)' : '') + (warns.length ? ' · ' + warns.length + ' avertissement(s)' : ''), warns.length ? 'err' : 'ok');
       if (warns.length) {
         const box = document.getElementById('imp-warn');
-        if (box) { box.innerHTML = '<b>Avertissements d\'import :</b><ul>' + warns.map((w) => '<li>' + P4.util.esc(w) + '</li>').join('') + '</ul>'; box.hidden = false; }
+        if (box) { box.innerHTML = '<b>Avertissements d\'import :</b><ul>' + warns.map((w) => '<li>' + PE.util.esc(w) + '</li>').join('') + '</ul>'; box.hidden = false; }
       }
-      P4.refreshAll();
+      PE.refreshAll();
     });
 
     root.querySelectorAll('.src-card').forEach((cardEl) => {
       const id = cardEl.dataset.id;
-      const src = P4.state.sources.find((x) => x.id === id);
+      const src = PE.state.sources.find((x) => x.id === id);
       const q = (sel) => cardEl.querySelector(sel);
 
-      q('.s-name').addEventListener('change', (e) => { src.name = e.target.value; P4.save(); });
-      q('.s-type').addEventListener('change', (e) => { src.type = e.target.value; P4.save(); P4.rerender(); });
-      q('.s-enabled').addEventListener('change', (e) => { src.enabled = e.target.checked; P4.save(); P4.rerender(); });
+      q('.s-name').addEventListener('change', (e) => { src.name = e.target.value; PE.save(); });
+      q('.s-type').addEventListener('change', (e) => { src.type = e.target.value; PE.save(); PE.rerender(); });
+      q('.s-enabled').addEventListener('change', (e) => { src.enabled = e.target.checked; PE.save(); PE.rerender(); });
 
       cardEl.querySelectorAll('.feed-row').forEach((row) => {
         const fid = row.dataset.fid;
         const feed = (src.feeds || []).find((f) => f.id === fid);
         if (!feed) return;
-        row.querySelector('.f-url').addEventListener('change', (e) => { feed.url = e.target.value.trim(); P4.save(); });
-        row.querySelector('.f-paste').addEventListener('change', (e) => { feed.pasted = e.target.value; P4.save(); });
+        row.querySelector('.f-url').addEventListener('change', (e) => { feed.url = e.target.value.trim(); PE.save(); });
+        row.querySelector('.f-paste').addEventListener('change', (e) => { feed.pasted = e.target.value; PE.save(); });
         const delBtn = row.querySelector('.f-del');
         if (delBtn) {
           delBtn.addEventListener('click', () => {
             src.feeds = src.feeds.filter((f) => f.id !== fid);
-            P4.recomputeSourceEvents(src);
-            P4.save();
-            P4.rerender();
+            PE.recomputeSourceEvents(src);
+            PE.save();
+            PE.rerender();
           });
         }
       });
       q('.f-add').addEventListener('click', () => {
         src.feeds.push({ id: U.uid(), url: '', pasted: '', events: [], error: null, lastSync: null });
-        P4.save();
-        P4.rerender();
+        PE.save();
+        PE.rerender();
       });
       if (q('.s-sup')) {
         q('.s-sup').addEventListener('change', (e) => {
           src.supervision = e.target.value === 'partial' ? 'partial' : 'full';
-          P4.save();
-          P4.rerender();
+          PE.save();
+          PE.rerender();
         });
       }
       if (q('.s-supmode')) {
         q('.s-supmode').addEventListener('change', (e) => {
           src.supMode = e.target.value === 'percent' ? 'percent' : 'hours';
           if (src.supMode === 'percent' && src.supPercent == null) src.supPercent = 100;
-          P4.save();
-          P4.rerender();
+          PE.save();
+          PE.rerender();
         });
       }
       const numField = (sel, key, allowNull) => {
@@ -279,8 +279,8 @@
           const n = parseFloat(v.replace(',', '.'));
           if (v === '' || isNaN(n) || n < 0) src[key] = allowNull ? null : 0;
           else src[key] = n;
-          P4.save();
-          P4.rerender();
+          PE.save();
+          PE.rerender();
         });
       };
       numField('.s-total', 'totalHours', true);
@@ -289,20 +289,20 @@
         q('.s-pct').addEventListener('change', (e) => {
           const n = parseFloat(String(e.target.value).replace(',', '.'));
           src.supPercent = isNaN(n) ? 100 : Math.max(0, Math.min(100, n));
-          P4.save();
-          P4.rerender();
+          PE.save();
+          PE.rerender();
         });
       }
-      q('.s-reload').addEventListener('click', () => P4.refreshSource(id));
+      q('.s-reload').addEventListener('click', () => PE.refreshSource(id));
       q('.s-del').addEventListener('click', () => {
         if (!confirm('Supprimer « ' + src.name +' » ?')) return;
-        P4.state.sources = P4.state.sources.filter((x) => x.id !== id);
-        delete P4.state.scheduling.teachers[id];
-        P4.save();
-        P4.rerender();
+        PE.state.sources = PE.state.sources.filter((x) => x.id !== id);
+        delete PE.state.scheduling.teachers[id];
+        PE.save();
+        PE.rerender();
       });
     });
   }
 
-  P4.views.sources = { render };
+  PE.views.sources = { render };
 })();

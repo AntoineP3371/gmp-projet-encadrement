@@ -1,6 +1,6 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//P4 Scheduler//sample//FR
+PRODID:-//projet-encadrement//sample//FR
 CALSCALE:GREGORIAN
 BEGIN:VEVENT
 UID:durand-1@sample

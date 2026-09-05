@@ -1,8 +1,8 @@
 (function () {
   'use strict';
-  const P4 = window.P4;
-  const U = P4.util;
-  const S = P4.scheduler;
+  const PE = window.PE;
+  const U = PE.util;
+  const S = PE.scheduler;
 
   const fmtH = (h) => (Math.round(h * 100) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' h';
   const hoursOf = (ms) => ms / 3600000;
@@ -13,15 +13,15 @@
     return free.map((iv) => U.fmtTime(iv.start) + '–' + U.fmtTime(iv.end)).join(', ');
   }
 
-  const teachersModel = P4.teacherModels;
-  const schedOptions = P4.schedOptions;
+  const teachersModel = PE.teacherModels;
+  const schedOptions = PE.schedOptions;
 
   function projectsModel() {
-    return P4.sourcesOfType('project').filter((s) => s.enabled !== false);
+    return PE.sourcesOfType('project').filter((s) => s.enabled !== false);
   }
 
   function setNoSup(sid, on) {
-    const sch = P4.state.scheduling;
+    const sch = PE.state.scheduling;
     sch.noSup = sch.noSup || {};
     if (on) {
       sch.noSup[sid] = true;
@@ -33,25 +33,25 @@
     }
   }
 
-  const ensureAssignments = P4.assignments;
+  const ensureAssignments = PE.assignments;
 
   function lock(sid, tid) {
-    const L = P4.state.scheduling.locked;
+    const L = PE.state.scheduling.locked;
     L[sid] = L[sid] || [];
     if (L[sid].indexOf(tid) === -1) L[sid].push(tid);
   }
   function unlock(sid, tid) {
-    const L = P4.state.scheduling.locked;
+    const L = PE.state.scheduling.locked;
     if (L[sid]) L[sid] = L[sid].filter((x) => x !== tid);
   }
 
   function render(root) {
-    const sch = P4.state.scheduling;
+    const sch = PE.state.scheduling;
     const o = sch.options;
     const view = ['session', 'project', 'teacher'].indexOf(sch.view) !== -1 ? sch.view : 'session';
     const T = teachersModel();
     const projects = projectsModel();
-    const sessions = P4.sessions();
+    const sessions = PE.sessions();
     const byTeacher = {};
     T.forEach((t) => { byTeacher[t.id] = t; });
 
@@ -248,7 +248,7 @@
             <tbody>
             ${projects.map((p) => {
               const sh = o.sessionHours || 4;
-              const teamMap = P4.state.scheduling.teams[p.id] || {};
+              const teamMap = PE.state.scheduling.teams[p.id] || {};
               return `
               <tr data-pid="${p.id}">
                 <td><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}
@@ -272,15 +272,15 @@
                   </td>`;
                 }).join('')}
                 ${(function () {
-                  const cell = teamMap[P4.NOSUP_KEY];
+                  const cell = teamMap[PE.NOSUP_KEY];
                   const on = !!(cell && cell.on);
                   const w = cell && cell.w != null ? cell.w : 1;
                   const uh = (ev.unsupTarget && ev.unsupTarget[p.id]) || 0;
                   const nsCnt = sessions.filter((s) => s.projectId === p.id && noSupSet[s.id]).length;
                   return `<td style="text-align:center;background:var(--bg)">
                     <label class="cellbox">
-                      <input type="checkbox" class="team-on" data-pid="${p.id}" data-tid="${P4.NOSUP_KEY}" title="donner un poids aux seances sans encadrant" ${on ? 'checked' : ''} />
-                      <input type="number" class="team-w" data-pid="${p.id}" data-tid="${P4.NOSUP_KEY}" min="0" step="0.5" value="${on ? w : ''}" ${on ? '' : 'disabled'} title="poids des seances sans encadrant" style="width:52px" />
+                      <input type="checkbox" class="team-on" data-pid="${p.id}" data-tid="${PE.NOSUP_KEY}" title="donner un poids aux seances sans encadrant" ${on ? 'checked' : ''} />
+                      <input type="number" class="team-w" data-pid="${p.id}" data-tid="${PE.NOSUP_KEY}" min="0" step="0.5" value="${on ? w : ''}" ${on ? '' : 'disabled'} title="poids des seances sans encadrant" style="width:52px" />
                     </label>
                     <div class="cell-meta">
                       <div${nsCnt ? '' : ' class="dim"'}>${nsCnt} sans enc. &middot; cible ≈ ${Math.round(uh / sh)}</div>
@@ -468,7 +468,7 @@
       if (opts.exclude && opts.exclude.has(t.id)) return '';
       const c = covFor(t.id, s);
       const pref = S.inPreferred(t.preferred, +new Date(s.start));
-      const elig = P4.isEligible(s.projectId, t.id);
+      const elig = PE.isEligible(s.projectId, t.id);
       let tag = '';
       if (c.frac <= 1e-9) tag = ' — indispo';
       else if (c.frac < 1 - 1e-9) tag = ' — ' + fmtH(hoursOf(c.freeMs)) + ' seulement';
@@ -486,7 +486,7 @@
     const list = ev.availList[s.id] || [];
     const durWarn = Math.abs(s.hours - o.sessionHours) > 0.05;
     const isNoSup = (ev.noSup || []).indexOf(s.id) !== -1;
-    const explicitNoSup = !!(P4.state.scheduling.noSup || {})[s.id];
+    const explicitNoSup = !!(PE.state.scheduling.noSup || {})[s.id];
 
     const dispoCell = (list.length ? list.map((x) => {
       const color = byTeacher[x.tid] ? byTeacher[x.tid].color : '#999';
@@ -494,7 +494,7 @@
       return `<span class="avail-item ${x.full ? '' : 'part'}"><span class="dot" style="background:${color}"></span>${U.esc(x.name)}&nbsp;${fmtH(x.hours)}${x.full ? '' : ' ⚠' + slots}</span>`;
     }).join('') : '<span class="muted">aucun encadrant eligible disponible</span>');
 
-    const eligT = T.filter((t) => P4.isEligible(s.projectId, t.id));
+    const eligT = T.filter((t) => PE.isEligible(s.projectId, t.id));
     const nosupToggle = `<label class="nosup-tgl"><input type="checkbox" class="nosup-cb" data-sid="${s.id}" ${explicitNoSup ? 'checked' : ''} /> seance sans encadrant</label>`;
 
     if (isNoSup) {
@@ -566,7 +566,7 @@
   }
 
   function wire(root, sessions, T) {
-    const sch = P4.state.scheduling;
+    const sch = PE.state.scheduling;
     const o = sch.options;
 
     const num = (id, key, min) => {
@@ -576,8 +576,8 @@
         let v = parseFloat(el.value);
         if (isNaN(v)) v = min;
         o[key] = v;
-        P4.save();
-        P4.rerender();
+        PE.save();
+        PE.rerender();
       });
     };
     num('#o-target', 'targetPerSession', 1);
@@ -585,61 +585,61 @@
     num('#o-sh', 'sessionHours', 4);
     num('#o-smax', 'sessionMaxH', 12);
     num('#o-wp', 'prefWeight', 0);
-    root.querySelector('#o-max').addEventListener('change', (e) => { o.respectMaxHours = e.target.checked; P4.save(); P4.rerender(); });
-    root.querySelector('#o-ad').addEventListener('change', (e) => { o.allDayBusy = e.target.checked; P4.save(); P4.rerender(); });
+    root.querySelector('#o-max').addEventListener('change', (e) => { o.respectMaxHours = e.target.checked; PE.save(); PE.rerender(); });
+    root.querySelector('#o-ad').addEventListener('change', (e) => { o.allDayBusy = e.target.checked; PE.save(); PE.rerender(); });
 
     root.querySelector('#o-run').addEventListener('click', () => {
       const r = S.run(sessions, T, schedOptions({ locked: sch.locked }));
       sch.lastResult = r;
-      P4.save();
-      P4.rerender();
-      P4.toast(r.unfilled.length ? (r.unfilled.length + ' seance(s) sous le minimum') : 'Affectation calculee',
+      PE.save();
+      PE.rerender();
+      PE.toast(r.unfilled.length ? (r.unfilled.length + ' seance(s) sous le minimum') : 'Affectation calculee',
         r.unfilled.length ? 'err' : 'ok');
     });
     root.querySelector('#o-clear').addEventListener('click', () => {
       const a = {};
       Object.keys(sch.locked).forEach((k) => { a[k] = (sch.locked[k] || []).slice(); });
       sch.lastResult = { assignments: a };
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     });
     root.querySelector('#o-reset').addEventListener('click', () => {
       sch.locked = {};
       sch.noSup = {};
       sch.lastResult = null;
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     });
     root.querySelector('#o-csv').addEventListener('click', () => exportCSV(sessions, T));
     root.querySelector('#o-ics').addEventListener('click', () => exportICS(sessions, T));
     root.querySelector('#o-pdf').addEventListener('click', async () => {
       const r = await window.api.savePdf({ html: reportHtml(sessions, T), defaultName: 'rapport-affectation.pdf' });
-      if (r && r.ok) P4.toast('PDF enregistre', 'ok');
-      else if (r && r.error) P4.toast(r.error, 'err');
+      if (r && r.ok) PE.toast('PDF enregistre', 'ok');
+      else if (r && r.error) PE.toast(r.error, 'err');
     });
 
     root.querySelectorAll('.viewbtn').forEach((b) => b.addEventListener('click', () => {
       sch.view = b.dataset.view;
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
 
     // team : "concerne" checkbox + relative weight
     root.querySelectorAll('.team-on').forEach((cb) => cb.addEventListener('change', () => {
       const { pid, tid } = cb.dataset;
-      const cell = P4.teamCell(pid, tid);
+      const cell = PE.teamCell(pid, tid);
       cell.on = cb.checked;
       if (cell.on && (cell.w == null || isNaN(+cell.w) || +cell.w <= 0)) cell.w = 1;
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
     root.querySelectorAll('.team-w').forEach((inp) => inp.addEventListener('change', () => {
       const { pid, tid } = inp.dataset;
-      const cell = P4.teamCell(pid, tid);
+      const cell = PE.teamCell(pid, tid);
       const n = parseFloat(inp.value);
       cell.w = (isNaN(n) || n < 0) ? 1 : n;
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
 
     // swap / remove proposed encadrant
@@ -662,8 +662,8 @@
         unlock(sid, oldT);
         lock(sid, val);
       }
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
 
     // add encadrant
@@ -676,47 +676,47 @@
       a[sid] = a[sid] || [];
       if (a[sid].indexOf(tid) === -1) a[sid].push(tid);
       lock(sid, tid);
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
 
     // "seance sans encadrant" toggle
     root.querySelectorAll('.nosup-cb').forEach((cb) => cb.addEventListener('change', () => {
       setNoSup(cb.dataset.sid, cb.checked);
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
 
     // teacher settings
     root.querySelectorAll('.teacher-row').forEach((rowEl) => {
       const tid = rowEl.dataset.tid;
-      const entry = P4.teacherEntry(tid);
+      const entry = PE.teacherEntry(tid);
       rowEl.querySelector('.t-max').addEventListener('change', (e) => {
         const v = e.target.value.trim();
         entry.maxHours = v === '' ? null : Number(v);
-        P4.save();
-        P4.rerender();
+        PE.save();
+        PE.rerender();
       });
       rowEl.querySelector('.pp-add').addEventListener('click', () => {
-        const from = U.monthKey(new Date(P4.state.range.from));
-        const to = U.monthKey(new Date(P4.state.range.to));
+        const from = U.monthKey(new Date(PE.state.range.from));
+        const to = U.monthKey(new Date(PE.state.range.to));
         entry.preferred.push({ from, to });
-        P4.save();
-        P4.rerender();
+        PE.save();
+        PE.rerender();
       });
       rowEl.querySelectorAll('.period-tag').forEach((tag) => {
         const i = +tag.dataset.i;
-        tag.querySelector('.pp-from').addEventListener('change', (e) => { entry.preferred[i].from = e.target.value; P4.save(); P4.rerender(); });
-        tag.querySelector('.pp-to').addEventListener('change', (e) => { entry.preferred[i].to = e.target.value; P4.save(); P4.rerender(); });
-        tag.querySelector('.pp-del').addEventListener('click', () => { entry.preferred.splice(i, 1); P4.save(); P4.rerender(); });
+        tag.querySelector('.pp-from').addEventListener('change', (e) => { entry.preferred[i].from = e.target.value; PE.save(); PE.rerender(); });
+        tag.querySelector('.pp-to').addEventListener('change', (e) => { entry.preferred[i].to = e.target.value; PE.save(); PE.rerender(); });
+        tag.querySelector('.pp-del').addEventListener('click', () => { entry.preferred.splice(i, 1); PE.save(); PE.rerender(); });
       });
     });
   }
 
   function reportHtml(sessions, T) {
-    const o = P4.state.scheduling.options;
+    const o = PE.state.scheduling.options;
     const a = ensureAssignments();
-    const projects = P4.sourcesOfType('project').filter((s) => s.enabled !== false);
+    const projects = PE.sourcesOfType('project').filter((s) => s.enabled !== false);
     const byTeacher = {};
     T.forEach((t) => { byTeacher[t.id] = t; });
     const ev = S.evaluate(sessions, T, schedOptions(), a);
@@ -737,7 +737,7 @@
     (ev.unfilled || []).forEach((id) => { unfSet[id] = 1; });
 
     const esc = U.esc;
-    const range = P4.state.range;
+    const range = PE.state.range;
     const nameOf = (tid) => (byTeacher[tid] ? byTeacher[tid].name : tid);
     const sh = o.sessionHours || 4;
 
@@ -929,7 +929,7 @@
     const byId = {};
     T.forEach((t) => { byId[t.id] = t.name; });
     const a = ensureAssignments();
-    const o = P4.state.scheduling.options;
+    const o = PE.state.scheduling.options;
     const ev = S.evaluate(sessions, T, schedOptions(), a);
     const nos = {};
     (ev.noSup || []).forEach((id) => { nos[id] = 1; });
@@ -953,10 +953,10 @@
       U.fmtShort(s.start), U.fmtTime(s.start), U.fmtTime(s.end), s.hours,
       s.project, s.label, s.location, names.join(' + '), status, dispo
     ]);
-    const csv = P4.exp.toCSV(
+    const csv = PE.exp.toCSV(
       ['Date', 'Debut', 'Fin', 'Duree (h)', 'Projet', 'Seance', 'Lieu', 'Encadrant(s)', 'Statut', 'Disponibilites'], rows);
     const r = await window.api.saveText({ defaultName: 'affectation.csv', content: csv });
-    if (r.ok) P4.toast('CSV enregistre', 'ok');
+    if (r.ok) PE.toast('CSV enregistre', 'ok');
   }
 
   async function exportICS(sessions, T) {
@@ -966,13 +966,13 @@
       description: 'Encadrant(s) : ' + (names.join(', ') || 'aucun') + ' — ' + status,
       location: s.location
     }));
-    const ics = P4.exp.toICS('affectation', events);
+    const ics = PE.exp.toICS('affectation', events);
     const r = await window.api.saveText({ defaultName: 'affectation.ics', content: ics });
-    if (r.ok) P4.toast('ICS enregistre', 'ok');
+    if (r.ok) PE.toast('ICS enregistre', 'ok');
   }
 
-  P4.views.scheduling = {
+  PE.views.scheduling = {
     render: render,
-    _report: function () { return reportHtml(P4.sessions(), teachersModel()); }
+    _report: function () { return reportHtml(PE.sessions(), teachersModel()); }
   };
 })();

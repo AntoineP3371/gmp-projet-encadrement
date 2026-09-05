@@ -1,9 +1,9 @@
 (function () {
   'use strict';
-  const P4 = window.P4;
-  const U = P4.util;
-  const S = P4.scheduler;
-  const FB = P4.fb;
+  const PE = window.PE;
+  const U = PE.util;
+  const S = PE.scheduler;
+  const FB = PE.fb;
 
   const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const fmtH = (h) => (Math.round(h * 100) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' h';
@@ -12,12 +12,12 @@
 
   /* ---------------- shared context ---------------- */
   function ctx() {
-    const T = P4.teacherModels();
-    const sessions = P4.sessions();
-    const a = P4.assignments();
+    const T = PE.teacherModels();
+    const sessions = PE.sessions();
+    const a = PE.assignments();
     Object.keys(a).forEach((k) => { if (!sessions.find((s) => s.id === k)) delete a[k]; });
-    const o = P4.state.scheduling.options;
-    const ev = S.evaluate(sessions, T, P4.schedOptions(), a);
+    const o = PE.state.scheduling.options;
+    const ev = S.evaluate(sessions, T, PE.schedOptions(), a);
     const busyMap = {};
     T.forEach((t) => { busyMap[t.id] = S.teacherBusy(t.events, o.allDayBusy); });
     const ivsMap = {};
@@ -128,7 +128,7 @@
     const rows = held
       .filter((s) => (c.a[s.id] || []).indexOf(X.id) === -1)
       .map((s) => {
-        const elig = P4.isEligible(s.projectId, X.id);
+        const elig = PE.isEligible(s.projectId, X.id);
         const cv = c.cov(X.id, s);
         return { s: s, elig: elig, cv: cv };
       })
@@ -181,7 +181,7 @@
         if ((c.a[s.id] || []).indexOf(hi.id) === -1) continue;
         if (transfers.find((x) => x.sid === s.id)) continue;
         if ((c.a[s.id] || []).indexOf(lo.id) !== -1) continue;
-        if (!P4.isEligible(s.projectId, lo.id)) continue;
+        if (!PE.isEligible(s.projectId, lo.id)) continue;
         const sMs = { start: +new Date(s.start), end: +new Date(s.end) };
         const blk = FB.normalize((c.busyMap[lo.id] || []).concat(simLo));
         const free = FB.invert(blk, sMs.start, sMs.end);
@@ -217,9 +217,9 @@
   function intentCommon(qn, c, names) {
     if (names.length < 2) return warn('Nomme au moins deux encadrants.');
     const ids = names.map((n) => n.t.id);
-    const wStart = +new Date(P4.state.range.from);
-    const wEnd = +new Date(P4.state.range.to + 'T23:59:59');
-    const work = P4.state.common.work || { days: [1, 2, 3, 4, 5], startH: 8, endH: 20 };
+    const wStart = +new Date(PE.state.range.from);
+    const wEnd = +new Date(PE.state.range.to + 'T23:59:59');
+    const work = PE.state.common.work || { days: [1, 2, 3, 4, 5], startH: 8, endH: 20 };
     const grid = FB.workingWindow(wStart, wEnd, work.startH, work.endH, work.days);
     if (!grid.length) return warn('La fenêtre de travail (onglet Périodes communes) est vide.');
     const allBusy = FB.normalize([].concat.apply([], ids.map((id) => (c.busyMap[id] || []).concat(c.ivsMap[id] || []))));
@@ -262,9 +262,9 @@
   function intentDate(qn, c, names, dm) {
     const day = +dm[1];
     const month = +dm[2];
-    let year = dm[3] ? (+dm[3] < 100 ? 2000 + +dm[3] : +dm[3]) : new Date(P4.state.range.from).getFullYear();
+    let year = dm[3] ? (+dm[3] < 100 ? 2000 + +dm[3] : +dm[3]) : new Date(PE.state.range.from).getFullYear();
     let d = new Date(year, month - 1, day);
-    if (!dm[3] && d < new Date(P4.state.range.from)) { year++; d = new Date(year, month - 1, day); }
+    if (!dm[3] && d < new Date(PE.state.range.from)) { year++; d = new Date(year, month - 1, day); }
     let h0 = work0(qn);
     let h1 = work1(qn);
     const winS = new Date(d); winS.setHours(h0, 0, 0, 0);
@@ -311,8 +311,8 @@
 
   /* ---------------- actions ---------------- */
   function doReplace(sid, oldId, newId) {
-    const sch = P4.state.scheduling;
-    const a = P4.assignments();
+    const sch = PE.state.scheduling;
+    const a = PE.assignments();
     a[sid] = (a[sid] || []).map((x) => (x === oldId ? newId : x));
     if (a[sid].indexOf(newId) === -1) a[sid].push(newId);
     sch.locked[sid] = (sch.locked[sid] || []).filter((x) => x !== oldId);
@@ -322,13 +322,13 @@
 
   /* ---------------- view ---------------- */
   function pushLog(role, payload) {
-    const log = P4.state.assistant.log;
+    const log = PE.state.assistant.log;
     log.push(role === 'user' ? { role: 'user', text: payload } : { role: 'bot', html: payload });
     while (log.length > 40) log.shift();
   }
 
   function render(root) {
-    const log = P4.state.assistant.log;
+    const log = PE.state.assistant.log;
     root.innerHTML = `
       <div class="view-head">
         <h1>Assistant</h1>
@@ -340,7 +340,7 @@
             ? log.map((m) => (m.role === 'user'
               ? `<div class="as-u">${U.esc(m.text)}</div>`
               : `<div class="as-b">${m.html}</div>`)).join('')
-            : `<div class="as-b">${help(P4.teacherModels()).html}</div>`}
+            : `<div class="as-b">${help(PE.teacherModels()).html}</div>`}
         </div>
         <form id="as-form" class="row" style="margin-top:10px">
           <input id="as-q" placeholder="Ex : séances où Dupont peut remplacer Martin" style="flex:1;min-width:280px" autocomplete="off" />
@@ -366,13 +366,13 @@
       try { res = answer(q); } catch (err) { res = { html: '<p class="badge danger" style="display:inline-block">Erreur : ' + U.esc(String(err && err.message || err)) + '</p>' }; }
       pushLog('user', q);
       pushLog('bot', res.html);
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     });
     root.querySelector('#as-clear').addEventListener('click', () => {
-      P4.state.assistant.log = [];
-      P4.save();
-      P4.rerender();
+      PE.state.assistant.log = [];
+      PE.save();
+      PE.rerender();
     });
     root.querySelectorAll('.as-ex').forEach((b) => b.addEventListener('click', () => {
       input.value = b.textContent;
@@ -390,12 +390,12 @@
         list.forEach((tr) => doReplace(tr.sid, tr.from, tr.to));
         pushLog('bot', '<p class="badge ok" style="display:inline-block">' + list.length + ' transfert(s) appliqué(s) : ' + U.esc(b.dataset.lbl) + '</p>');
       }
-      P4.save();
-      P4.rerender();
+      PE.save();
+      PE.rerender();
     }));
   }
 
-  P4.views.assistant = {
+  PE.views.assistant = {
     render: render,
     _answer: function (q) { return answer(q); },
     _matchNames: function (qn, T) { return matchNames(norm(qn).replace(/\s+/g, ' ').trim(), T); }

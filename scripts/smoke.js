@@ -17,9 +17,9 @@ global.window = {};
 for (const f of ['lib/freebusy.js', 'lib/scheduler.js', 'lib/ics-export.js', 'app.js', 'views/assistant.js']) {
   (0, eval)(fs.readFileSync(path.join(ROOT, 'renderer', f), 'utf8'));
 }
-const P4 = global.window.P4;
-const FB = P4.fb;
-const S = P4.scheduler;
+const PE = global.window.PE;
+const FB = PE.fb;
+const S = PE.scheduler;
 const rd = (f) => fs.readFileSync(path.join(ROOT, 'samples', f), 'utf8');
 
 /* ---- 1. iCal parsing ---- */
@@ -29,14 +29,14 @@ const from = '2026-09-01';
 const to = '2027-01-31T23:59:59';
 const martin = parseICS(rd('enseignant-martin.ics'), from, to);
 const durand = parseICS(rd('enseignant-durand.ics'), from, to);
-const proj = parseICS(rd('projet-p4.ics'), from, to);
+const proj = parseICS(rd('projet-encadrement.ics'), from, to);
 ok('martin -> 6 events', martin.length === 6);
 ok('durand -> 6 events', durand.length === 6);
 ok('projet -> 8 sessions', proj.length === 8);
 ok('TZID Europe/Paris resolved (13:00 local -> 11:00Z, Sept DST)', proj[0].start.endsWith('11:00:00.000Z'));
 ok('session duration 4h', (Date.parse(proj[0].end) - Date.parse(proj[0].start)) === 4 * 3600000);
 ok('range filter -> October only (Oct 2/9/16)',
-  parseICS(rd('projet-p4.ics'), '2026-10-01', '2026-10-31T23:59:59').length === 3);
+  parseICS(rd('projet-encadrement.ics'), '2026-10-01', '2026-10-31T23:59:59').length === 3);
 
 const rrule = [
   'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//t//EN', 'BEGIN:VEVENT', 'UID:r1',
@@ -58,7 +58,7 @@ ok('all-day event flagged', parseICS(allday, from, to)[0].allDay === true);
 // Pronote-style : plain UTC DTSTART, no VTIMEZONE
 const utcIcs = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Pronote//EN', 'BEGIN:VEVENT', 'UID:pn1',
   'DTSTAMP:20260101T000000Z', 'DTSTART:20260921T060000Z', 'DTEND:20260921T100000Z',
-  'SUMMARY:S3: 4 - P4 - Projet_4h', 'LOCATION:A18', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  'SUMMARY:S3: 4 - projet-encadrement - Projet_4h', 'LOCATION:A18', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
 const utcEv = parseICS(utcIcs, '2026-09-01', '2026-12-31T23:59:59');
 ok('plain UTC DTSTART kept as-is, 4h', utcEv.length === 1 && utcEv[0].start === '2026-09-21T06:00:00.000Z'
   && (Date.parse(utcEv[0].end) - Date.parse(utcEv[0].start)) === 4 * 3600000);
@@ -93,7 +93,7 @@ const teachers = [
   { id: 'D', name: 'Durand', events: durand, preferred: [], maxHours: null }
 ];
 const sessions = proj.map((e) => ({
-  id: 'p::' + e.start, projectId: 'PRJ', project: 'P4', label: e.summary, location: e.location,
+  id: 'p::' + e.start, projectId: 'PRJ', project: 'projet-encadrement', label: e.summary, location: e.location,
   start: e.start, end: e.end, hours: 4
 }));
 const res = S.run(sessions, teachers, { targetPerSession: 1, minPerSession: 1, prefWeight: 1 });
@@ -145,7 +145,7 @@ const evElig = S.evaluate(sessions, teachers, { minPerSession: 1, teams: { PRJ: 
 ok('evaluate flags out-of-team encadrant', (evElig.outOfTeam[sessions[0].id] || []).includes('D'));
 
 /* per-project weight steers the choice: both free in Sept, D weighted higher */
-const septFree = [{ id: 'sf', projectId: 'PRJ', project: 'P4', label: 'x',
+const septFree = [{ id: 'sf', projectId: 'PRJ', project: 'projet-encadrement', label: 'x',
   start: '2026-09-11T08:00:00.000Z', end: '2026-09-11T12:00:00.000Z', hours: 4 }];
 ok('higher project weight wins',
   S.run(septFree, t2, { prefWeight: 0, teams: { PRJ: { M: { on: true, w: 1 }, D: { on: true, w: 5 } } } }).assignments.sf.join() === 'D');
@@ -253,8 +253,8 @@ ok('teacher on 2 projects gets sessions from both, more than the one-project tea
 
 /* ---- 3e. session filtering (real-feed robustness) ---- */
 console.log('\n[3e] filtres de seances');
-P4.state = P4.migrate({ range: { from: '2026-09-01', to: '2027-07-31' } });
-P4.state.sources = [{
+PE.state = PE.migrate({ range: { from: '2026-09-01', to: '2027-07-31' } });
+PE.state.sources = [{
   id: 'pj', name: 'PJ', type: 'project', enabled: true, color: '#000', supervision: 'full',
   events: [
     { start: '2026-09-21T06:00:00.000Z', end: '2026-09-21T10:00:00.000Z', allDay: false },
@@ -263,16 +263,16 @@ P4.state.sources = [{
     { start: '2026-12-25', end: '2026-12-26', allDay: true }
   ]
 }];
-let ss = P4.sessions();
+let ss = PE.sessions();
 ok('drops all-day + multi-day block, keeps the timed slots', ss.length === 2);
 ok('no session longer than the max', ss.every((s) => s.hours <= 12));
-P4.state.scheduling.options.sessionMaxH = 3;
-ss = P4.sessions();
+PE.state.scheduling.options.sessionMaxH = 3;
+ss = PE.sessions();
 ok('sessionMaxH=3 -> only the 3h slot survives', ss.length === 1 && ss[0].hours === 3);
 
 /* ---- 3f. assistant name matching (homonyms / word boundary) ---- */
 console.log('\n[3f] assistant : reconnaissance des noms');
-const A = P4.views.assistant;
+const A = PE.views.assistant;
 const TT = [
   { id: 'a', name: 'Dupont Alice' }, { id: 'b', name: 'Dupont Bruno' },
   { id: 'c', name: 'Martin' }, { id: 'd', name: 'Martinez' }
@@ -288,26 +288,26 @@ ok('ordre respecte : martin puis dupont bruno', m4.list.length === 2 && m4.list[
 
 /* ---- 3b. state migration ---- */
 console.log('\n[3b] migrate');
-const mArr = P4.migrate({ scheduling: { teams: { P1: ['A', 'B'] } } });
+const mArr = PE.migrate({ scheduling: { teams: { P1: ['A', 'B'] } } });
 ok('migrate array team -> { on:true, w:1 }',
   mArr.scheduling.teams.P1.A.on === true && mArr.scheduling.teams.P1.A.w === 1);
-const mNum = P4.migrate({ scheduling: { teams: { P1: { A: 2, B: 0 } } } });
+const mNum = PE.migrate({ scheduling: { teams: { P1: { A: 2, B: 0 } } } });
 ok('migrate numeric weight -> { on:true, w:2 }', mNum.scheduling.teams.P1.A.on === true && mNum.scheduling.teams.P1.A.w === 2);
 ok('migrate numeric 0 -> { on:false }', mNum.scheduling.teams.P1.B.on === false);
 ok('migrate keeps { on, w } as-is',
-  P4.migrate({ scheduling: { teams: { P1: { A: { on: true, w: 3 } } } } }).scheduling.teams.P1.A.w === 3);
+  PE.migrate({ scheduling: { teams: { P1: { A: { on: true, w: 3 } } } } }).scheduling.teams.P1.A.w === 3);
 ok('migrate drops removed options',
   !('bufferMin' in mNum.scheduling.options) && !('balanceWeight' in mNum.scheduling.options));
 
-P4.state = P4.migrate({});
-P4.state.scheduling.teams = { PX: {} };
-const cell = P4.teamCell('PX', 'T1');
+PE.state = PE.migrate({});
+PE.state.scheduling.teams = { PX: {} };
+const cell = PE.teamCell('PX', 'T1');
 ok('teamCell creates { on:false, w:1 }', cell.on === false && cell.w === 1);
 cell.on = true; cell.w = 2.5;
-ok('isEligible follows the checkbox', P4.isEligible('PX', 'T1') === true && P4.isEligible('PX', 'T2') === false);
-ok('projectWeight returns the cell weight', P4.projectWeight('PX', 'T1') === 2.5);
+ok('isEligible follows the checkbox', PE.isEligible('PX', 'T1') === true && PE.isEligible('PX', 'T2') === false);
+ok('projectWeight returns the cell weight', PE.projectWeight('PX', 'T1') === 2.5);
 cell.on = false;
-ok('all cells off -> everyone eligible again', P4.isEligible('PX', 'T2') === true && P4.projectWeight('PX', 'T2') === 1);
+ok('all cells off -> everyone eligible again', PE.isEligible('PX', 'T2') === true && PE.projectWeight('PX', 'T2') === 1);
 
 // projectUnsupTarget : hours mode vs percent mode
 const evs8 = [];
@@ -316,58 +316,79 @@ for (let i = 0; i < 8; i++) {
   evs8.push({ start: d.toISOString(), end: new Date(d.getTime() + 4 * 3600000).toISOString(), allDay: false });
 }
 ok('projectUnsupTarget (hours mode) = totales - encadrees',
-  P4.projectUnsupTarget({ supervision: 'partial', supMode: 'hours', totalHours: 40, supervisedHours: 28 }) === 12);
+  PE.projectUnsupTarget({ supervision: 'partial', supMode: 'hours', totalHours: 40, supervisedHours: 28 }) === 12);
 ok('projectUnsupTarget (percent mode) = H x (1 - pct/100)',
-  P4.projectUnsupTarget({ supervision: 'partial', supMode: 'percent', supPercent: 75, events: evs8 }) === 8);
-ok('projectUnsupTarget percent 100 -> 0', P4.projectUnsupTarget({ supervision: 'partial', supMode: 'percent', supPercent: 100, events: evs8 }) === 0);
+  PE.projectUnsupTarget({ supervision: 'partial', supMode: 'percent', supPercent: 75, events: evs8 }) === 8);
+ok('projectUnsupTarget percent 100 -> 0', PE.projectUnsupTarget({ supervision: 'partial', supMode: 'percent', supPercent: 100, events: evs8 }) === 0);
 ok('projectUnsupTarget 0 for a "total" project',
-  P4.projectUnsupTarget({ supervision: 'full', supMode: 'percent', supPercent: 50, events: evs8 }) === 0);
+  PE.projectUnsupTarget({ supervision: 'full', supMode: 'percent', supPercent: 50, events: evs8 }) === 0);
 
 /* ---- 3g. suppression en masse (encadrants / projets) ---- */
 console.log('\n[3g] suppression en masse');
 (function () {
   function fixture() {
-    P4.state = P4.migrate({ range: { from: '2026-09-01', to: '2027-01-31' } });
-    P4.state.sources = [
+    PE.state = PE.migrate({ range: { from: '2026-09-01', to: '2027-01-31' } });
+    PE.state.sources = [
       { id: 'T1', name: 'Martin', type: 'teacher', enabled: true, color: '#000', events: [] },
       { id: 'T2', name: 'Durand', type: 'teacher', enabled: true, color: '#000', events: [] },
       { id: 'PJ', name: 'Projet', type: 'project', enabled: true, color: '#000', supervision: 'full',
         events: [{ start: '2026-09-21T06:00:00.000Z', end: '2026-09-21T10:00:00.000Z', allDay: false, uid: 'e1' }] }
     ];
-    P4.teacherEntry('T1').maxHours = 20;
-    P4.state.scheduling.teams.PJ = { T1: { on: true, w: 2 }, T2: { on: true, w: 1 } };
-    const sid = P4.sessions()[0].id;
-    P4.state.scheduling.locked[sid] = ['T1', 'T2'];
-    P4.state.scheduling.lastResult = { assignments: { [sid]: ['T1', 'T2'] } };
+    PE.teacherEntry('T1').maxHours = 20;
+    PE.state.scheduling.teams.PJ = { T1: { on: true, w: 2 }, T2: { on: true, w: 1 } };
+    const sid = PE.sessions()[0].id;
+    PE.state.scheduling.locked[sid] = ['T1', 'T2'];
+    PE.state.scheduling.lastResult = { assignments: { [sid]: ['T1', 'T2'] } };
     return sid;
   }
 
   fixture();
-  const removed = P4.removeAllOfType('teacher');
+  const removed = PE.removeAllOfType('teacher');
   ok('removeAllOfType returns the count removed', removed === 2);
-  ok('sources: teachers gone, project kept', P4.state.sources.length === 1 && P4.state.sources[0].id === 'PJ');
-  ok('scheduling.teachers entry dropped', !P4.state.scheduling.teachers.T1);
+  ok('sources: teachers gone, project kept', PE.state.sources.length === 1 && PE.state.sources[0].id === 'PJ');
+  ok('scheduling.teachers entry dropped', !PE.state.scheduling.teachers.T1);
   ok('team cells for both teachers dropped from the project row',
-    !P4.state.scheduling.teams.PJ.T1 && !P4.state.scheduling.teams.PJ.T2);
+    !PE.state.scheduling.teams.PJ.T1 && !PE.state.scheduling.teams.PJ.T2);
   ok('locked picks referencing a removed teacher are cleared (session still valid, array now empty)',
-    Object.keys(P4.state.scheduling.locked).length === 0);
-  ok('lastResult reset so the next render recomputes cleanly', P4.state.scheduling.lastResult === null);
+    Object.keys(PE.state.scheduling.locked).length === 0);
+  ok('lastResult reset so the next render recomputes cleanly', PE.state.scheduling.lastResult === null);
 
   const sid2 = fixture();
-  const removedP = P4.removeAllOfType('project');
+  const removedP = PE.removeAllOfType('project');
   ok('removeAllOfType (project) returns 1', removedP === 1);
-  ok('sources: project gone, teachers kept', P4.state.sources.length === 2 && P4.state.sources.every((s) => s.type === 'teacher'));
-  ok('team row for the removed project dropped entirely', !P4.state.scheduling.teams.PJ);
-  ok('locked pick on a now-nonexistent session (project removed) is pruned', !P4.state.scheduling.locked[sid2]);
-  ok('removeAllOfType on an empty type is a no-op returning 0', P4.removeAllOfType('project') === 0);
+  ok('sources: project gone, teachers kept', PE.state.sources.length === 2 && PE.state.sources.every((s) => s.type === 'teacher'));
+  ok('team row for the removed project dropped entirely', !PE.state.scheduling.teams.PJ);
+  ok('locked pick on a now-nonexistent session (project removed) is pruned', !PE.state.scheduling.locked[sid2]);
+  ok('removeAllOfType on an empty type is a no-op returning 0', PE.removeAllOfType('project') === 0);
+})();
+
+/* ---- 3h. tri alphabetique des encadrants / projets ---- */
+console.log('\n[3h] ordre alphabetique');
+(function () {
+  PE.state = PE.migrate({});
+  PE.state.sources = [
+    { id: 'a', name: 'Zoe', type: 'teacher', enabled: true },
+    { id: 'b', name: 'élodie', type: 'teacher', enabled: true },
+    { id: 'c', name: 'Adam', type: 'teacher', enabled: true },
+    { id: 'd', name: 'Projet 10', type: 'project', enabled: true },
+    { id: 'e', name: 'Projet 2', type: 'project', enabled: true }
+  ];
+  ok('sourcesOfType(teacher) -> alphabetique, accents ignores',
+    PE.sourcesOfType('teacher').map((s) => s.name).join(',') === 'Adam,élodie,Zoe');
+  ok('sourcesOfType(project) -> ordre naturel des nombres (2 avant 10)',
+    PE.sourcesOfType('project').map((s) => s.name).join(',') === 'Projet 2,Projet 10');
+  ok('sortedSources() melange les types par nom',
+    PE.sortedSources().map((s) => s.name).join(',') === 'Adam,élodie,Projet 2,Projet 10,Zoe');
+  ok('PE.state.sources garde l\'ordre d\'insertion',
+    PE.state.sources.map((s) => s.id).join(',') === 'a,b,c,d,e');
 })();
 
 /* ---- 4. exporters ---- */
 console.log('\n[4] CSV / ICS export');
-const csv = P4.exp.toCSV(['A', 'B'], [['x', 'y;z']]);
+const csv = PE.exp.toCSV(['A', 'B'], [['x', 'y;z']]);
 ok('CSV quotes cells containing ";"', csv.includes('"y;z"'));
 ok('CSV starts with BOM', csv.charCodeAt(0) === 0xFEFF);
-const ics = P4.exp.toICS('test', [{ start: new Date('2026-09-18T11:00:00Z'), end: new Date('2026-09-18T15:00:00Z'), summary: 'S1' }]);
+const ics = PE.exp.toICS('test', [{ start: new Date('2026-09-18T11:00:00Z'), end: new Date('2026-09-18T15:00:00Z'), summary: 'S1' }]);
 ok('ICS well-formed', ics.startsWith('BEGIN:VCALENDAR') && ics.trim().endsWith('END:VCALENDAR'));
 ok('ICS has UTC DTSTART', /DTSTART:20260918T110000Z/.test(ics));
 
@@ -378,7 +399,7 @@ ok('ICS has UTC DTSTART', /DTSTART:20260918T110000Z/.test(ics));
     const XL = require(path.join(ROOT, 'lib', 'xlsx.js'));
     const buf = await XL.buildTemplateBuffer();
     ok('template is a xlsx (PK zip signature)', Buffer.from(buf).slice(0, 2).toString('latin1') === 'PK');
-    const tmp = path.join(require('os').tmpdir(), 'p4-tpl-' + Date.now() + '.xlsx');
+    const tmp = path.join(require('os').tmpdir(), 'projet-encadrement-tpl-' + Date.now() + '.xlsx');
     fs.writeFileSync(tmp, Buffer.from(buf));
     const parsed = await XL.parseWorkbook(tmp);
     try { fs.unlinkSync(tmp); } catch (e) { /* ignore */ }
@@ -400,7 +421,7 @@ ok('ICS has UTC DTSTART', /DTSTART:20260918T110000Z/.test(ics));
     ws.addRow(['type', 'NOM', 'Supervision', 'URL', 'heures total', 'heures encadrées']);
     ws.addRow(['Enseignant', ' Durand ', '', 'https://ex.fr/d.ics', '', '']);
     ws.addRow(['projet', 'P Alpha', 'Partiellement encadré', 'ftp://bad', '12,5', '4']);
-    const tmp2 = path.join(require('os').tmpdir(), 'p4-tpl2-' + Date.now() + '.xlsx');
+    const tmp2 = path.join(require('os').tmpdir(), 'projet-encadrement-tpl2-' + Date.now() + '.xlsx');
     fs.writeFileSync(tmp2, Buffer.from(await wb.xlsx.writeBuffer()));
     const p2 = await XL.parseWorkbook(tmp2);
     try { fs.unlinkSync(tmp2); } catch (e) { /* ignore */ }
@@ -415,7 +436,7 @@ ok('ICS has UTC DTSTART', /DTSTART:20260918T110000Z/.test(ics));
     const ws3 = wb3.addWorksheet('x');
     ws3.addRow(['Nom', 'Projet ou encadrant', 'Adresse iCal 1', 'Adresse iCal 2', 'Adresse iCal 3']);
     ws3.addRow(['Dupont', 'encadrant', 'https://a.fr/1.ics', 'https://a.fr/2.ics', '']);
-    const tmp3 = path.join(require('os').tmpdir(), 'p4-tpl3-' + Date.now() + '.xlsx');
+    const tmp3 = path.join(require('os').tmpdir(), 'projet-encadrement-tpl3-' + Date.now() + '.xlsx');
     fs.writeFileSync(tmp3, Buffer.from(await wb3.xlsx.writeBuffer()));
     const p3 = await XL.parseWorkbook(tmp3);
     try { fs.unlinkSync(tmp3); } catch (e) { /* ignore */ }

@@ -1,9 +1,9 @@
-/* Store, helpers, tab navigation. Views register into P4.views. */
+/* Store, helpers, tab navigation. Views register into PE.views. */
 (function () {
   'use strict';
-  window.P4 = window.P4 || {};
-  const P4 = window.P4;
-  P4.views = {};
+  window.PE = window.PE || {};
+  const PE = window.PE;
+  PE.views = {};
 
   /* ---------------- utilities ---------------- */
   const PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#0891b2',
@@ -13,7 +13,7 @@
   const timeFmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const shortFmt = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  P4.util = {
+  PE.util = {
     uid() { return 's-' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); },
     esc(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
@@ -24,7 +24,7 @@
     fmtDay(d) { return dayFmt.format(d instanceof Date ? d : new Date(d)); },
     fmtTime(d) { return timeFmt.format(d instanceof Date ? d : new Date(d)); },
     fmtShort(d) { return shortFmt.format(d instanceof Date ? d : new Date(d)); },
-    fmtRange(a, b) { return P4.util.fmtTime(a) + '–' + P4.util.fmtTime(b); },
+    fmtRange(a, b) { return PE.util.fmtTime(a) + '–' + PE.util.fmtTime(b); },
     hours(a, b) { return (+new Date(b) - +new Date(a)) / 3600000; },
     monthKey(d) {
       d = d instanceof Date ? d : new Date(d);
@@ -46,10 +46,10 @@
     const now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth(), 1);
     const to = new Date(now.getFullYear(), now.getMonth() + 9, 0);
-    return { from: P4.util.dayKey(from), to: P4.util.dayKey(to) };
+    return { from: PE.util.dayKey(from), to: PE.util.dayKey(to) };
   }
 
-  P4.DEFAULT_STATE = function () {
+  PE.DEFAULT_STATE = function () {
     return {
       version: 1,
       range: defaultRange(),
@@ -83,13 +83,13 @@
     };
   };
 
-  P4.migrate = function (data) {
+  PE.migrate = function (data) {
     data = data || {};
-    const s = P4.DEFAULT_STATE();
+    const s = PE.DEFAULT_STATE();
 
     if (data.version != null) s.version = data.version;
     if (Array.isArray(data.sources)) s.sources = data.sources;
-    s.sources.forEach((src) => P4.normalizeSource(src));
+    s.sources.forEach((src) => PE.normalizeSource(src));
     if (data.range && typeof data.range === 'object') s.range = Object.assign(s.range, data.range);
 
     const dsch = data.scheduling || {};
@@ -123,26 +123,37 @@
 
     const dc = data.common || {};
     s.common = Object.assign(s.common, dc);
-    s.common.work = Object.assign(P4.DEFAULT_STATE().common.work, dc.work || {});
+    s.common.work = Object.assign(PE.DEFAULT_STATE().common.work, dc.work || {});
     s.planning = Object.assign(s.planning, data.planning || {});
     if (data.assistant && Array.isArray(data.assistant.log)) s.assistant.log = data.assistant.log.slice(-24);
     s.ui = Object.assign(s.ui, data.ui || {});
     return s;
   };
 
-  P4.state = P4.DEFAULT_STATE();
+  PE.state = PE.DEFAULT_STATE();
 
-  P4.serialize = function () { return JSON.parse(JSON.stringify(P4.state)); };
+  PE.serialize = function () { return JSON.parse(JSON.stringify(PE.state)); };
 
   let saveTimer = null;
-  P4.save = function () {
+  PE.save = function () {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { window.api.saveProject(P4.serialize()); }, 350);
+    saveTimer = setTimeout(() => { window.api.saveProject(PE.serialize()); }, 350);
   };
 
   /* ---------------- derived data ---------------- */
-  P4.sourcesOfType = function (type) {
-    return P4.state.sources.filter((s) => s.type === type);
+  /* Alphabetical by name (accent- and case-insensitive, natural number
+     order). Every list of encadrants / projets in the app is displayed
+     through sourcesOfType / sortedSources, so ordering lives here rather
+     than in each view. `PE.state.sources` itself keeps insertion order. */
+  PE.byName = function (a, b) {
+    return String((a && a.name) || '').localeCompare(
+      String((b && b.name) || ''), 'fr', { sensitivity: 'base', numeric: true });
+  };
+  PE.sourcesOfType = function (type) {
+    return PE.state.sources.filter((s) => s.type === type).sort(PE.byName);
+  };
+  PE.sortedSources = function () {
+    return PE.state.sources.slice().sort(PE.byName);
   };
 
   /* Remove every source of a given type ("teacher" or "project") and clean
@@ -153,20 +164,20 @@
      is gone, and stray "sans encadrant" flags on those same sessions. The
      cached lastResult is dropped so the next render/run recomputes cleanly
      from this now-consistent state. Returns how many sources were removed. */
-  P4.removeAllOfType = function (type) {
-    const targets = P4.sourcesOfType(type);
+  PE.removeAllOfType = function (type) {
+    const targets = PE.sourcesOfType(type);
     if (!targets.length) return 0;
     const ids = new Set(targets.map((s) => s.id));
-    P4.state.sources = P4.state.sources.filter((s) => !ids.has(s.id));
+    PE.state.sources = PE.state.sources.filter((s) => !ids.has(s.id));
 
-    const sch = P4.state.scheduling;
+    const sch = PE.state.scheduling;
     ids.forEach((id) => { delete sch.teachers[id]; delete sch.teams[id]; });
     Object.keys(sch.teams).forEach((pid) => {
       const team = sch.teams[pid];
       ids.forEach((id) => { delete team[id]; });
     });
 
-    const validSessionIds = new Set(P4.sessions().map((s) => s.id));
+    const validSessionIds = new Set(PE.sessions().map((s) => s.id));
     Object.keys(sch.locked).forEach((sid) => {
       if (!validSessionIds.has(sid)) { delete sch.locked[sid]; return; }
       sch.locked[sid] = (sch.locked[sid] || []).filter((tid) => !ids.has(tid));
@@ -185,10 +196,10 @@
      `recomputeSourceEvents` keeps `src.events`/`error`/`lastSync` in sync as
      the merge of every feed — every other view still just reads
      `src.events`, unaware feeds even exist. */
-  P4.normalizeSource = function (src) {
+  PE.normalizeSource = function (src) {
     if (!Array.isArray(src.feeds) || !src.feeds.length) {
       src.feeds = [{
-        id: P4.util.uid(),
+        id: PE.util.uid(),
         url: src.url || '',
         pasted: src.pasted || '',
         events: Array.isArray(src.events) ? src.events : [],
@@ -197,16 +208,16 @@
       }];
     }
     src.feeds.forEach((f) => {
-      if (!f.id) f.id = P4.util.uid();
+      if (!f.id) f.id = PE.util.uid();
       if (!Array.isArray(f.events)) f.events = [];
     });
     delete src.url;
     delete src.pasted;
-    P4.recomputeSourceEvents(src);
+    PE.recomputeSourceEvents(src);
     return src;
   };
 
-  P4.recomputeSourceEvents = function (src) {
+  PE.recomputeSourceEvents = function (src) {
     const all = [];
     (src.feeds || []).forEach((f) => { (f.events || []).forEach((e) => all.push(e)); });
     src.events = all;
@@ -218,14 +229,14 @@
     return src;
   };
 
-  P4.enabledEvents = function () {
+  PE.enabledEvents = function () {
     const out = [];
-    P4.state.sources.forEach((src, i) => {
+    PE.state.sources.forEach((src, i) => {
       if (src.enabled === false) return;
       (src.events || []).forEach((e) => {
         out.push({
           sourceId: src.id, sourceName: src.name, type: src.type,
-          color: src.color || P4.util.color(i),
+          color: src.color || PE.util.color(i),
           summary: e.summary, location: e.location, allDay: e.allDay,
           start: e.start, end: e.end
         });
@@ -236,9 +247,9 @@
   };
 
   /* Total (non all-day) session hours currently loaded for a project source. */
-  P4.projectHours = function (src) {
+  PE.projectHours = function (src) {
     return (src && src.events || []).filter((e) => !e.allDay)
-      .reduce((a, e) => a + P4.util.hours(e.start, e.end), 0);
+      .reduce((a, e) => a + PE.util.hours(e.start, e.end), 0);
   };
 
   /* Target unsupervised hours for a project source. Two ways to express it :
@@ -248,10 +259,10 @@
          the legacy `unsupHours` field.
      Only meaningful for a partially-supervised project. A "sans encadrant"
      weight in the team matrix still overrides this (handled in the scheduler). */
-  P4.projectUnsupTarget = function (src) {
+  PE.projectUnsupTarget = function (src) {
     if (!src || src.supervision !== 'partial') return 0;
     if (src.supMode === 'percent') {
-      const H = P4.projectHours(src);
+      const H = PE.projectHours(src);
       const pct = Math.max(0, Math.min(100, src.supPercent == null ? 100 : +src.supPercent));
       return Math.round(H * (1 - pct / 100) * 100) / 100;
     }
@@ -265,16 +276,16 @@
      all-day items and blocks longer than `sessionMaxH` h (Pronote emits school
      holidays / multi-day markers as ordinary timed events — those are not
      sessions). */
-  P4.sessions = function () {
+  PE.sessions = function () {
     const list = [];
-    const maxH = (+P4.state.scheduling.options.sessionMaxH) || 12;
-    P4.sourcesOfType('project').forEach((src) => {
+    const maxH = (+PE.state.scheduling.options.sessionMaxH) || 12;
+    PE.sourcesOfType('project').forEach((src) => {
       if (src.enabled === false) return;
       const supervision = src.supervision === 'partial' ? 'partial' : 'full';
-      const unsupTarget = P4.projectUnsupTarget(src);
+      const unsupTarget = PE.projectUnsupTarget(src);
       (src.events || []).forEach((e) => {
         if (e.allDay) return;
-        const hrs = Math.round(P4.util.hours(e.start, e.end) * 100) / 100;
+        const hrs = Math.round(PE.util.hours(e.start, e.end) * 100) / 100;
         if (hrs <= 0 || hrs > maxH + 1e-9) return;
         const id = src.id + '::' + e.start + '::' + (e.uid || e.summary || '');
         list.push({
@@ -291,31 +302,31 @@
     return list;
   };
 
-  P4.teacherEntry = function (sourceId) {
-    const t = P4.state.scheduling.teachers;
+  PE.teacherEntry = function (sourceId) {
+    const t = PE.state.scheduling.teachers;
     if (!t[sourceId]) t[sourceId] = { preferred: [], maxHours: null };
     if (!Array.isArray(t[sourceId].preferred)) t[sourceId].preferred = [];
     return t[sourceId];
   };
 
   /* Scheduling helpers shared by the Affectation and Assistant views. */
-  P4.teacherModels = function () {
-    return P4.sourcesOfType('teacher')
+  PE.teacherModels = function () {
+    return PE.sourcesOfType('teacher')
       .filter((s) => s.enabled !== false)
       .map((s) => {
-        const e = P4.teacherEntry(s.id);
+        const e = PE.teacherEntry(s.id);
         return { id: s.id, name: s.name, color: s.color, events: s.events || [], preferred: e.preferred, maxHours: e.maxHours };
       });
   };
 
-  P4.schedOptions = function (extra) {
-    const sch = P4.state.scheduling;
+  PE.schedOptions = function (extra) {
+    const sch = PE.state.scheduling;
     return Object.assign({}, sch.options, { teams: sch.teams, noSup: sch.noSup || {} }, extra || {});
   };
 
   /* Live assignment map (created from the locked picks if no run yet). */
-  P4.assignments = function () {
-    const sch = P4.state.scheduling;
+  PE.assignments = function () {
+    const sch = PE.state.scheduling;
     if (!sch.lastResult || !sch.lastResult.assignments) {
       const a = {};
       Object.keys(sch.locked || {}).forEach((k) => { a[k] = (sch.locked[k] || []).slice(); });
@@ -326,43 +337,43 @@
 
   /* Team = { teacherId: { on: bool, w: number } } for a project.
      No teacher checked ("on") on a project => every teacher eligible, weight 1. */
-  P4.projectTeam = function (projectId) {
-    const teams = P4.state.scheduling.teams;
+  PE.projectTeam = function (projectId) {
+    const teams = PE.state.scheduling.teams;
     if (!teams[projectId] || typeof teams[projectId] !== 'object' || Array.isArray(teams[projectId])) {
       teams[projectId] = {};
     }
     return teams[projectId];
   };
 
-  P4.teamCell = function (projectId, teacherId) {
-    const team = P4.projectTeam(projectId);
+  PE.teamCell = function (projectId, teacherId) {
+    const team = PE.projectTeam(projectId);
     if (!team[teacherId] || typeof team[teacherId] !== 'object') team[teacherId] = { on: false, w: 1 };
     if (team[teacherId].w == null || isNaN(+team[teacherId].w)) team[teacherId].w = 1;
     return team[teacherId];
   };
 
-  P4.NOSUP_KEY = '__nosup__';
+  PE.NOSUP_KEY = '__nosup__';
 
-  P4.teamDefined = function (projectId) {
-    const t = P4.state.scheduling.teams[projectId];
-    return !!t && Object.keys(t).some((k) => k !== P4.NOSUP_KEY && t[k] && t[k].on === true);
+  PE.teamDefined = function (projectId) {
+    const t = PE.state.scheduling.teams[projectId];
+    return !!t && Object.keys(t).some((k) => k !== PE.NOSUP_KEY && t[k] && t[k].on === true);
   };
 
-  P4.isEligible = function (projectId, teacherId) {
-    if (!P4.teamDefined(projectId)) return true;
-    const c = P4.state.scheduling.teams[projectId][teacherId];
+  PE.isEligible = function (projectId, teacherId) {
+    if (!PE.teamDefined(projectId)) return true;
+    const c = PE.state.scheduling.teams[projectId][teacherId];
     return !!(c && c.on === true);
   };
 
-  P4.projectWeight = function (projectId, teacherId) {
-    if (!P4.teamDefined(projectId)) return 1;
-    const c = P4.state.scheduling.teams[projectId][teacherId];
+  PE.projectWeight = function (projectId, teacherId) {
+    if (!PE.teamDefined(projectId)) return 1;
+    const c = PE.state.scheduling.teams[projectId][teacherId];
     return (c && c.on) ? ((c.w == null || isNaN(+c.w)) ? 1 : +c.w) : 0;
   };
 
   /* ---------------- toast ---------------- */
   let toastTimer = null;
-  P4.toast = function (msg, kind) {
+  PE.toast = function (msg, kind) {
     const el = document.getElementById('toast');
     el.textContent = msg;
     el.className = kind ? kind : '';
@@ -371,20 +382,20 @@
   };
 
   /* ---------------- rendering ---------------- */
-  P4.rerender = function () {
+  PE.rerender = function () {
     const c = document.getElementById('view');
     c.innerHTML = '';
     document.querySelectorAll('.tab').forEach((b) => {
-      b.classList.toggle('active', b.dataset.tab === P4.state.ui.tab);
+      b.classList.toggle('active', b.dataset.tab === PE.state.ui.tab);
     });
-    const view = P4.views[P4.state.ui.tab] || P4.views.sources;
+    const view = PE.views[PE.state.ui.tab] || PE.views.sources;
     view.render(c);
   };
 
-  P4.setTab = function (tab) {
-    P4.state.ui.tab = tab;
-    P4.save();
-    P4.rerender();
+  PE.setTab = function (tab) {
+    PE.state.ui.tab = tab;
+    PE.save();
+    PE.rerender();
   };
 
   /* ---------------- iCal loading ---------------- */
@@ -397,77 +408,77 @@
     else { f.error = res.error; }
   }
 
-  P4.refreshSource = async function (id) {
-    const src = P4.state.sources.find((s) => s.id === id);
+  PE.refreshSource = async function (id) {
+    const src = PE.state.sources.find((s) => s.id === id);
     if (!src) return;
-    P4.normalizeSource(src);
+    PE.normalizeSource(src);
     const feeds = src.feeds.filter((f) => f.url || f.pasted);
-    if (!feeds.length) { P4.recomputeSourceEvents(src); P4.save(); P4.rerender(); return; }
+    if (!feeds.length) { PE.recomputeSourceEvents(src); PE.save(); PE.rerender(); return; }
     src.loading = true;
-    P4.rerender();
-    await Promise.all(feeds.map((f) => loadFeed(f, P4.state.range)));
+    PE.rerender();
+    await Promise.all(feeds.map((f) => loadFeed(f, PE.state.range)));
     src.loading = false;
-    P4.recomputeSourceEvents(src);
-    P4.save();
-    P4.rerender();
+    PE.recomputeSourceEvents(src);
+    PE.save();
+    PE.rerender();
   };
 
-  P4.refreshAll = async function () {
-    P4.state.sources.forEach((s) => P4.normalizeSource(s));
-    const targets = P4.state.sources.filter((s) => s.enabled !== false && s.feeds.some((f) => f.url || f.pasted));
-    if (!targets.length) { P4.toast('Aucun agenda a charger'); return; }
-    P4.toast('Chargement de ' + targets.length + ' agenda(s)…');
+  PE.refreshAll = async function () {
+    PE.state.sources.forEach((s) => PE.normalizeSource(s));
+    const targets = PE.state.sources.filter((s) => s.enabled !== false && s.feeds.some((f) => f.url || f.pasted));
+    if (!targets.length) { PE.toast('Aucun agenda a charger'); return; }
+    PE.toast('Chargement de ' + targets.length + ' agenda(s)…');
     for (const s of targets) {
       s.loading = true;
     }
-    P4.rerender();
+    PE.rerender();
     await Promise.all(targets.map(async (src) => {
       const feeds = src.feeds.filter((f) => f.url || f.pasted);
-      await Promise.all(feeds.map((f) => loadFeed(f, P4.state.range)));
+      await Promise.all(feeds.map((f) => loadFeed(f, PE.state.range)));
       src.loading = false;
-      P4.recomputeSourceEvents(src);
+      PE.recomputeSourceEvents(src);
     }));
-    P4.save();
-    P4.rerender();
+    PE.save();
+    PE.rerender();
     const bad = targets.filter((s) => s.error).length;
-    P4.toast(bad ? (bad + ' agenda(s) en erreur') : 'Agendas a jour', bad ? 'err' : 'ok');
+    PE.toast(bad ? (bad + ' agenda(s) en erreur') : 'Agendas a jour', bad ? 'err' : 'ok');
   };
 
   /* ---------------- top bar ---------------- */
-  P4.wireTopBar = function () {
+  PE.wireTopBar = function () {
     document.querySelectorAll('.tab').forEach((b) => {
-      b.addEventListener('click', () => P4.setTab(b.dataset.tab));
+      b.addEventListener('click', () => PE.setTab(b.dataset.tab));
     });
     const rf = document.getElementById('range-from');
     const rt = document.getElementById('range-to');
-    rf.value = P4.state.range.from;
-    rt.value = P4.state.range.to;
-    rf.addEventListener('change', () => { P4.state.range.from = rf.value; P4.save(); });
-    rt.addEventListener('change', () => { P4.state.range.to = rt.value; P4.save(); });
+    rf.value = PE.state.range.from;
+    rt.value = PE.state.range.to;
+    rf.addEventListener('change', () => { PE.state.range.from = rf.value; PE.save(); });
+    rt.addEventListener('change', () => { PE.state.range.to = rt.value; PE.save(); });
 
-    document.getElementById('btn-refresh').addEventListener('click', P4.refreshAll);
+    document.getElementById('btn-refresh').addEventListener('click', PE.refreshAll);
 
     document.getElementById('btn-export-proj').addEventListener('click', async () => {
-      const r = await window.api.exportProject(P4.serialize());
-      if (r.ok) P4.toast('Projet exporte', 'ok');
+      const r = await window.api.exportProject(PE.serialize());
+      if (r.ok) PE.toast('Projet exporte', 'ok');
     });
     document.getElementById('btn-import-proj').addEventListener('click', async () => {
       const r = await window.api.importProject();
       if (r.ok && r.data) {
-        P4.state = P4.migrate(r.data);
-        document.getElementById('range-from').value = P4.state.range.from;
-        document.getElementById('range-to').value = P4.state.range.to;
-        P4.save();
-        P4.rerender();
-        P4.toast('Projet importe', 'ok');
+        PE.state = PE.migrate(r.data);
+        document.getElementById('range-from').value = PE.state.range.from;
+        document.getElementById('range-to').value = PE.state.range.to;
+        PE.save();
+        PE.rerender();
+        PE.toast('Projet importe', 'ok');
       }
     });
   };
 
-  P4.boot = async function () {
+  PE.boot = async function () {
     const r = await window.api.loadProject();
-    if (r.ok && r.data) P4.state = P4.migrate(r.data);
-    P4.wireTopBar();
-    P4.rerender();
+    if (r.ok && r.data) PE.state = PE.migrate(r.data);
+    PE.wireTopBar();
+    PE.rerender();
   };
 })();
