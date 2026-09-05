@@ -302,11 +302,40 @@
     return list;
   };
 
+  /* indispo entry = { slot: 0..9, degree: 1|2 } — one weekly half-day
+     (0 = lun. matin, 1 = lun. apres-midi, ... 9 = ven. apres-midi). An
+     encadrant can list several, non-contiguous, each with its own level.
+     Older saves used a { from, to, degree } range : expand it to one entry
+     per covered slot (keeping the highest degree when slots collide). */
+  function normIndispo(list) {
+    const bySlot = {};
+    (Array.isArray(list) ? list : []).forEach((e) => {
+      const deg = +(e && e.degree);
+      if (deg !== 1 && deg !== 2) return;
+      let slots;
+      if (e.slot != null && !isNaN(+e.slot)) {
+        slots = [Math.max(0, Math.min(9, Math.round(+e.slot)))];
+      } else if (e.from != null && e.to != null) {
+        const lo = Math.max(0, Math.min(9, Math.round(+e.from)));
+        const hi = Math.max(0, Math.min(9, Math.round(+e.to)));
+        slots = [];
+        for (let s = Math.min(lo, hi); s <= Math.max(lo, hi); s++) slots.push(s);
+      } else {
+        return;
+      }
+      slots.forEach((s) => { bySlot[s] = Math.max(bySlot[s] || 0, deg); });
+    });
+    return Object.keys(bySlot).map((s) => ({ slot: +s, degree: bySlot[s] }))
+      .sort((a, b) => a.slot - b.slot);
+  }
+
   PE.teacherEntry = function (sourceId) {
     const t = PE.state.scheduling.teachers;
     if (!t[sourceId]) t[sourceId] = { preferred: [], maxHours: null, indispo: [] };
     if (!Array.isArray(t[sourceId].preferred)) t[sourceId].preferred = [];
-    if (!Array.isArray(t[sourceId].indispo)) t[sourceId].indispo = [];
+    const ind = t[sourceId].indispo;
+    if (!Array.isArray(ind)) t[sourceId].indispo = [];
+    else if (ind.some((e) => e && e.slot == null && e.from != null)) t[sourceId].indispo = normIndispo(ind);
     return t[sourceId];
   };
 

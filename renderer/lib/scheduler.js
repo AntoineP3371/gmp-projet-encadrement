@@ -51,7 +51,8 @@
   /* Recurring half-day unavailability for a teacher, as a degree for a given
      session : 0 = none, 1 = soft (place a session there only as a last
      resort), 2 = hard (never place a session there). `indispo` is a list of
-     { from, to, degree } weekly slot ranges (see sessionSlots). */
+     { slot, degree } single weekly half-days (0..9, see sessionSlots) ; a
+     legacy { from, to, degree } range is still accepted. */
   function indispoDegree(indispo, s) {
     if (!indispo || !indispo.length) return 0;
     const slots = sessionSlots(s);
@@ -59,10 +60,15 @@
     let deg = 0;
     for (const e of indispo) {
       const d = +(e && e.degree);
-      if (d !== 1 && d !== 2) continue;
-      const lo = Math.min(+e.from, +e.to);
-      const hi = Math.max(+e.from, +e.to);
-      for (const sl of slots) if (sl >= lo && sl <= hi && d > deg) deg = d;
+      if (d !== 1 && d !== 2 || d <= deg) continue;
+      if (e && e.slot != null && !isNaN(+e.slot)) {
+        const sl0 = Math.round(+e.slot);
+        for (const sl of slots) if (sl === sl0) { deg = d; break; }
+      } else if (e && e.from != null && e.to != null) {
+        const lo = Math.min(+e.from, +e.to);
+        const hi = Math.max(+e.from, +e.to);
+        for (const sl of slots) if (sl >= lo && sl <= hi) { deg = d; break; }
+      }
     }
     return deg;
   }

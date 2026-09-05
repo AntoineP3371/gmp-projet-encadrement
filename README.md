@@ -88,9 +88,10 @@ réglages qui pointaient sur les agendas retirés (colonne dans la matrice
 équipe/poids, périodes préférées, séances verrouillées).
 
 Pour un agenda de type **Enseignant**, on peut saisir directement (sans passer
-par l'Excel) des **indisponibilités récurrentes en demi-journées** : une ou
-plusieurs plages `de <demi-journée> à <demi-journée>` (lun. matin → ven.
-après-midi ; coupure midi à 12 h) avec un **degré** :
+par l'Excel) des **indisponibilités récurrentes en demi-journées** : une ligne
+par demi-journée (elles n'ont pas besoin d'être contiguës — p. ex. *lun. matin*
+et *mar. après-midi*), chacune avec son **degré**. Les demi-journées vont de
+*lun. matin* à *ven. après-midi*, coupure du midi à 12 h.
 - **1 — à éviter** : l'affectation automatique n'y place une séance qu'en
   dernier recours, si aucun autre encadrant n'est possible ;
 - **2 — bloqué** : aucune séance n'y est jamais placée automatiquement (comme

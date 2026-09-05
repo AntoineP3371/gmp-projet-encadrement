@@ -364,14 +364,19 @@ function attach(win, deps) {
         PE.state.scheduling.noSup = {}; PE.state.scheduling.lastResult = null;
         const D = PE.state.sources.find((s) => s.name === 'Durand');
         PE.setTab('sources'); PE.rerender();
-        const card = document.querySelector('.src-card[data-id="' + D.id + '"]');
-        const hasBlock = !!card.querySelector('.indispo-block');
-        card.querySelector('.id-add').click();
-        // sessions of the sample project are all Friday afternoons -> slot 9
-        const row = document.querySelector('.src-card[data-id="' + D.id + '"] .indispo-row');
-        const setSel = (sel, v) => { const el = row.querySelector(sel); el.value = String(v); el.dispatchEvent(new Event('change')); };
-        setSel('.id-from', 9); setSel('.id-to', 9); setSel('.id-deg', 2);
+        const cardOf = () => document.querySelector('.src-card[data-id="' + D.id + '"]');
+        const hasBlock = !!cardOf().querySelector('.indispo-block');
+        const setRow = (n, slot, deg) => {
+          const row = cardOf().querySelectorAll('.indispo-row')[n];
+          const s = (sel, v) => { const el = row.querySelector(sel); el.value = String(v); el.dispatchEvent(new Event('change')); };
+          s('.id-slot', slot); s('.id-deg', deg);
+        };
+        // two non-contiguous half-days : lun. matin (slot 0) + ven. apres-midi
+        // (slot 9). The sample sessions are all Friday afternoons -> slot 9.
+        cardOf().querySelector('.id-add').click(); setRow(0, 0, 1);
+        cardOf().querySelector('.id-add').click(); setRow(1, 9, 2);
         const stored = JSON.stringify(PE.state.scheduling.teachers[D.id].indispo);
+        const rows = cardOf().querySelectorAll('.indispo-row').length;
         PE.setTab('scheduling');
         document.querySelector('#o-run').click();
         return new Promise((res) => setTimeout(() => {
@@ -380,6 +385,7 @@ function attach(win, deps) {
           res(JSON.stringify({
             hasBlock: hasBlock,
             stored: stored,
+            rows: rows,
             durandStaffed: asg.filter((a) => a.indexOf(D.id) !== -1).length,
             errors: window.__errors.length
           }));

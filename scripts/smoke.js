@@ -393,11 +393,15 @@ console.log('\n[3i] indisponibilites recurrentes');
   ok('sessionSlots mardi 9-12 -> [2]', JSON.stringify(S.sessionSlots(tueAM)) === '[2]');
   ok('sessionSlots mer 10-14 (a cheval sur midi) -> [4,5]', JSON.stringify(S.sessionSlots(wedMid)) === '[4,5]');
 
-  const indi = [{ from: 0, to: 3, degree: 2 }]; // lun matin -> mar apres-midi
-  ok('indispoDegree = 2 dans la plage', S.indispoDegree(indi, monPM) === 2 && S.indispoDegree(indi, tueAM) === 2);
-  ok('indispoDegree = 0 hors plage', S.indispoDegree(indi, wedMid) === 0);
-  ok('degre 1 remonte', S.indispoDegree([{ from: 1, to: 1, degree: 1 }], monPM) === 1);
-  ok('from/to inverses toleres', S.indispoDegree([{ from: 3, to: 0, degree: 2 }], monPM) === 2);
+  // discrete half-days : lun. matin bloque + mar. apres-midi a eviter
+  const indi = [{ slot: 0, degree: 2 }, { slot: 3, degree: 1 }];
+  const monAM = { start: new Date(2026, 8, 7, 9, 0), end: new Date(2026, 8, 7, 12, 0) };  // lundi matin -> slot 0
+  const tuePM = { start: new Date(2026, 8, 8, 13, 0), end: new Date(2026, 8, 8, 17, 0) }; // mardi apres-midi -> slot 3
+  ok('demi-journees discretes : slot 0 -> degre 2', S.indispoDegree(indi, monAM) === 2);
+  ok('demi-journees discretes : slot 3 -> degre 1', S.indispoDegree(indi, tuePM) === 1);
+  ok('demi-journees discretes : slot non liste -> 0', S.indispoDegree(indi, wedMid) === 0 && S.indispoDegree(indi, monPM) === 0);
+  ok('degre le plus fort gagne si collision', S.indispoDegree([{ slot: 1, degree: 1 }, { slot: 1, degree: 2 }], monPM) === 2);
+  ok('plage { from, to } encore toleree (retro-compat)', S.indispoDegree([{ from: 0, to: 3, degree: 2 }], tuePM) === 2);
 
   const sess = [0, 1, 2].map((i) => ({
     id: 'ss' + i, projectId: 'PR', project: 'PR', label: 's' + i, hours: 4,
@@ -406,13 +410,13 @@ console.log('\n[3i] indisponibilites recurrentes');
   })); // 3 lundis apres-midi (slot 1)
   const opts = { targetPerSession: 1, minPerSession: 1, prefWeight: 0 };
 
-  const Bhard = { id: 'B', name: 'B', events: [], indispo: [{ from: 1, to: 1, degree: 2 }] };
+  const Bhard = { id: 'B', name: 'B', events: [], indispo: [{ slot: 1, degree: 2 }] };
   const rH = S.run(sess, [{ id: 'A', name: 'A', events: [] }, Bhard], opts);
   ok('degre 2 : B jamais affecte', Object.values(rH.assignments).every((a) => a.indexOf('B') === -1));
   ok('degre 2 : tout va sur A', sess.every((s) => (rH.assignments[s.id] || [])[0] === 'A'));
 
   const Abusy1 = { id: 'A', name: 'A', events: [{ start: sess[1].start, end: sess[1].end, allDay: false }] };
-  const Bsoft = { id: 'B', name: 'B', events: [], indispo: [{ from: 1, to: 1, degree: 1 }] };
+  const Bsoft = { id: 'B', name: 'B', events: [], indispo: [{ slot: 1, degree: 1 }] };
   const rS = S.run(sess, [Abusy1, Bsoft], opts);
   ok('degre 1 : B ne prend QUE la seance ou personne d\'autre ne peut',
     (rS.assignments.ss1 || [])[0] === 'B' && (rS.assignments.ss0 || [])[0] === 'A' && (rS.assignments.ss2 || [])[0] === 'A');

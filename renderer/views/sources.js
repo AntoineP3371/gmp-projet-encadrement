@@ -11,10 +11,7 @@
     const opts = (sel) => HALF_DAYS.map((l, k) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${l}</option>`).join('');
     const rows = (e.indispo || []).map((iv, i) => `
       <div class="indispo-row row wrap-tight" data-i="${i}">
-        <span class="muted">de</span>
-        <select class="id-from">${opts(+iv.from || 0)}</select>
-        <span class="muted">a</span>
-        <select class="id-to">${opts(+iv.to || 0)}</select>
+        <select class="id-slot">${opts(+iv.slot || 0)}</select>
         <select class="id-deg">
           <option value="1" ${+iv.degree === 1 ? 'selected' : ''}>1 — a eviter (dernier recours)</option>
           <option value="2" ${+iv.degree !== 1 ? 'selected' : ''}>2 — bloque (jamais de seance)</option>
@@ -23,9 +20,9 @@
       </div>`).join('');
     return `
       <div class="indispo-block" style="margin-top:4px">
-        <div class="muted" style="font-size:12px;margin-bottom:2px">Indisponibilites recurrentes (demi-journees)</div>
+        <div class="muted" style="font-size:12px;margin-bottom:2px">Indisponibilites recurrentes — une ligne par demi-journee</div>
         ${rows || '<span class="muted" style="font-size:12px">aucune</span>'}
-        <button type="button" class="small id-add" style="margin-top:2px">+ demi-journees indisponibles</button>
+        <button type="button" class="small id-add" style="margin-top:2px">+ demi-journee indisponible</button>
       </div>`;
   }
 
@@ -289,7 +286,7 @@
         const addI = q('.id-add');
         if (addI) {
           addI.addEventListener('click', () => {
-            entry.indispo.push({ from: 0, to: 9, degree: 2 });
+            entry.indispo.push({ slot: 0, degree: 2 });
             PE.save();
             PE.rerender();
           });
@@ -297,8 +294,7 @@
         cardEl.querySelectorAll('.indispo-row').forEach((rw) => {
           const i = +rw.dataset.i;
           const upd = (k) => (e) => { entry.indispo[i][k] = +e.target.value; PE.save(); PE.rerender(); };
-          rw.querySelector('.id-from').addEventListener('change', upd('from'));
-          rw.querySelector('.id-to').addEventListener('change', upd('to'));
+          rw.querySelector('.id-slot').addEventListener('change', upd('slot'));
           rw.querySelector('.id-deg').addEventListener('change', upd('degree'));
           rw.querySelector('.id-del').addEventListener('click', () => {
             entry.indispo.splice(i, 1);
