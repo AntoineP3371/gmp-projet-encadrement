@@ -96,11 +96,16 @@
         pairAvail[p.id + '::' + t.id] = { full: full, part: part };
       });
     });
+    // pairCount = nb de seances affectees ; pairHours = heures reellement
+    // encadrees, comptees a l'heure pres (couverture partielle -> heures reelles).
+    const pairHours = {};
     sessions.forEach((s) => {
-      if (toMoveSet[s.id]) return; // seance mise de cote : hors comptes
+      if (toMoveSet[s.id] || s.projectId == null) return; // seance mise de cote : hors comptes
       (assignments[s.id] || []).forEach((tid) => {
         const k = s.projectId + '::' + tid;
         pairCount[k] = (pairCount[k] || 0) + 1;
+        const c = covFor(tid, s);
+        pairHours[k] = (pairHours[k] || 0) + (c.frac >= 1 - 1e-9 ? s.hours : c.freeMs / 3600000);
       });
     });
 
@@ -363,6 +368,19 @@
       </div>
 
       <div class="panel">
+        <div class="spread" style="align-items:center;margin-bottom:6px">
+          <h2 style="margin:0">Equilibre des encadrants par projet</h2>
+          <div class="row wrap-tight">
+            <span class="muted">Barres :</span>
+            <button class="small bal-metric-btn ${sch.balanceMetric === 'sessions' ? '' : 'primary'}" data-metric="hours">heures</button>
+            <button class="small bal-metric-btn ${sch.balanceMetric === 'sessions' ? 'primary' : ''}" data-metric="sessions">seances</button>
+          </div>
+        </div>
+        <p class="muted" style="margin:0 0 8px">Seances et heures reellement encadrees par chaque encadrant, projet par projet (heures comptees a l'heure pres, couverture partielle comprise). Mis a jour a chaque affectation. Le trait vertical = cible d'apres les poids.</p>
+        ${balancePanelHTML(projects, sessions, T, assignments, o, ev, pairCount, pairHours, pairAvail, noSupSet, toMoveSet, unfilledSet, sch.balanceMetric)}
+      </div>
+
+      <div class="panel">
         <div class="spread" style="align-items:center;margin-bottom:8px">
           <h2 style="margin:0">Repartition des seances (${visSessions.length}${visSessions.length !== sessions.length ? ' / ' + sessions.length : ''})</h2>
           <div class="row wrap-tight">
@@ -445,6 +463,86 @@
     if (frac >= 1 - 1e-9) return '<span class="badge ok">complete</span>';
     if (frac <= 1e-9) return '<span class="badge danger">indispo</span>';
     return '<span class="badge warn">' + fmtH(frac * sHours) + ' / ' + sHours + ' h</span>';
+  }
+
+  /* "Equilibre des encadrants par projet" : pour chaque projet, une ligne par
+     encadrant concerne avec ses seances + heures reellement encadrees (heures a
+     l'heure pres, couverture partielle comprise), une barre (heures ou seances
+     selon `metric`) et un repere de cible. Recalcule a chaque rendu -> se met a
+     jour au fil des affectations. */
+  function balancePanelHTML(projects, sessions, T, assignments, o, ev, pairCount, pairHours, pairAvail, noSupSet, toMoveSet, unfilledSet, metric) {
+    if (!projects.length || !T.length) return '<p class="muted">Ajoutez au moins un projet et un enseignant.</p>';
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const sh = o.sessionHours || 4;
+    const byHours = metric !== 'sessions';
+    const teamsAll = PE.state.scheduling.teams || {};
+
+    const blocks = projects.map((p) => {
+      if (!sessions.some((s) => s.projectId === p.id)) return '';
+      const ps = sessions.filter((s) => s.projectId === p.id && !toMoveSet[s.id]);
+      const team = teamsAll[p.id] || {};
+      const teamOn = Object.keys(team).filter((k) => k !== PE.NOSUP_KEY && team[k] && team[k].on);
+
+      let rows = T.filter((t) => {
+        if (teamOn.length) return teamOn.indexOf(t.id) !== -1;
+        const k = p.id + '::' + t.id;
+        const av = pairAvail[k] || { full: 0, part: 0 };
+        return (pairCount[k] || 0) > 0 || av.full + av.part > 0;
+      }).map((t) => {
+        const k = p.id + '::' + t.id;
+        const tgtH = r1((ev.targetPair && ev.targetPair[k]) || 0);
+        return {
+          name: t.name, color: t.color, sansEnc: false,
+          n: pairCount[k] || 0, h: r1(pairHours[k] || 0),
+          tgtH: tgtH, tgtN: Math.round(tgtH / sh)
+        };
+      });
+
+      const nsList = ps.filter((s) => noSupSet[s.id]);
+      const nsTgtH = r1((ev.unsupTarget && ev.unsupTarget[p.id]) || 0);
+      if (nsList.length || nsTgtH > 0) {
+        rows.push({
+          name: 'sans encadrant', color: '#94a3b8', sansEnc: true,
+          n: nsList.length, h: r1(nsList.reduce((a, s) => a + s.hours, 0)),
+          tgtH: nsTgtH, tgtN: Math.round(nsTgtH / sh)
+        });
+      }
+
+      const val = (x) => (byHours ? x.h : x.n);
+      const tgt = (x) => (byHours ? x.tgtH : x.tgtN);
+      rows.sort((a, b) => (val(b) - val(a)) || a.name.localeCompare(b.name, 'fr'));
+      rows = rows.filter((x) => !x.sansEnc).concat(rows.filter((x) => x.sansEnc));
+
+      const teach = rows.filter((x) => !x.sansEnc);
+      const maxV = Math.max(1, ...rows.map((x) => Math.max(val(x), tgt(x))));
+      const totalSes = ps.length;
+      const totalH = r1(ps.reduce((a, s) => a + s.hours, 0));
+      const toPlace = ps.filter((s) => unfilledSet[s.id]).length;
+      const nMove = sessions.filter((s) => s.projectId === p.id && toMoveSet[s.id]).length;
+      const spreadN = teach.length >= 2 ? Math.max.apply(null, teach.map((x) => x.n)) - Math.min.apply(null, teach.map((x) => x.n)) : 0;
+      const spreadH = teach.length >= 2 ? r1(Math.max.apply(null, teach.map((x) => x.h)) - Math.min.apply(null, teach.map((x) => x.h))) : 0;
+
+      const rowHTML = rows.map((x) => {
+        const d = byHours ? r1(x.h - x.tgtH) : (x.n - x.tgtN);
+        const near = byHours ? Math.abs(d) < 0.5 : d === 0;
+        const dCol = near ? 'var(--ok)' : (d > 0 ? 'var(--warn)' : 'var(--muted)');
+        const dTxt = x.sansEnc ? '' : (near ? 'équilibré' : (d > 0 ? '+' : '−') + (byHours ? fmtH(Math.abs(d)) : Math.abs(d)));
+        return `<div class="bal-row${x.sansEnc ? ' sans' : ''}">
+          <span class="bal-name"><span class="dot" style="background:${x.color}"></span>${U.esc(x.name)}</span>
+          <div class="loadbar"><span style="width:${Math.round(val(x) / maxV * 100)}%;background:${x.color}"></span><i class="tgt" style="left:${Math.min(100, Math.round(tgt(x) / maxV * 100))}%"></i></div>
+          <span class="bal-fig">${x.n} séance${x.n > 1 ? 's' : ''} &middot; ${fmtH(x.h)}</span>
+          <span class="bal-tgt" style="color:${dCol}">${x.sansEnc ? 'cible ≈ ' + fmtH(x.tgtH) : 'cible ≈ ' + x.tgtN + (byHours ? ' (' + fmtH(x.tgtH) + ')' : '') + (dTxt ? ' &middot; ' + dTxt : '')}</span>
+        </div>`;
+      }).join('');
+
+      return `<div class="bal-proj">
+        ${teach.length >= 2 ? `<span class="bal-spread muted">écart max : ${spreadN} séance${spreadN > 1 ? 's' : ''} / ${fmtH(spreadH)}</span>` : ''}
+        <span class="dot" style="background:${p.color}"></span> <b>${U.esc(p.name)}</b>
+        <span class="muted">— ${totalSes} séance${totalSes > 1 ? 's' : ''} &middot; ${fmtH(totalH)}${toPlace ? ' &middot; ' + toPlace + ' à placer' : ''}${nMove ? ' &middot; ' + nMove + ' à déplacer' : ''}</span>
+        </div>${rowHTML || '<p class="muted" style="margin:2px 0 8px">aucun encadrant concerné</p>'}`;
+    }).filter(Boolean).join('');
+
+    return blocks || '<p class="muted">Aucun projet avec des séances.</p>';
   }
 
   /* [{ project, n, hours }] : seances + heures par projet pour un encadrant */
@@ -772,6 +870,12 @@
 
     root.querySelectorAll('.viewbtn').forEach((b) => b.addEventListener('click', () => {
       sch.view = b.dataset.view;
+      PE.save();
+      PE.rerender();
+    }));
+
+    root.querySelectorAll('.bal-metric-btn').forEach((b) => b.addEventListener('click', () => {
+      sch.balanceMetric = b.dataset.metric === 'sessions' ? 'sessions' : 'hours';
       PE.save();
       PE.rerender();
     }));

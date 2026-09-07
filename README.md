@@ -166,6 +166,17 @@ sur plusieurs projets — le détail `Projet A — n séances (cible ≈ …)`.
 
 Un encadrant non coché forcé à la main est signalé « hors équipe ».
 
+**Équilibre des encadrants par projet** : un bloc de comparaison, une ligne par
+encadrant concerné, **projet par projet**, recalculé à chaque affectation. Pour
+chacun : `N séances · X h` (heures **réellement encadrées**, comptées à l'heure
+près — une couverture partielle compte pour sa durée réelle, pas pour la séance
+entière), une **barre** proportionnelle (aux heures par défaut, bascule
+*heures ⇄ séances*) avec un trait vertical = **cible** d'après les poids, et
+l'**écart à la cible** (`+3 h`, `−1`, `équilibré`). La ligne *sans encadrant* est
+incluse dans la comparaison ; l'en-tête de chaque projet rappelle le total, le
+nombre de séances *à placer* / *à déplacer* et l'**écart max** entre encadrants.
+Le choix *heures / séances* est mémorisé.
+
 **Enseignants** = agendas de type *Enseignant*. Pour chacun :
 - un **plafond d'heures** optionnel ;
 - des **périodes préférées** : une ou plusieurs plages `mois de début → mois de

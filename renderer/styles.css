@@ -232,6 +232,22 @@ td.dispo-cell { min-width: 150px; font-size: 12px; line-height: 1.7; }
 .loadbar > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
 .loadbar > i.tgt { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); opacity: .65; }
 
+/* "Equilibre des encadrants par projet" : comparaison seances / heures */
+.bal-proj { margin: 12px 0 4px; font-size: 13px; }
+.bal-proj:first-child { margin-top: 0; }
+.bal-spread { float: right; font-size: 11px; font-weight: 400; }
+.bal-row { display: grid; grid-template-columns: 165px 1fr 150px 165px; gap: 10px; align-items: center; font-size: 12px; margin: 3px 0; }
+.bal-row.sans { opacity: .8; }
+.bal-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bal-fig { text-align: right; font-variant-numeric: tabular-nums; }
+.bal-tgt { font-size: 11px; }
+.bal-row .loadbar { margin: 0; }
+@media (max-width: 760px) {
+  .bal-row { grid-template-columns: 1fr auto; }
+  .bal-row .loadbar { grid-column: 1 / -1; order: 3; }
+  .bal-tgt { text-align: right; }
+}
+
 .teacher-row { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 8px; }
 .period-tag {
   display: inline-flex; align-items: center; gap: 6px;

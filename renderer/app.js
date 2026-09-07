@@ -84,6 +84,7 @@
         comment: {},          // sessionId -> "texte libre"
         visibleProjects: null,// null = tous ; sinon [projectId] affiches dans "Repartition des seances"
         hardOnly: false,      // n'afficher que les seances sans encadrant pleinement disponible
+        balanceMetric: 'hours', // 'hours' | 'sessions' -- longueur des barres du bloc "Equilibre par projet"
         view: 'session',      // 'session' | 'project' | 'teacher' -- vue de la repartition
         lastResult: null      // { assignments, unfilled, conflicts, load } cached for display
       },
@@ -120,6 +121,7 @@
     if (dsch.comment && typeof dsch.comment === 'object') s.scheduling.comment = dsch.comment;
     if (Array.isArray(dsch.visibleProjects)) s.scheduling.visibleProjects = dsch.visibleProjects;
     s.scheduling.hardOnly = !!dsch.hardOnly;
+    s.scheduling.balanceMetric = dsch.balanceMetric === 'sessions' ? 'sessions' : 'hours';
     if (['session', 'project', 'teacher'].indexOf(dsch.view) !== -1) s.scheduling.view = dsch.view;
     if (dsch.lastResult) s.scheduling.lastResult = dsch.lastResult;
     s.scheduling.teams = (dsch.teams && typeof dsch.teams === 'object' && !Array.isArray(dsch.teams)) ? dsch.teams : {};

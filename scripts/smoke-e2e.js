@@ -146,6 +146,35 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-BILAN ' + bilan);
 
+      // "Equilibre des encadrants par projet" : lignes seances/heures, live
+      const balance = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE;
+        PE.state.scheduling.teams = {}; PE.state.scheduling.toMove = {};
+        PE.state.scheduling.balanceMetric = 'hours'; PE.rerender();
+        document.querySelector('#o-run').click(); await new Promise((r) => setTimeout(r, 400));
+        const h = Array.from(document.querySelectorAll('h2')).find((x) => x.textContent.indexOf('Equilibre des encadrants') !== -1);
+        const panel = h && h.closest('.panel');
+        const rows = panel ? Array.from(panel.querySelectorAll('.bal-row')) : [];
+        const texts = rows.map((r) => r.querySelector('.bal-fig').textContent.replace(/\\s+/g, ' ').trim());
+        const hasBars = rows.every((r) => r.querySelector('.loadbar > span'));
+        const figFormat = texts.length > 0 && texts.every((t) => /\\d+ séances? · [\\d.,]+ h/.test(t));
+        // toggle -> seances, la 1re barre change de largeur
+        const w0 = rows[0] && rows[0].querySelector('.loadbar > span').style.width;
+        document.querySelector('.bal-metric-btn[data-metric="sessions"]').click();
+        await new Promise((r) => setTimeout(r, 200));
+        const stored = PE.state.scheduling.balanceMetric;
+        // reaffecter apres un retrait -> le total d'heures d'un encadrant bouge
+        const beforeSwap = (panel && panel.querySelector('.bal-row .bal-fig')) ? panel.querySelector('.bal-row .bal-fig').textContent : '';
+        document.querySelector('.bal-metric-btn[data-metric="hours"]').click();
+        await new Promise((r) => setTimeout(r, 200));
+        return JSON.stringify({
+          hasPanel: !!panel, nRows: rows.length, hasBars: hasBars, figFormat: figFormat,
+          firstFig: texts[0] || '', metricStored: stored, w0: w0,
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-BALANCE ' + balance);
+
       // weight-driven distribution + "sans encadrant" weight column (fully-free team)
       const weights = await win.webContents.executeJavaScript(`(() => {
         const PE = window.PE;
