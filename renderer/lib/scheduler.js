@@ -167,9 +167,10 @@
     allIds.forEach((id) => { byTeacher[id] = 0; });
 
     const tps = o.targetPerSession || 1;
+    const toMoveSet = o.toMove || {};
     const proj = {};
     sessions.forEach((s) => {
-      if (s.projectId == null) return;
+      if (s.projectId == null || toMoveSet[s.id]) return;
       (proj[s.projectId] = proj[s.projectId] || []).push(s);
     });
 
@@ -217,6 +218,7 @@
 
   function summarise(sessions, T, byId, o) {
     const noSupSet = o.noSup || {};
+    const toMoveSet = o.toMove || {};
     const availList = {};
     const availFull = {};
     const partial = {};
@@ -224,6 +226,7 @@
     const outOfTeam = {};
     const unfilled = [];
     const noSup = [];
+    const toMove = [];      // sessions "a deplacer" : mises de cote
     const unsupHours = {};   // projectId -> heures de seances sans encadrant
     const unsupTarget = {};  // projectId -> cible d'heures non encadrees
     const supervisionOf = {}; // projectId -> 'full' | 'partial'
@@ -240,6 +243,15 @@
           unsupTarget[s.projectId] = targets.unsupByProject[s.projectId] != null
             ? targets.unsupByProject[s.projectId] : (+s.unsupTarget || 0);
         }
+      }
+
+      // "a deplacer" : la seance est mise de cote (pas d'affectation auto, pas
+      // comptee comme un manque). On ne calcule rien d'autre pour elle.
+      if (toMoveSet[s.id]) {
+        toMove.push(s.id);
+        availList[s.id] = []; availFull[s.id] = 0;
+        partial[s.id] = []; indispo[s.id] = []; outOfTeam[s.id] = [];
+        return;
       }
 
       const list = [];
@@ -286,7 +298,7 @@
     T.forEach((t) => { load[t.id] = Math.round(t.load * 100) / 100; });
     return {
       assignments: o.assignments, load, availList, availFull, partial, indispo, outOfTeam,
-      unfilled, noSup, unsupHours, unsupTarget, supervisionOf,
+      unfilled, noSup, toMove, unsupHours, unsupTarget, supervisionOf,
       target: targets.byTeacher, targetPair: targets.byPair
     };
   }
@@ -301,7 +313,8 @@
       allDayBusy: true,
       locked: {},
       teams: {},
-      noSup: {}
+      noSup: {},
+      toMove: {}
     }, options || {});
 
     const T = buildTeachers(teachers, o.allDayBusy);
@@ -314,9 +327,11 @@
     const SCALE = o.sessionHours || 4;
     const assignments = {};
 
-    /* 1. locked (manual) picks first -- kept as-is */
+    /* 1. locked (manual) picks first -- kept as-is. "a deplacer" sessions are
+          left entirely untouched (no auto pass ever looks at them). */
     for (const s of sorted) {
       assignments[s.id] = [];
+      if (o.toMove[s.id]) continue;
       const sMs = { start: ms(s.start), end: ms(s.end) };
       const dur = (sMs.end - sMs.start) / 3600000;
       for (const tid of (o.locked[s.id] || [])) {
@@ -348,7 +363,7 @@
       if (target <= 0) return;
       let acc = 0;
       ps.forEach((s) => { if (planNoSup[s.id]) acc += (s.hours || 0); });
-      const cands = ps.filter((s) => !planNoSup[s.id] && !(o.locked[s.id] && o.locked[s.id].length));
+      const cands = ps.filter((s) => !planNoSup[s.id] && !o.toMove[s.id] && !(o.locked[s.id] && o.locked[s.id].length));
       cands.forEach((s) => {
         const sMs = { start: ms(s.start), end: ms(s.end) };
         s._fullCount = T.reduce((n, t) => {
@@ -365,9 +380,9 @@
     });
 
     /* 2. greedy fill : full-availability teachers first, then partial.
-          Sessions planned "sans encadrant" are skipped. */
+          Sessions planned "sans encadrant" or marked "a deplacer" are skipped. */
     for (const s of sorted) {
-      if (planNoSup[s.id]) continue;
+      if (planNoSup[s.id] || o.toMove[s.id]) continue;
       const sMs = { start: ms(s.start), end: ms(s.end) };
       const dur = (sMs.end - sMs.start) / 3600000;
 
@@ -427,7 +442,7 @@
       if (!over || !under || over === under) break;
       let moved = false;
       for (const s of sorted) {
-        if (planNoSup[s.id]) continue;
+        if (planNoSup[s.id] || o.toMove[s.id]) continue;
         const arr = assignments[s.id];
         if (!arr || arr.indexOf(over.id) === -1 || arr.indexOf(under.id) !== -1) continue;
         if ((o.locked[s.id] || []).indexOf(over.id) !== -1) continue;

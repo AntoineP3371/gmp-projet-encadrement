@@ -12,6 +12,7 @@
   const dayFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeFmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const shortFmt = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const dowFmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
 
   PE.util = {
     uid() { return 's-' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); },
@@ -24,6 +25,8 @@
     fmtDay(d) { return dayFmt.format(d instanceof Date ? d : new Date(d)); },
     fmtTime(d) { return timeFmt.format(d instanceof Date ? d : new Date(d)); },
     fmtShort(d) { return shortFmt.format(d instanceof Date ? d : new Date(d)); },
+    fmtDow(d) { return dowFmt.format(d instanceof Date ? d : new Date(d)); },
+    fmtDated(d) { return PE.util.fmtDow(d) + ' ' + PE.util.fmtShort(d); },
     fmtRange(a, b) { return PE.util.fmtTime(a) + '–' + PE.util.fmtTime(b); },
     hours(a, b) { return (+new Date(b) - +new Date(a)) / 3600000; },
     monthKey(d) {
@@ -64,10 +67,13 @@
           respectMaxHours: false,
           allDayBusy: true
         },
-        teachers: {},         // sourceId -> { preferred: [{from,to}], maxHours: number|null }
+        teachers: {},         // sourceId -> { preferred: [{from,to}], maxHours: number|null, indispo: [] }
         teams: {},            // projectSourceId -> { teacherSourceId: {on,w} }  (aucune coche = tous eligibles)
         locked: {},           // sessionId -> [sourceId]
         noSup: {},            // sessionId -> true  (seance declaree "sans encadrant")
+        toMove: {},           // sessionId -> true  (seance "a deplacer" : ignoree par l'affectation auto)
+        visibleProjects: null,// null = tous ; sinon [projectId] affiches dans "Repartition des seances"
+        hardOnly: false,      // n'afficher que les seances sans encadrant pleinement disponible
         view: 'session',      // 'session' | 'project' | 'teacher' -- vue de la repartition
         lastResult: null      // { assignments, unfilled, conflicts, load } cached for display
       },
@@ -98,6 +104,9 @@
     if (dsch.teachers && typeof dsch.teachers === 'object') s.scheduling.teachers = dsch.teachers;
     if (dsch.locked && typeof dsch.locked === 'object') s.scheduling.locked = dsch.locked;
     if (dsch.noSup && typeof dsch.noSup === 'object') s.scheduling.noSup = dsch.noSup;
+    if (dsch.toMove && typeof dsch.toMove === 'object') s.scheduling.toMove = dsch.toMove;
+    if (Array.isArray(dsch.visibleProjects)) s.scheduling.visibleProjects = dsch.visibleProjects;
+    s.scheduling.hardOnly = !!dsch.hardOnly;
     if (['session', 'project', 'teacher'].indexOf(dsch.view) !== -1) s.scheduling.view = dsch.view;
     if (dsch.lastResult) s.scheduling.lastResult = dsch.lastResult;
     s.scheduling.teams = (dsch.teams && typeof dsch.teams === 'object' && !Array.isArray(dsch.teams)) ? dsch.teams : {};
@@ -184,6 +193,10 @@
       if (!sch.locked[sid].length) delete sch.locked[sid];
     });
     Object.keys(sch.noSup || {}).forEach((sid) => { if (!validSessionIds.has(sid)) delete sch.noSup[sid]; });
+    Object.keys(sch.toMove || {}).forEach((sid) => { if (!validSessionIds.has(sid)) delete sch.toMove[sid]; });
+    if (Array.isArray(sch.visibleProjects)) {
+      sch.visibleProjects = sch.visibleProjects.filter((pid) => !ids.has(pid));
+    }
     sch.lastResult = null;
     return ids.size;
   };
@@ -351,7 +364,7 @@
 
   PE.schedOptions = function (extra) {
     const sch = PE.state.scheduling;
-    return Object.assign({}, sch.options, { teams: sch.teams, noSup: sch.noSup || {} }, extra || {});
+    return Object.assign({}, sch.options, { teams: sch.teams, noSup: sch.noSup || {}, toMove: sch.toMove || {} }, extra || {});
   };
 
   /* Live assignment map (created from the locked picks if no run yet). */

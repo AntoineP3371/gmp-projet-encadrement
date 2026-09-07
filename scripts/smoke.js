@@ -431,6 +431,40 @@ console.log('\n[3i] indisponibilites recurrentes');
   ok('availList : degre 2 absent', (evH.availList.ss1 || []).every((x) => x.tid !== 'B'));
 })();
 
+/* ---- 3j. seances "a deplacer" + conflit inter-projets ---- */
+console.log('\n[3j] a deplacer / conflit inter-projets');
+(function () {
+  const mk = (id, d) => ({
+    id: id, projectId: 'PR', project: 'PR', label: id, hours: 4,
+    start: new Date(2026, 8, 7 + d * 7, 13, 0).toISOString(),
+    end: new Date(2026, 8, 7 + d * 7, 17, 0).toISOString()
+  });
+  const sess = [mk('m0', 0), mk('m1', 1), mk('m2', 2)];
+  const A = { id: 'A', name: 'A', events: [] };
+  const opts = { targetPerSession: 1, minPerSession: 1, prefWeight: 0 };
+
+  const rBase = S.run(sess, [A], opts);
+  ok('sans marqueur : 3 seances affectees', sess.every((s) => (rBase.assignments[s.id] || [])[0] === 'A'));
+
+  const rMove = S.run(sess, [A], Object.assign({}, opts, { toMove: { m1: true } }));
+  ok('a deplacer : la seance n\'est pas affectee', (rMove.assignments.m1 || []).length === 0);
+  ok('a deplacer : les autres seances le sont', (rMove.assignments.m0 || [])[0] === 'A' && (rMove.assignments.m2 || [])[0] === 'A');
+  ok('a deplacer : pas comptee comme "manque"', (rMove.unfilled || []).indexOf('m1') === -1);
+  ok('a deplacer : listee dans ev.toMove', (rMove.toMove || []).indexOf('m1') !== -1);
+  const evMove = S.evaluate(sess, [A], { minPerSession: 1, toMove: { m1: true } }, { m0: ['A'], m1: [], m2: ['A'] });
+  ok('evaluate : m1 dans toMove, hors unfilled', (evMove.toMove || []).indexOf('m1') !== -1 && (evMove.unfilled || []).indexOf('m1') === -1);
+
+  // deux projets, meme creneau, meme encadrant : place sur le projet traite en
+  // premier (ordre chronologique puis ordre du tableau), ecarte de l'autre.
+  const t0 = new Date(2026, 8, 14, 13, 0).toISOString();
+  const t1 = new Date(2026, 8, 14, 17, 0).toISOString();
+  const pA = { id: 'a1', projectId: 'PA', project: 'PA', label: 'a', hours: 4, start: t0, end: t1 };
+  const pB = { id: 'b1', projectId: 'PB', project: 'PB', label: 'b', hours: 4, start: t0, end: t1 };
+  const rC = S.run([pA, pB], [{ id: 'X', name: 'X', events: [] }], opts);
+  ok('conflit : X placé sur la 1re seance du tableau (PA)', (rC.assignments.a1 || [])[0] === 'X');
+  ok('conflit : X ecarté de la seance simultanee (PB), non couverte', (rC.assignments.b1 || []).length === 0 && (rC.unfilled || []).indexOf('b1') !== -1);
+})();
+
 /* ---- 4. exporters ---- */
 console.log('\n[4] CSV / ICS export');
 const csv = PE.exp.toCSV(['A', 'B'], [['x', 'y;z']]);

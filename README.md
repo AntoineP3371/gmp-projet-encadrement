@@ -229,6 +229,19 @@ produisent automatiquement pour tenir leur quota d'heures non encadrées.
   (`Projet A — n séances · X h`), sa cible d'après les poids, puis la liste de ses
   séances avec sa couverture (complète / partielle) — synthèse en lecture seule.
 
+Chaque date est précédée du **nom du jour** (`ven. 18/09/2026`). Sous le titre :
+- des **boutons *Projets :*** pour n'afficher que certains projets (+ *tous* /
+  *aucun*) — ce choix commande aussi l'*Export PDF (projets visibles)* ;
+- une case **« seulement les séances sans encadrant pleinement disponible »** :
+  ne garde que les séances où aucun encadrant éligible n'est libre sur toute la
+  durée (celles à arbitrer en priorité).
+
+**Séance à déplacer** : le bouton *à déplacer* (colonne *Séance*) met la séance
+**de côté** — l'affectation automatique l'ignore complètement (aucun encadrant
+placé, pas comptée dans « manque encadrant »), elle est signalée *à déplacer*
+partout (Répartition, bilan par projet, KPI, rapport PDF). Recliquer la
+réintègre ; les choix manuels éventuels sont conservés.
+
 Fond de ligne (vues *Par séance* / *Par projet*) :
 - **rouge** : séance sous le minimum, ou un encadrant affecté totalement
   indisponible sur le créneau ;
@@ -240,7 +253,19 @@ Fond de ligne (vues *Par séance* / *Par projet*) :
 
 Colonne **Disponibilités** : pour chaque encadrant éligible ayant du temps libre
 sur le créneau, `nom — X h` (avec sa pastille de couleur ; ⚠ = disponibilité
-partielle), du plus disponible au moins disponible.
+partielle), du plus disponible au moins disponible. Pour un encadrant seulement
+partiellement disponible **ou** totalement écarté, le **motif** est indiqué :
+`occupé : <autre projet> — <séance> HH:MM–HH:MM` (conflit inter-projets),
+`agenda : <intitulé de l'événement>` ou `indisponible récurrent (demi-journée)`.
+Les encadrants éligibles mais bloqués sont listés en fin de cellule
+(`non dispo : Nom (motif), …`).
+
+> **Deux projets, une séance simultanée, un encadrant commun** : l'affectation
+> automatique place l'encadrant sur la séance **traitée en premier** (ordre
+> chronologique ; à heure égale, ordre alphabétique du projet). Il est ensuite
+> traité comme occupé pour la séance concurrente de l'autre projet — il n'y
+> apparaît plus, et le motif `occupé : <projet> — …` l'explique. Ce n'est pas un
+> arbitrage entre les besoins des deux projets : c'est « premier arrivé ».
 
 **Changer / ajouter un encadrant** : dans la colonne *Encadrant(s)*, chaque
 encadrant proposé (précédé de sa **pastille de couleur**) est un menu déroulant —
@@ -263,8 +288,12 @@ automatiquement*.
   de page automatique entre chacun, pratique pour distribuer une feuille par
   personne ou par projet). Pour une séance **partiellement encadrée**, le
   rapport précise les **créneaux réellement couverts** (ex.
-  `Durand (15:00–17:00)`, et `2 h · 15:00–17:00` dans le détail encadrant).
-  Rendu via une fenêtre Electron hors écran (`printToPDF`, A4).
+  `Durand (15:00–17:00)`, et `2 h · 15:00–17:00` dans le détail encadrant). La
+  colonne *Disponibilités* du *Bilan par séance* reprend aussi les **motifs**
+  d'indisponibilité (voir plus haut). Rendu via une fenêtre Electron hors écran
+  (`printToPDF`, A4).
+- *Export PDF (projets visibles)* : le même rapport, **limité aux projets cochés**
+  dans *Répartition des séances* — pratique pour éditer le bilan d'un seul projet.
 - *Export CSV* : le tableau des affectations + colonne disponibilités.
 - *Export ICS* : un événement par séance, encadrants dans le titre.
 

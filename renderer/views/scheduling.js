@@ -106,15 +106,57 @@
     (ev.unfilled || []).forEach((id) => { unfilledSet[id] = 1; });
     const noSupSet = {};
     (ev.noSup || []).forEach((id) => { noSupSet[id] = 1; });
+    const toMoveSet = sch.toMove || {};
+
+    /* pourquoi un encadrant n'est-il pas (pleinement) disponible pour `s` :
+       une autre seance affectee (souvent un autre projet), une indispo
+       recurrente, ou un evenement d'agenda. Sert la colonne Disponibilites. */
+    function reasonFor(tid, s) {
+      const sS = +new Date(s.start);
+      const sE = +new Date(s.end);
+      const clash = (ivsMap[tid] || []).find((iv) => iv.sid !== s.id && iv.start < sE && iv.end > sS);
+      if (clash) {
+        const cs = sessions.find((x) => x.id === clash.sid);
+        return cs
+          ? 'occupé : ' + cs.project + ' — ' + cs.label + ' ' + U.fmtRange(cs.start, cs.end)
+          : 'occupé sur une autre séance ' + U.fmtRange(new Date(clash.start), new Date(clash.end));
+      }
+      if (idgOf(tid, s) === 2) return 'indisponible récurrent (demi-journée)';
+      const tm = byTeacher[tid];
+      const evc = tm && (tm.events || []).find((e) => {
+        if (e.allDay && !o.allDayBusy) return false;
+        return +new Date(e.start) < sE && +new Date(e.end) > sS;
+      });
+      if (evc) {
+        return 'agenda : ' + (evc.summary || 'occupé') +
+          (evc.allDay ? ' (journée entière)' : ' ' + U.fmtRange(evc.start, evc.end));
+      }
+      return '';
+    }
+
+    // projets visibles / filtre "seances difficiles" pour la Repartition
+    const vp = Array.isArray(sch.visibleProjects) ? sch.visibleProjects : null;
+    let visProjects = vp ? projects.filter((p) => vp.indexOf(p.id) !== -1) : projects.slice();
+    // filtre non vide dont AUCUN id ne correspond a un projet actuel (projets
+    // supprimes / etat obsolete) -> on retombe sur "tous". Un filtre vide `[]`
+    // reste "aucun projet" (choix explicite via « aucun »).
+    if (vp && vp.length && !visProjects.length && projects.length) { visProjects = projects.slice(); }
+    const visIds = {};
+    visProjects.forEach((p) => { visIds[p.id] = 1; });
+    const hardOnly = !!sch.hardOnly;
+    const isHard = (s) => !toMoveSet[s.id] && (ev.availFull[s.id] || 0) === 0;
+    const visProjSessions = sessions.filter((s) => visIds[s.projectId]);
+    const visSessions = visProjSessions.filter((s) => !hardOnly || isHard(s));
 
     const loads = T.map((t) => ev.load[t.id] || 0);
     const maxLoad = Math.max(1, ...loads);
-    const covered = sessions.filter((s) => !noSupSet[s.id] && (assignments[s.id] || []).length >= o.minPerSession).length;
+    const covered = sessions.filter((s) => !noSupSet[s.id] && !toMoveSet[s.id] && (assignments[s.id] || []).length >= o.minPerSession).length;
     const totalAssignedH = Math.round(loads.reduce((a, b) => a + b, 0) * 10) / 10;
-    const arbitrer = sessions.filter((s) => !noSupSet[s.id] && (ev.availFull[s.id] || 0) >= 2).length;
+    const arbitrer = sessions.filter((s) => !noSupSet[s.id] && !toMoveSet[s.id] && (ev.availFull[s.id] || 0) >= 2).length;
     const partielles = sessions.filter((s) => (ev.partial[s.id] || []).length).length;
     const manque = (ev.unfilled || []).length;
     const sansEnc = (ev.noSup || []).length;
+    const aDeplacer = (ev.toMove || []).length;
 
     // per-project balance sheet
     const round1 = (x) => Math.round(x * 10) / 10;
@@ -127,21 +169,22 @@
         p: p,
         supervision: sup,
         total: ps.length,
-        covered: ps.filter((s) => !noSupSet[s.id] && (assignments[s.id] || []).length >= o.minPerSession).length,
+        toMove: ps.filter((s) => toMoveSet[s.id]).length,
+        covered: ps.filter((s) => !noSupSet[s.id] && !toMoveSet[s.id] && (assignments[s.id] || []).length >= o.minPerSession).length,
         manque: ps.filter((s) => unfilledSet[s.id]).length,
         sansEnc: ps.filter((s) => noSupSet[s.id]).length,
         unsupH: round1(ev.unsupHours[p.id] || 0),
         unsupTarget: round1(ev.unsupTarget[p.id] || 0),
         partial: ps.filter((s) => (ev.partial[s.id] || []).length).length,
-        arbitrer: ps.filter((s) => (ev.availFull[s.id] || 0) >= 2).length,
+        arbitrer: ps.filter((s) => !toMoveSet[s.id] && (ev.availFull[s.id] || 0) >= 2).length,
         hours: round1(hours)
       };
     });
     const bTot = bilan.reduce((a, b) => ({
-      total: a.total + b.total, covered: a.covered + b.covered, manque: a.manque + b.manque,
+      total: a.total + b.total, toMove: a.toMove + b.toMove, covered: a.covered + b.covered, manque: a.manque + b.manque,
       sansEnc: a.sansEnc + b.sansEnc, unsupH: round1(a.unsupH + b.unsupH), unsupTarget: round1(a.unsupTarget + b.unsupTarget),
       partial: a.partial + b.partial, arbitrer: a.arbitrer + b.arbitrer, hours: round1(a.hours + b.hours)
-    }), { total: 0, covered: 0, manque: 0, sansEnc: 0, unsupH: 0, unsupTarget: 0, partial: 0, arbitrer: 0, hours: 0 });
+    }), { total: 0, toMove: 0, covered: 0, manque: 0, sansEnc: 0, unsupH: 0, unsupTarget: 0, partial: 0, arbitrer: 0, hours: 0 });
 
     root.innerHTML = `
       <div class="view-head">
@@ -157,6 +200,7 @@
           <div class="k"><b style="color:${sansEnc ? 'var(--muted)' : 'inherit'}">${sansEnc}</b><span>sans encadrant</span></div>
           <div class="k"><b style="color:${partielles ? 'var(--warn)' : 'inherit'}">${partielles}</b><span>partielles</span></div>
           <div class="k"><b style="color:${arbitrer ? 'var(--accent)' : 'inherit'}">${arbitrer}</b><span>a arbitrer</span></div>
+          ${aDeplacer ? `<div class="k"><b style="color:var(--warn)">${aDeplacer}</b><span>a deplacer</span></div>` : ''}
           <div class="k"><b>${totalAssignedH} h</b><span>affectees</span></div>
         </div>
       </div>
@@ -176,7 +220,8 @@
           ${bilan.map((b) => `
             <tr>
               <td><span class="dot" style="background:${b.p.color}"></span> ${U.esc(b.p.name)}
-                <span class="badge ${b.supervision === 'partial' ? 'warn' : 'ok'}" style="margin-left:6px">${b.supervision === 'partial' ? 'partiel' : 'total'}</span></td>
+                <span class="badge ${b.supervision === 'partial' ? 'warn' : 'ok'}" style="margin-left:6px">${b.supervision === 'partial' ? 'partiel' : 'total'}</span>
+                ${b.toMove ? `<span class="badge warn" style="margin-left:4px">${b.toMove} à déplacer</span>` : ''}</td>
               <td style="text-align:right">${b.total}</td>
               <td style="text-align:right">${b.covered}</td>
               <td style="text-align:right"><b style="color:${b.manque ? 'var(--danger)' : 'inherit'}">${b.manque}</b></td>
@@ -236,6 +281,7 @@
           <button class="danger" id="o-reset">Tout effacer</button>
           <span class="spacer" style="flex:1"></span>
           <button id="o-pdf">Export PDF</button>
+          <button id="o-pdf-vis" title="Rapport limite aux projets coches dans « Repartition des seances »">Export PDF (projets visibles)</button>
           <button id="o-csv">Export CSV</button>
           <button id="o-ics">Export ICS</button>
         </div>
@@ -304,7 +350,7 @@
 
       <div class="panel">
         <div class="spread" style="align-items:center;margin-bottom:8px">
-          <h2 style="margin:0">Repartition des seances (${sessions.length})</h2>
+          <h2 style="margin:0">Repartition des seances (${visSessions.length}${visSessions.length !== sessions.length ? ' / ' + sessions.length : ''})</h2>
           <div class="row wrap-tight">
             <span class="muted">Vue :</span>
             <button class="small viewbtn ${view === 'session' ? 'primary' : ''}" data-view="session">Par seance</button>
@@ -312,18 +358,27 @@
             <button class="small viewbtn ${view === 'teacher' ? 'primary' : ''}" data-view="teacher">Par encadrant</button>
           </div>
         </div>
+        ${projects.length ? `
+        <div class="row wrap-tight" style="margin:0 0 6px">
+          <span class="muted">Projets :</span>
+          ${projects.map((p) => `<button class="small projvis-btn ${visIds[p.id] ? 'primary' : ''}" data-pid="${p.id}"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}</button>`).join('')}
+          <button class="small" id="projvis-all">tous</button>
+          <button class="small" id="projvis-none">aucun</button>
+          <span class="spacer" style="flex:1"></span>
+          <label class="muted"><input type="checkbox" id="hardonly-tgl" ${hardOnly ? 'checked' : ''} /> seulement les seances sans encadrant pleinement disponible</label>
+        </div>` : ''}
         <p class="muted" style="margin:0 0 8px">
           <span class="swatch" style="background:var(--danger-soft)"></span> non couverte / encadrant indisponible &nbsp;
           <span class="swatch" style="background:var(--warn-soft)"></span> disponibilite partielle / hors equipe &nbsp;
           <span class="swatch" style="background:var(--accent-soft)"></span> plusieurs encadrants disponibles sur toute la seance
         </p>
-        ${!sessions.length ? '<p class="muted">Aucune seance. Ajoutez un agenda « projet » puis rafraichissez.</p>'
-          : view === 'teacher' ? bodyByTeacher(sessions, T, byTeacher, ev, assignments, o, covFor)
-            : view === 'project' ? bodyByProject(sessions, projects, ev, byTeacher, T, assignments, o, covFor)
-              : bodyBySession(sessions, ev, byTeacher, T, assignments, o, covFor)}
+        ${view === 'teacher' ? (visProjSessions.length ? bodyByTeacher(visProjSessions, T, byTeacher, ev, assignments, o, covFor, reasonFor, toMoveSet) : '<p class="muted">Aucun projet coche.</p>')
+          : !visSessions.length ? '<p class="muted">Aucune seance a afficher (verifiez les projets coches / le filtre ci-dessus).</p>'
+            : view === 'project' ? bodyByProject(visSessions, visProjects, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet)
+              : bodyBySession(visSessions, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet)}
       </div>`;
 
-    wire(root, sessions, T);
+    wire(root, sessions, T, visSessions);
   }
 
   const SESSION_HEAD = `<thead><tr>
@@ -331,13 +386,13 @@
     <th>Encadrant(s)</th><th>Disponibilites</th><th>Statut</th>
   </tr></thead>`;
 
-  function bodyBySession(sessions, ev, byTeacher, T, assignments, o, covFor) {
+  function bodyBySession(sessions, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet) {
     return `<div style="overflow:auto"><table class="grid">${SESSION_HEAD}<tbody>
-      ${sessions.map((s) => sessionRow(s, ev, byTeacher, T, assignments, o, covFor)).join('')}
+      ${sessions.map((s) => sessionRow(s, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet)).join('')}
     </tbody></table></div>`;
   }
 
-  function bodyByProject(sessions, projects, ev, byTeacher, T, assignments, o, covFor) {
+  function bodyByProject(sessions, projects, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet) {
     const unf = {};
     (ev.unfilled || []).forEach((id) => { unf[id] = 1; });
     const nos = {};
@@ -346,9 +401,10 @@
       const ps = sessions.filter((s) => s.projectId === p.id);
       if (!ps.length) return '';
       const sup = ev.supervisionOf[p.id] || (p.supervision === 'partial' ? 'partial' : 'full');
-      const cov = ps.filter((s) => !nos[s.id] && (assignments[s.id] || []).length >= o.minPerSession).length;
+      const cov = ps.filter((s) => !nos[s.id] && !toMoveSet[s.id] && (assignments[s.id] || []).length >= o.minPerSession).length;
       const mq = ps.filter((s) => unf[s.id]).length;
       const se = ps.filter((s) => nos[s.id]).length;
+      const dep = ps.filter((s) => toMoveSet[s.id]).length;
       const par = ps.filter((s) => (ev.partial[s.id] || []).length).length;
       let hrs = 0;
       ps.forEach((s) => { hrs += (assignments[s.id] || []).length * s.hours; });
@@ -356,9 +412,9 @@
       const tgt = Math.round((ev.unsupTarget[p.id] || 0) * 10) / 10;
       return `<div class="grp-head"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}
         <span class="badge ${sup === 'partial' ? 'warn' : 'ok'}" style="margin-left:6px">${sup === 'partial' ? 'partiel' : 'total'}</span>
-        <span class="muted">— ${ps.length} seance(s) &middot; ${cov} couverte(s)${mq ? ' &middot; ' + mq + ' manque(nt)' : ''}${se ? ' &middot; ' + se + ' sans encadrant (' + unsupH + ' h' + (sup === 'partial' ? ' / ' + tgt + ' h cible' : '') + ')' : ''}${par ? ' &middot; ' + par + ' partielle(s)' : ''} &middot; ${Math.round(hrs * 10) / 10} h affectees</span></div>
+        <span class="muted">— ${ps.length} seance(s) &middot; ${cov} couverte(s)${mq ? ' &middot; ' + mq + ' manque(nt)' : ''}${se ? ' &middot; ' + se + ' sans encadrant (' + unsupH + ' h' + (sup === 'partial' ? ' / ' + tgt + ' h cible' : '') + ')' : ''}${par ? ' &middot; ' + par + ' partielle(s)' : ''}${dep ? ' &middot; ' + dep + ' à déplacer' : ''} &middot; ${Math.round(hrs * 10) / 10} h affectees</span></div>
         <div style="overflow:auto"><table class="grid">${SESSION_HEAD}<tbody>
-        ${ps.map((s) => sessionRow(s, ev, byTeacher, T, assignments, o, covFor)).join('')}
+        ${ps.map((s) => sessionRow(s, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet)).join('')}
         </tbody></table></div>`;
     }).join('') || '<p class="muted">Aucun projet.</p>';
   }
@@ -383,6 +439,7 @@
   }
 
   function bodyByTeacher(sessions, T, byTeacher, ev, assignments, o, covFor) {
+    // reasonFor / toMoveSet accepted for signature parity, not needed here
     return '<p class="muted" style="margin:-2px 0 10px">Vue synthese en lecture seule — modifier les affectations dans « Par seance » ou « Par projet ».</p>' +
       T.map((t) => {
         const mine = sessions.filter((s) => (assignments[s.id] || []).indexOf(t.id) !== -1);
@@ -402,7 +459,7 @@
               const c = covFor(t.id, s);
               const rc = c.frac >= 1 - 1e-9 ? '' : (c.frac <= 1e-9 ? 'unfilled' : 'conflict');
               return `<tr class="${rc}">
-                <td>${U.fmtShort(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td>
+                <td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td>
                 <td>${U.esc(s.project)}</td><td>${U.esc(s.label)}</td>
                 <td>${coverageBadge(c.frac, s.hours)}</td></tr>`;
             }).join('')}</tbody></table></div>`
@@ -483,7 +540,7 @@
     }).join('');
   }
 
-  function sessionRow(s, ev, byTeacher, T, assignments, o, covFor) {
+  function sessionRow(s, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet) {
     const arr = assignments[s.id] || [];
     const partial = ev.partial[s.id] || [];
     const indispo = ev.indispo[s.id] || [];
@@ -492,14 +549,41 @@
     const list = ev.availList[s.id] || [];
     const durWarn = Math.abs(s.hours - o.sessionHours) > 0.05;
     const isNoSup = (ev.noSup || []).indexOf(s.id) !== -1;
+    const isToMove = !!(toMoveSet && toMoveSet[s.id]);
     const explicitNoSup = !!(PE.state.scheduling.noSup || {})[s.id];
+    const reason = reasonFor || (() => '');
+
+    const moveBtn = `<button type="button" class="small tomove-btn ${isToMove ? 'primary' : ''}" data-sid="${s.id}" title="marquer cette seance comme « a deplacer » (ignoree par l'affectation auto)">${isToMove ? '✓ a deplacer' : 'a deplacer'}</button>`;
+
+    if (isToMove) {
+      return `
+        <tr class="tomove">
+          <td>${U.fmtDated(s.start)}</td>
+          <td>${U.fmtRange(s.start, s.end)}</td>
+          <td>${s.hours} h</td>
+          <td>${U.esc(s.project)}</td>
+          <td>${U.esc(s.label)}${s.location ? '<br><span class="muted">' + U.esc(s.location) + '</span>' : ''}<br>${moveBtn}</td>
+          <td class="muted" colspan="2" style="font-style:italic">séance mise de côté — non prise en compte par l'affectation automatique</td>
+          <td><span class="badge warn">à déplacer</span></td>
+        </tr>`;
+    }
+
+    // eligible encadrants blocked for this session (freeMs ~ 0), with the reason
+    const shownIds = {};
+    list.forEach((x) => { shownIds[x.tid] = 1; });
+    const blocked = T.filter((t) => PE.isEligible(s.projectId, t.id) && !shownIds[t.id])
+      .map((t) => ({ t: t, why: reason(t.id, s) }))
+      .filter((b) => b.why)
+      .slice(0, 8);
 
     const dispoCell = (list.length ? list.map((x) => {
       const color = byTeacher[x.tid] ? byTeacher[x.tid].color : '#999';
       const slots = x.full ? '' : ' <span class="muted">' + fmtSlots(covFor(x.tid, s).free) + '</span>';
+      const why = x.full ? '' : (reason(x.tid, s) ? ' <span class="muted">— ' + U.esc(reason(x.tid, s)) + '</span>' : '');
       const soft = x.soft ? ' <span class="muted">(a eviter)</span>' : '';
-      return `<span class="avail-item ${x.full ? '' : 'part'}${x.soft ? ' soft' : ''}"><span class="dot" style="background:${color}"></span>${U.esc(x.name)}&nbsp;${fmtH(x.hours)}${x.full ? '' : ' ⚠' + slots}${soft}</span>`;
-    }).join('') : '<span class="muted">aucun encadrant eligible disponible</span>');
+      return `<span class="avail-item ${x.full ? '' : 'part'}${x.soft ? ' soft' : ''}"><span class="dot" style="background:${color}"></span>${U.esc(x.name)}&nbsp;${fmtH(x.hours)}${x.full ? '' : ' ⚠' + slots}${why}${soft}</span>`;
+    }).join('') : '<span class="muted">aucun encadrant eligible disponible</span>')
+      + (blocked.length ? `<div class="avail-blocked muted">non dispo : ${blocked.map((b) => U.esc(b.t.name) + ' <span class="muted">(' + U.esc(b.why) + ')</span>').join(', ')}</div>` : '');
 
     const eligT = T.filter((t) => PE.isEligible(s.projectId, t.id));
     const nosupToggle = `<label class="nosup-tgl"><input type="checkbox" class="nosup-cb" data-sid="${s.id}" ${explicitNoSup ? 'checked' : ''} /> seance sans encadrant</label>`;
@@ -508,11 +592,11 @@
       const addOptN = optionList(eligT, s, { exclude: new Set(arr), current: '' }, covFor);
       return `
         <tr class="nosup">
-          <td>${U.fmtShort(s.start)}</td>
+          <td>${U.fmtDated(s.start)}</td>
           <td>${U.fmtRange(s.start, s.end)}</td>
           <td>${s.hours} h ${durWarn ? '<span class="badge warn">&ne;' + o.sessionHours + 'h</span>' : ''}</td>
           <td>${U.esc(s.project)}</td>
-          <td>${U.esc(s.label)}${s.location ? '<br><span class="muted">' + U.esc(s.location) + '</span>' : ''}</td>
+          <td>${U.esc(s.label)}${s.location ? '<br><span class="muted">' + U.esc(s.location) + '</span>' : ''}<br>${moveBtn}</td>
           <td class="enc-cell">
             <div class="muted" style="font-style:italic">seance sans encadrant${explicitNoSup ? '' : ' (encadrement partiel du projet)'}</div>
             <span class="enc-line"><span class="dot" style="background:transparent"></span>
@@ -538,12 +622,14 @@
       const color = byTeacher[tid] ? byTeacher[tid].color : '#999';
       const opt = optionList(pool, s, { exclude: new Set(others), current: tid }, covFor);
       const isPart = c.frac > 1e-9 && c.frac < 1 - 1e-9;
-      const note = c.frac <= 1e-9 ? 'indisponible sur cette seance'
-        : (isPart ? 'disponible ' + fmtH(hoursOf(c.freeMs)) + ' sur ' + s.hours + ' h : ' + fmtSlots(c.free) : 'disponible toute la seance');
-      const slotTag = isPart ? ` <span class="muted" style="font-size:11px">${fmtSlots(c.free)}</span>` : '';
+      const why = c.frac < 1 - 1e-9 ? reason(tid, s) : '';
+      const note = c.frac <= 1e-9 ? ('indisponible sur cette seance' + (why ? ' — ' + why : ''))
+        : (isPart ? 'disponible ' + fmtH(hoursOf(c.freeMs)) + ' sur ' + s.hours + ' h : ' + fmtSlots(c.free) + (why ? ' — ' + why : '') : 'disponible toute la seance');
+      const slotTag = (isPart || (c.frac <= 1e-9 && why))
+        ? ` <span class="muted" style="font-size:11px">${isPart ? fmtSlots(c.free) + (why ? ' — ' : '') : ''}${why ? U.esc(why) : ''}</span>` : '';
       return `<span class="enc-line">
         <span class="dot" style="background:${color}"></span>
-        <select class="swap ${cls}" data-sid="${s.id}" data-old="${tid}" title="${note}">${opt}<option value="__rm__">&mdash; retirer &mdash;</option></select>${slotTag}
+        <select class="swap ${cls}" data-sid="${s.id}" data-old="${tid}" title="${U.esc(note)}">${opt}<option value="__rm__">&mdash; retirer &mdash;</option></select>${slotTag}
       </span>`;
     }).join('');
 
@@ -561,18 +647,18 @@
 
     return `
       <tr class="${rowCls}">
-        <td>${U.fmtShort(s.start)}</td>
+        <td>${U.fmtDated(s.start)}</td>
         <td>${U.fmtRange(s.start, s.end)}</td>
         <td>${s.hours} h ${durWarn ? '<span class="badge warn">&ne;' + o.sessionHours + 'h</span>' : ''}</td>
         <td>${U.esc(s.project)}</td>
-        <td>${U.esc(s.label)}${s.location ? '<br><span class="muted">' + U.esc(s.location) + '</span>' : ''}</td>
+        <td>${U.esc(s.label)}${s.location ? '<br><span class="muted">' + U.esc(s.location) + '</span>' : ''}<br>${moveBtn}</td>
         <td class="enc-cell">${swaps || '<span class="muted">&mdash;</span>'}${addSel}${nosupToggle}</td>
         <td class="dispo-cell">${dispoCell}</td>
         <td>${status}</td>
       </tr>`;
   }
 
-  function wire(root, sessions, T) {
+  function wire(root, sessions, T, visSessions) {
     const sch = PE.state.scheduling;
     const o = sch.options;
 
@@ -624,9 +710,45 @@
       if (r && r.ok) PE.toast('PDF enregistre', 'ok');
       else if (r && r.error) PE.toast(r.error, 'err');
     });
+    const pdfVis = root.querySelector('#o-pdf-vis');
+    if (pdfVis) {
+      pdfVis.addEventListener('click', async () => {
+        if (!(visSessions || []).length) { PE.toast('Aucune seance visible', 'err'); return; }
+        const r = await window.api.savePdf({ html: reportHtml(visSessions, T), defaultName: 'rapport-projets.pdf' });
+        if (r && r.ok) PE.toast('PDF enregistre', 'ok');
+        else if (r && r.error) PE.toast(r.error, 'err');
+      });
+    }
 
     root.querySelectorAll('.viewbtn').forEach((b) => b.addEventListener('click', () => {
       sch.view = b.dataset.view;
+      PE.save();
+      PE.rerender();
+    }));
+
+    // projets visibles dans "Repartition des seances"
+    root.querySelectorAll('.projvis-btn').forEach((b) => b.addEventListener('click', () => {
+      const pid = b.dataset.pid;
+      const allIds = PE.sourcesOfType('project').map((p) => p.id);
+      let vis = Array.isArray(sch.visibleProjects) ? sch.visibleProjects.slice() : allIds.slice();
+      const i = vis.indexOf(pid);
+      if (i === -1) vis.push(pid); else vis.splice(i, 1);
+      sch.visibleProjects = (vis.length === allIds.length && allIds.every((x) => vis.indexOf(x) !== -1)) ? null : vis;
+      PE.save();
+      PE.rerender();
+    }));
+    const pvAll = root.querySelector('#projvis-all');
+    if (pvAll) pvAll.addEventListener('click', () => { sch.visibleProjects = null; PE.save(); PE.rerender(); });
+    const pvNone = root.querySelector('#projvis-none');
+    if (pvNone) pvNone.addEventListener('click', () => { sch.visibleProjects = []; PE.save(); PE.rerender(); });
+    const hardTgl = root.querySelector('#hardonly-tgl');
+    if (hardTgl) hardTgl.addEventListener('change', (e) => { sch.hardOnly = e.target.checked; PE.save(); PE.rerender(); });
+
+    // "a deplacer" toggle
+    root.querySelectorAll('.tomove-btn').forEach((b) => b.addEventListener('click', () => {
+      const sid = b.dataset.sid;
+      sch.toMove = sch.toMove || {};
+      if (sch.toMove[sid]) delete sch.toMove[sid]; else sch.toMove[sid] = true;
       PE.save();
       PE.rerender();
     }));
@@ -723,7 +845,10 @@
   function reportHtml(sessions, T) {
     const o = PE.state.scheduling.options;
     const a = ensureAssignments();
-    const projects = PE.sourcesOfType('project').filter((s) => s.enabled !== false);
+    const tmSet = PE.state.scheduling.toMove || {};
+    // only projects that actually have a session in this (possibly filtered) set
+    const projects = PE.sourcesOfType('project')
+      .filter((s) => s.enabled !== false && sessions.some((x) => x.projectId === s.id));
     const byTeacher = {};
     T.forEach((t) => { byTeacher[t.id] = t; });
     const ev = S.evaluate(sessions, T, schedOptions(), a);
@@ -748,7 +873,8 @@
     const nameOf = (tid) => (byTeacher[tid] ? byTeacher[tid].name : tid);
     const sh = o.sessionHours || 4;
 
-    const covered = sessions.filter((s) => !noSupSet[s.id] && (a[s.id] || []).length >= o.minPerSession).length;
+    const covered = sessions.filter((s) => !noSupSet[s.id] && !tmSet[s.id] && (a[s.id] || []).length >= o.minPerSession).length;
+    const aDeplacer = (ev.toMove || []).length;
     const totalH = Math.round(T.reduce((x, t) => x + (ev.load[t.id] || 0), 0) * 10) / 10;
 
     const bilan = projects.map((p) => {
@@ -770,6 +896,7 @@
     });
 
     const statusOf = (s) => {
+      if (tmSet[s.id]) return { t: 'a deplacer', c: 'st-warn' };
       if (noSupSet[s.id]) return { t: 'sans encadrant', c: 'st-neutral' };
       const arr = a[s.id] || [];
       const missing = Math.max(0, o.minPerSession - arr.length);
@@ -802,7 +929,7 @@
           if (c.frac >= 1 - 1e-9) { cov = 'toute la seance'; cls = 'st-ok'; }
           else if (c.frac <= 1e-9) { cov = 'indisponible'; cls = 'st-bad'; }
           else { cov = fmtH(hoursOf(c.freeMs)) + ' &middot; ' + fmtSlots(c.free); cls = 'st-warn'; }
-          return `<tr><td>${U.fmtShort(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="${cls}">${cov}</td></tr>`;
+          return `<tr><td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="${cls}">${cov}</td></tr>`;
         }).join('')}
         </tbody></table>` : ''}
       </div>`;
@@ -819,16 +946,42 @@
       }).join(', ');
     };
 
+    /* motif de (non-)disponibilite, meme logique que l'onglet Affectation */
+    const reasonPdf = (tid, s) => {
+      const sS = +new Date(s.start);
+      const sE = +new Date(s.end);
+      const clash = (ivsMap[tid] || []).find((iv) => iv.sid !== s.id && iv.start < sE && iv.end > sS);
+      if (clash) {
+        const cs = sessions.find((x) => x.id === clash.sid);
+        return cs ? 'occupé : ' + cs.project + ' — ' + cs.label + ' ' + U.fmtRange(cs.start, cs.end) : 'occupé sur une autre séance';
+      }
+      const tm = byTeacher[tid];
+      if (tm && S.indispoDegree(tm.indispo || [], s) === 2) return 'indisponible récurrent (demi-journée)';
+      const evc = tm && (tm.events || []).find((e) => {
+        if (e.allDay && !o.allDayBusy) return false;
+        return +new Date(e.start) < sE && +new Date(e.end) > sS;
+      });
+      return evc ? 'agenda : ' + (evc.summary || 'occupé') + (evc.allDay ? ' (journée entière)' : ' ' + U.fmtRange(evc.start, evc.end)) : '';
+    };
+
     /* Disponibilites : tous les encadrants eligibles et leur couverture de la
        seance — meme information que la colonne "Disponibilites" de l'onglet
        Affectation (vue Par seance), en texte simple pour le PDF. */
     const dispoCellPdf = (s) => {
       const list = ev.availList[s.id] || [];
-      if (!list.length) return '<span class="muted">aucun encadrant eligible disponible</span>';
+      const shown = {};
+      list.forEach((x) => { shown[x.tid] = 1; });
+      const blocked = T.filter((t) => PE.isEligible(s.projectId, t.id) && !shown[t.id])
+        .map((t) => ({ t: t, why: reasonPdf(t.id, s) })).filter((b) => b.why).slice(0, 8);
+      const blockedTxt = blocked.length
+        ? '<br><span class="muted">non dispo : ' + blocked.map((b) => esc(b.t.name) + ' (' + esc(b.why) + ')').join(', ') + '</span>'
+        : '';
+      if (!list.length) return (blockedTxt ? '' : '<span class="muted">aucun encadrant eligible disponible</span>') + blockedTxt;
       return list.map((x) => {
         const slots = x.full ? '' : ' (' + fmtSlots(covFor(x.tid, s).free) + ')';
-        return esc(x.name) + ' ' + fmtH(x.hours) + (x.full ? '' : ' ⚠' + slots);
-      }).join(', ');
+        const why = x.full ? '' : (reasonPdf(x.tid, s) ? ' — ' + esc(reasonPdf(x.tid, s)) : '');
+        return esc(x.name) + ' ' + fmtH(x.hours) + (x.full ? '' : ' ⚠' + slots + why);
+      }).join(', ') + blockedTxt;
     };
 
     const allSessions = sessions.slice().sort((x, y) => (x.start < y.start ? -1 : 1));
@@ -837,7 +990,7 @@
     const bilanSeanceRows = allSessions.map((s) => {
       const st = statusOf(s);
       return `<tr>
-        <td>${U.fmtShort(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td>
+        <td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td>
         <td><span class="sw" style="background:${projectColor[s.projectId] || '#999'}"></span> ${esc(s.project)}</td>
         <td>${esc(s.label)}${s.location ? '<br><span class="muted">' + esc(s.location) + '</span>' : ''}</td>
         <td>${encCell(s)}</td>
@@ -854,7 +1007,7 @@
         <table><thead><tr><th>Date</th><th>Horaire</th><th>Duree</th><th>Seance</th><th>Encadrant(s)</th><th>Statut</th></tr></thead><tbody>
         ${ps.map((s) => {
           const st = statusOf(s);
-          return `<tr><td>${U.fmtShort(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td><td>${esc(s.label)}</td><td>${encCell(s)}</td><td class="${st.c}">${st.t}</td></tr>`;
+          return `<tr><td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td><td>${esc(s.label)}</td><td>${encCell(s)}</td><td class="${st.c}">${st.t}</td></tr>`;
         }).join('')}
         </tbody></table></div>`;
     }).join('');
@@ -904,6 +1057,7 @@
         <span><b>${covered}</b> couvertes</span>
         <span class="${(ev.unfilled || []).length ? 'bad' : ''}"><b>${(ev.unfilled || []).length}</b> manque encadrant</span>
         <span class="neutral"><b>${(ev.noSup || []).length}</b> sans encadrant</span>
+        ${aDeplacer ? `<span class="neutral"><b>${aDeplacer}</b> a deplacer</span>` : ''}
         <span><b>${totalH} h</b> affectees</span>
       </p>
 

@@ -215,6 +215,54 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-NOSUP ' + nosup);
 
+      // Repartition des seances : nom du jour, "a deplacer", projets visibles, filtre "difficiles"
+      const repart = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE;
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        const repPanel = () => Array.from(document.querySelectorAll('.panel'))
+          .find((p) => (p.querySelector('h2') || {}).textContent && p.querySelector('h2').textContent.indexOf('Repartition des seances') !== -1);
+        const repRows = () => repPanel() ? repPanel().querySelectorAll('table.grid tbody tr').length : -1;
+
+        PE.state.scheduling.toMove = {}; PE.state.scheduling.visibleProjects = null;
+        PE.state.scheduling.hardOnly = false; PE.state.scheduling.view = 'session';
+        PE.state.scheduling.teams = {}; PE.state.scheduling.locked = {}; PE.state.scheduling.noSup = {};
+        PE.state.scheduling.lastResult = null; PE.setTab('scheduling'); PE.rerender();
+        document.querySelector('#o-run').click(); await wait(400);
+
+        const firstDateCell = repPanel() && repPanel().querySelector('table.grid tbody tr td');
+        const dayCell = firstDateCell ? firstDateCell.textContent.trim() : '';
+        const rowsBefore = repRows();
+
+        const moveBtn = repPanel() && repPanel().querySelector('.tomove-btn');
+        const sid = moveBtn && moveBtn.dataset.sid;
+        moveBtn && moveBtn.click(); await wait(200);
+        const marked = !!(PE.state.scheduling.toMove && PE.state.scheduling.toMove[sid]);
+        document.querySelector('#o-run').click(); await wait(400);   // re-run: toMove should now be excluded
+        const lr = PE.state.scheduling.lastResult;
+
+        const pv = repPanel() && repPanel().querySelector('.projvis-btn');
+        const pid = pv && pv.dataset.pid;
+        pv && pv.click(); await wait(200);
+        const projHidden = Array.isArray(PE.state.scheduling.visibleProjects) &&
+          PE.state.scheduling.visibleProjects.indexOf(pid) === -1;
+        const rowsWhenHidden = repRows();
+        document.querySelector('#projvis-all').click(); await wait(200);
+        document.querySelector('#hardonly-tgl').click(); await wait(200);
+        const hardRows = repRows();
+
+        return JSON.stringify({
+          dayName: /^(lun|mar|mer|jeu|ven|sam|dim)\\.?\\s/i.test(dayCell),
+          dayCell: dayCell,
+          moveBtn: !!moveBtn, marked: marked,
+          moveExcluded: sid ? (lr.assignments[sid] || []).length === 0 : null,
+          inToMove: sid ? (lr.toMove || []).indexOf(sid) !== -1 : null,
+          projHidden: projHidden, rowsBefore: rowsBefore, rowsWhenHidden: rowsWhenHidden, hardRows: hardRows,
+          hardOnlyStored: PE.state.scheduling.hardOnly === true,
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-REPART ' + repart);
+
       await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
       const common = await win.webContents.executeJavaScript(`(() => {
@@ -402,6 +450,25 @@ function attach(win, deps) {
         const im = await win.webContents.capturePage();
         fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-indispo.png', im.toPNG());
         console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-indispo.png');
+      }
+      if (shotArg) {
+        await win.webContents.executeJavaScript(`(async () => {
+          const PE = window.PE;
+          PE.state.scheduling.hardOnly = false; PE.state.scheduling.visibleProjects = null;
+          PE.state.scheduling.view = 'session';
+          PE.state.scheduling.teams = {}; PE.state.scheduling.locked = {}; PE.state.scheduling.noSup = {};
+          const D = PE.state.sources.find((s) => s.name === 'Durand');
+          if (D) PE.state.scheduling.teachers[D.id] = { preferred: [], maxHours: null, indispo: [] };
+          const S3 = PE.sessions()[2]; if (S3) PE.state.scheduling.toMove = {}, PE.state.scheduling.toMove[S3.id] = true;
+          PE.setTab('scheduling'); PE.rerender();
+          document.querySelector('#o-run').click();
+          await new Promise((r) => setTimeout(r, 400));
+        })()`);
+        win.setContentSize(1440, 2200);
+        await new Promise((r) => setTimeout(r, 400));
+        const sc = await win.webContents.capturePage();
+        fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-repart.png', sc.toPNG());
+        console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-repart.png');
       }
       if (shotArg) {
         await win.webContents.executeJavaScript(`(() => {

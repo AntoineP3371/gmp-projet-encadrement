@@ -45,6 +45,7 @@
 
   figure { margin: 4mm 0; page-break-inside: avoid; }
   figure img { display: block; width: 100%; max-width: 160mm; border: 1px solid #cbd5e1; border-radius: 3px; }
+  figure.crop img { height: 118mm; object-fit: cover; object-position: bottom; }
   figcaption { font-size: 8.5pt; color: #6b7280; margin-top: 1.5mm; }
 
   table { border-collapse: collapse; width: 100%; margin: 3mm 0 4mm; font-size: 10pt; page-break-inside: avoid; }
@@ -271,7 +272,29 @@
   <p>En haut du tableau des séances, <span class="ui">Vue :</span> bascule entre
   <span class="ui">Par séance</span> (liste chronologique, modifiable),
   <span class="ui">Par projet</span> (groupé, modifiable) et
-  <span class="ui">Par encadrant</span> (synthèse en lecture seule : séances et heures par projet, cible).</p>
+  <span class="ui">Par encadrant</span> (synthèse en lecture seule : séances et heures par projet, cible).
+  Chaque date est précédée du <b>nom du jour</b> (<code>ven. 18/09/2026</code>). Les boutons
+  <span class="ui">Projets :</span> limitent l'affichage à certains projets (et pilotent l'export PDF
+  correspondant) ; la case <span class="ui">seulement les séances sans encadrant pleinement disponible</span>
+  ne garde que les séances à arbitrer en priorité.</p>
+
+  <figure class="crop">
+    <img src="img/repartition.png" alt="Répartition des séances : nom du jour, boutons Projets, séance « à déplacer », motifs d'indisponibilité">
+    <figcaption>La Répartition des séances : nom du jour devant la date, sélecteur de projets, une séance marquée « à déplacer », et les motifs d'indisponibilité dans la colonne <em>Disponibilités</em> (« non dispo : Martin (agenda : …) »).</figcaption>
+  </figure>
+
+  <h3>Séance à déplacer</h3>
+  <p>Le bouton <span class="ui">à déplacer</span> (colonne <em>Séance</em>) met une séance <b>de côté</b> :
+  l'affectation automatique l'ignore (aucun encadrant placé, pas comptée comme un manque) et elle est
+  signalée « à déplacer » partout, rapport PDF compris. Recliquer la réintègre.</p>
+
+  <h3>Pourquoi un encadrant est indisponible</h3>
+  <p>Dans la colonne <em>Disponibilités</em>, un encadrant partiellement disponible ou écarté porte son
+  <b>motif</b> : <code>occupé : &lt;autre projet&gt; — &lt;séance&gt; HH:MM–HH:MM</code> (deux projets ont une
+  séance simultanée et l'encadrant est déjà pris ailleurs), <code>agenda : &lt;intitulé&gt;</code>, ou
+  <code>indisponible récurrent (demi-journée)</code>. En cas de séances simultanées sur deux projets,
+  l'encadrant est placé sur celle traitée en premier (ordre chronologique, puis alphabétique du projet) —
+  ce n'est pas un arbitrage entre les deux projets.</p>
 
   <h3>Exports</h3>
   <figure>
@@ -284,7 +307,10 @@
     colonnes que la vue <em>Par séance</em> — dont les <b>disponibilités de tous les encadrants éligibles</b>),
     puis <em>Répartition par encadrant</em> et <em>Séances par projet</em> avec <b>une page par encadrant et
     une page par projet</b>. Pour une séance partiellement encadrée, les <b>créneaux réellement couverts</b>
-    sont précisés (ex. <code>Durand (15:00–17:00)</code>).</li>
+    sont précisés (ex. <code>Durand (15:00–17:00)</code>) ; le <em>Bilan par séance</em> reprend aussi les
+    motifs d'indisponibilité.</li>
+    <li><span class="ui">Export PDF (projets visibles)</span> — le même rapport, <b>limité aux projets
+    cochés</b> dans la Répartition : pratique pour éditer le bilan d'un seul projet.</li>
     <li><span class="ui">Export CSV</span> — le tableau des affectations, colonne disponibilités comprise.</li>
     <li><span class="ui">Export ICS</span> — un événement par séance, encadrant(s) dans le titre, à réimporter
     dans un agenda.</li>
