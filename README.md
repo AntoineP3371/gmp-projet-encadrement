@@ -229,7 +229,9 @@ produisent automatiquement pour tenir leur quota d'heures non encadrées.
   (`Projet A — n séances · X h`), sa cible d'après les poids, puis la liste de ses
   séances avec sa couverture (complète / partielle) — synthèse en lecture seule.
 
-Chaque date est précédée du **nom du jour** (`ven. 18/09/2026`). Sous le titre :
+Chaque date est précédée du **nom du jour** et suivie du **numéro de semaine
+ISO** (`ven. 18/09/2026 · S38`) — même format dans le rapport PDF et les
+exports CSV / ICS. Sous le titre :
 - des **boutons *Projets :*** pour n'afficher que certains projets (+ *tous* /
   *aucun*) — ce choix commande aussi l'*Export PDF (projets visibles)* ;
 - une case **« seulement les séances sans encadrant pleinement disponible »** :
@@ -241,6 +243,31 @@ Chaque date est précédée du **nom du jour** (`ven. 18/09/2026`). Sous le titr
 placé, pas comptée dans « manque encadrant »), elle est signalée *à déplacer*
 partout (Répartition, bilan par projet, KPI, rapport PDF). Recliquer la
 réintègre ; les choix manuels éventuels sont conservés.
+
+**Commentaire par séance** : sous le nom de la séance, une zone de texte libre
+enregistre une note (auto-sauvegardée, elle grandit avec le texte). Le
+commentaire est repris dans le rapport PDF (`💬 …` sous la séance) et dans les
+exports CSV / ICS.
+
+**Autre encadrant (hors liste)** : le champ *autre encadrant* (colonne
+*Encadrant(s)*) note quelqu'un qui n'a pas d'agenda dans l'application (vacataire,
+intervenant extérieur…). Il **compte pour un encadrant** vis-à-vis du minimum et
+de la cible : la séance n'est alors plus « manque » et l'affectation automatique
+n'y place personne d'office. Il apparaît en gris « (hors liste) » dans la
+Répartition, le rapport et les exports.
+
+**Encadrement validé** : le bouton *encadrement validé* (colonne *Encadrant(s)*)
+**fige** la séance sur ses encadrants du moment. Une séance validée :
+- garde exactement ses encadrants au prochain *Affecter automatiquement* **et
+  après une mise à jour des agendas** (les encadrants sont verrouillés
+  individuellement, la séance est ré-ensemencée à l'identique) ;
+- n'est jamais comptée « manque », même sous le minimum ;
+- s'affiche sur fond vert, statut *validé*, dans la Répartition et le rapport.
+
+Recliquer le bouton lève le blocage. À un niveau plus fin, chaque encadrant
+d'une séance porte un bouton `○` / `✓` qui **verrouille ce seul encadrant** (même
+effet qu'un choix manuel : conservé au prochain calcul) sans figer toute la
+séance.
 
 Fond de ligne (vues *Par séance* / *Par projet*) :
 - **rouge** : séance sous le minimum, ou un encadrant affecté totalement
@@ -294,8 +321,11 @@ automatiquement*.
   (`printToPDF`, A4).
 - *Export PDF (projets visibles)* : le même rapport, **limité aux projets cochés**
   dans *Répartition des séances* — pratique pour éditer le bilan d'un seul projet.
-- *Export CSV* : le tableau des affectations + colonne disponibilités.
-- *Export ICS* : un événement par séance, encadrants dans le titre.
+- *Export CSV* : le tableau des affectations, avec les colonnes *Autre
+  encadrant*, *Statut* (dont `A DEPLACER` / `VALIDE`), *Commentaire* et
+  *Disponibilités* ; la date porte le nom du jour et le numéro de semaine.
+- *Export ICS* : un événement par séance, encadrants (dont l'« autre encadrant »)
+  dans le titre, commentaire éventuel dans la description.
 
 Dans la table des séances à l'écran, une disponibilité partielle affiche aussi
 ses créneaux (`13:00–15:00`) sous le menu de l'encadrant et dans la colonne
@@ -328,13 +358,15 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
 
 ## Vérification
 
-- `npm test` (`node scripts/smoke.js`) : 95 assertions sur l'arithmétique
+- `npm test` (`node scripts/smoke.js`) : 140 assertions sur l'arithmétique
   d'intervalles, le parsing iCal (fuseaux, RRULE, journée entière, filtrage par
   plage, style Pronote sans VTIMEZONE en UTC pur), le filtrage des séances
   (journée entière / blocs multi-jours écartés via *durée max*), l'algorithme
   d'affectation (répartition proportionnelle aux poids, poids « sans
   encadrant », cumul multi-projets, disponibilité partielle, encadrement
-  partiel en heures ou en %, séances sans encadrant), la reconnaissance des
+  partiel en heures ou en %, séances sans encadrant, séances « à déplacer »,
+  « encadrement validé » figé après recalcul, « autre encadrant » hors liste,
+  indisponibilités récurrentes en demi-journées), la reconnaissance des
   noms de l'Assistant (homonymes, limites de mot), la migration d'état et le
   modèle / l'import Excel (dont les colonnes *Adresse iCal 1/2/3* — plusieurs
   agendas par ligne).

@@ -180,8 +180,16 @@ table.grid tr.choice td { background: var(--accent-soft); }
 table.grid tr.nosup td { background: repeating-linear-gradient(45deg, var(--bg), var(--bg) 8px, #eef0f3 8px, #eef0f3 16px); color: var(--muted); }
 table.grid tr.tomove td { background: var(--warn-soft); color: var(--muted); }
 table.grid tr.tomove td:first-child { text-decoration: line-through; }
+table.grid tr.validated td { background: var(--ok-soft); }
 .tomove-btn { margin-top: 3px; }
+.validate-btn { margin-top: 5px; }
 .avail-blocked { display: block; margin-top: 4px; font-size: 11px; }
+.sess-comment { display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; resize: vertical; min-height: 1.6em; }
+.alt-sup-lbl { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-top: 5px; }
+.alt-sup { flex: 1; min-width: 90px; font: inherit; font-size: 12px; border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; }
+.enc-line.alt { color: var(--muted); font-size: 12px; }
+.enc-lock { border: 1px solid var(--border); background: var(--panel); color: var(--muted); border-radius: 4px; width: 20px; height: 20px; line-height: 1; cursor: pointer; flex: none; padding: 0; }
+.enc-lock.on { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-weight: 700; }
 
 .nosup-tgl { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); margin-top: 5px; }
 

@@ -249,15 +249,39 @@ function attach(win, deps) {
         document.querySelector('#projvis-all').click(); await wait(200);
         document.querySelector('#hardonly-tgl').click(); await wait(200);
         const hardRows = repRows();
+        document.querySelector('#hardonly-tgl').click(); await wait(200); // back to all rows
+
+        // comment / autre encadrant / validation par encadrant / encadrement valide
+        const rows2 = repPanel().querySelectorAll('table.grid tbody tr');
+        const rw = rows2[3] || rows2[0];
+        const rsid = (rw.querySelector('.tomove-btn') || {}).dataset ? rw.querySelector('.tomove-btn').dataset.sid : null;
+        const cta = rw.querySelector('.sess-comment');
+        cta.value = 'a caler avec le vacataire'; cta.dispatchEvent(new Event('change')); await wait(150);
+        const alt = rw.querySelector('.alt-sup');
+        alt.value = 'M. Externe'; alt.dispatchEvent(new Event('change')); await wait(200);
+        const rw2 = repPanel().querySelectorAll('table.grid tbody tr')[3];
+        const lockBtn = rw2 && rw2.querySelector('.enc-lock');
+        const lockTid = lockBtn && lockBtn.dataset.tid;
+        lockBtn && lockBtn.click(); await wait(200);
+        const rw3 = repPanel().querySelectorAll('table.grid tbody tr')[3];
+        const valBtn = rw3 && rw3.querySelector('.validate-btn');
+        valBtn && valBtn.click(); await wait(200);
+        document.querySelector('#o-run').click(); await wait(400);
+        const sc = PE.state.scheduling;
 
         return JSON.stringify({
-          dayName: /^(lun|mar|mer|jeu|ven|sam|dim)\\.?\\s/i.test(dayCell),
+          dayName: /^(lun|mar|mer|jeu|ven|sam|dim)\\.?\\s\\d\\d\\/\\d\\d\\/\\d{4} · S\\d/i.test(dayCell),
           dayCell: dayCell,
           moveBtn: !!moveBtn, marked: marked,
           moveExcluded: sid ? (lr.assignments[sid] || []).length === 0 : null,
           inToMove: sid ? (lr.toMove || []).indexOf(sid) !== -1 : null,
           projHidden: projHidden, rowsBefore: rowsBefore, rowsWhenHidden: rowsWhenHidden, hardRows: hardRows,
-          hardOnlyStored: PE.state.scheduling.hardOnly === true,
+          hardOnlyStored: PE.state.scheduling.hardOnly === false,
+          commentStored: rsid ? sc.comment[rsid] === 'a caler avec le vacataire' : null,
+          altStored: rsid ? sc.altSup[rsid] === 'M. Externe' : null,
+          encLocked: rsid && lockTid ? (sc.locked[rsid] || []).indexOf(lockTid) !== -1 : null,
+          validated: rsid ? sc.validated[rsid] === true : null,
+          validatedFrozen: rsid ? JSON.stringify((PE.state.scheduling.lastResult.assignments[rsid] || []).sort()) === JSON.stringify((sc.locked[rsid] || []).slice().sort()) : null,
           errors: window.__errors.length
         });
       })()`);

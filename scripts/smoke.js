@@ -465,6 +465,40 @@ console.log('\n[3j] a deplacer / conflit inter-projets');
   ok('conflit : X ecarté de la seance simultanee (PB), non couverte', (rC.assignments.b1 || []).length === 0 && (rC.unfilled || []).indexOf('b1') !== -1);
 })();
 
+/* ---- 3k. encadrement validé / autre encadrant ---- */
+console.log('\n[3k] encadrement validé / autre encadrant');
+(function () {
+  const mk = (id, d) => ({
+    id: id, projectId: 'PR', project: 'PR', label: id, hours: 4,
+    start: new Date(2026, 8, 7 + d * 7, 13, 0).toISOString(),
+    end: new Date(2026, 8, 7 + d * 7, 17, 0).toISOString()
+  });
+  const sess = [mk('v0', 0), mk('v1', 1), mk('v2', 2)];
+  const A = { id: 'A', name: 'A', events: [] };
+  const B = { id: 'B', name: 'B', events: [] };
+  const opts = { targetPerSession: 1, minPerSession: 1, prefWeight: 0 };
+
+  // v1 : encadrement validé sur B, locked=[B] -> A ne le remplace jamais, meme
+  // si A serait le "meilleur" choix ailleurs
+  const rV = S.run(sess, [A, B], Object.assign({}, opts, {
+    locked: { v1: ['B'] }, validated: { v1: true }
+  }));
+  ok('validé : la seance garde exactement ses encadrants verrouilles', JSON.stringify(rV.assignments.v1) === JSON.stringify(['B']));
+  ok('validé : listee dans ev.validated', (rV.validated || []).indexOf('v1') !== -1);
+  ok('validé : non recalculee (les autres seances, si)', (rV.assignments.v0 || []).length === 1 && (rV.assignments.v2 || []).length === 1);
+  // meme sous le minimum, une seance validee n'est pas "manque"
+  const rV2 = S.run(sess, [A, B], Object.assign({}, opts, { minPerSession: 2, validated: { v1: true }, locked: { v1: ['A'] } }));
+  ok('validé : jamais compte comme "manque" meme sous le minimum', (rV2.unfilled || []).indexOf('v1') === -1);
+
+  // "autre encadrant" : compte pour une place -> pas de "manque", pas d'affectation auto
+  const rAlt = S.run(sess, [A, B], Object.assign({}, opts, { altSup: { v0: 'M. Externe' } }));
+  ok('autre encadrant : la seance n\'est pas "manque"', (rAlt.unfilled || []).indexOf('v0') === -1);
+  ok('autre encadrant : l\'auto ne place personne dessus', (rAlt.assignments.v0 || []).length === 0);
+  ok('autre encadrant : les autres seances restent affectees', (rAlt.assignments.v1 || []).length === 1);
+  const evAlt = S.evaluate(sess, [A, B], { minPerSession: 1, altSup: { v0: 'M. Externe' } }, { v0: [], v1: ['A'], v2: ['B'] });
+  ok('evaluate : v0 (autre encadrant) hors unfilled', (evAlt.unfilled || []).indexOf('v0') === -1);
+})();
+
 /* ---- 4. exporters ---- */
 console.log('\n[4] CSV / ICS export');
 const csv = PE.exp.toCSV(['A', 'B'], [['x', 'y;z']]);

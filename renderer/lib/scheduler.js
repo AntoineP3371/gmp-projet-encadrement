@@ -219,6 +219,9 @@
   function summarise(sessions, T, byId, o) {
     const noSupSet = o.noSup || {};
     const toMoveSet = o.toMove || {};
+    const validatedSet = o.validated || {};
+    const altSupMap = o.altSup || {};
+    const hasAlt = (s) => !!(altSupMap[s.id] && String(altSupMap[s.id]).trim());
     const availList = {};
     const availFull = {};
     const partial = {};
@@ -227,6 +230,7 @@
     const unfilled = [];
     const noSup = [];
     const toMove = [];      // sessions "a deplacer" : mises de cote
+    const validated = [];   // sessions "encadrement valide"
     const unsupHours = {};   // projectId -> heures de seances sans encadrant
     const unsupTarget = {};  // projectId -> cible d'heures non encadrees
     const supervisionOf = {}; // projectId -> 'full' | 'partial'
@@ -272,13 +276,16 @@
       outOfTeam[s.id] = [];
 
       // a session is "sans encadrant" when explicitly declared, or when it
-      // belongs to a partially-supervised project and has no encadrant.
-      const isNoSup = !!noSupSet[s.id] || (sup === 'partial' && arr.length === 0);
+      // belongs to a partially-supervised project and has no encadrant (ni
+      // un "autre encadrant" saisi a la main).
+      const isNoSup = !!noSupSet[s.id] || (sup === 'partial' && arr.length === 0 && !hasAlt(s));
       if (isNoSup) {
         noSup.push(s.id);
         if (s.projectId != null) unsupHours[s.projectId] = (unsupHours[s.projectId] || 0) + (s.hours || 0);
         return;
       }
+
+      if (validatedSet[s.id]) validated.push(s.id);
 
       arr.forEach((tid) => {
         const t = byId[tid];
@@ -289,7 +296,9 @@
         if (c.frac <= 1e-9) indispo[s.id].push(tid);
         else if (c.frac < FULL) partial[s.id].push(tid);
       });
-      if (arr.length < o.minPerSession) unfilled.push(s.id);
+      // un "autre encadrant" compte pour une place ; un encadrement valide
+      // n'est jamais signale comme "manque".
+      if (!validatedSet[s.id] && arr.length + (hasAlt(s) ? 1 : 0) < o.minPerSession) unfilled.push(s.id);
     });
 
     Object.keys(unsupTarget).forEach((pid) => { if (unsupHours[pid] == null) unsupHours[pid] = 0; });
@@ -298,7 +307,7 @@
     T.forEach((t) => { load[t.id] = Math.round(t.load * 100) / 100; });
     return {
       assignments: o.assignments, load, availList, availFull, partial, indispo, outOfTeam,
-      unfilled, noSup, toMove, unsupHours, unsupTarget, supervisionOf,
+      unfilled, noSup, toMove, validated, unsupHours, unsupTarget, supervisionOf,
       target: targets.byTeacher, targetPair: targets.byPair
     };
   }
@@ -314,8 +323,11 @@
       locked: {},
       teams: {},
       noSup: {},
-      toMove: {}
+      toMove: {},
+      validated: {},
+      altSup: {}
     }, options || {});
+    const altCount = (sid) => ((o.altSup[sid] && String(o.altSup[sid]).trim()) ? 1 : 0);
 
     const T = buildTeachers(teachers, o.allDayBusy);
     const byId = {};
@@ -363,7 +375,7 @@
       if (target <= 0) return;
       let acc = 0;
       ps.forEach((s) => { if (planNoSup[s.id]) acc += (s.hours || 0); });
-      const cands = ps.filter((s) => !planNoSup[s.id] && !o.toMove[s.id] && !(o.locked[s.id] && o.locked[s.id].length));
+      const cands = ps.filter((s) => !planNoSup[s.id] && !o.toMove[s.id] && !o.validated[s.id] && !(o.locked[s.id] && o.locked[s.id].length));
       cands.forEach((s) => {
         const sMs = { start: ms(s.start), end: ms(s.end) };
         s._fullCount = T.reduce((n, t) => {
@@ -380,14 +392,15 @@
     });
 
     /* 2. greedy fill : full-availability teachers first, then partial.
-          Sessions planned "sans encadrant" or marked "a deplacer" are skipped. */
+          Sessions "sans encadrant", "a deplacer" ou "encadrement valide" sont
+          sautees ; un "autre encadrant" saisi compte pour une place. */
     for (const s of sorted) {
-      if (planNoSup[s.id] || o.toMove[s.id]) continue;
+      if (planNoSup[s.id] || o.toMove[s.id] || o.validated[s.id]) continue;
       const sMs = { start: ms(s.start), end: ms(s.end) };
       const dur = (sMs.end - sMs.start) / 3600000;
 
       let guard = 0;
-      while (assignments[s.id].length < o.targetPerSession && guard++ < 100) {
+      while (assignments[s.id].length + altCount(s.id) < o.targetPerSession && guard++ < 100) {
         const cands = [];
         for (const t of T) {
           if (assignments[s.id].indexOf(t.id) !== -1) continue;
@@ -442,7 +455,7 @@
       if (!over || !under || over === under) break;
       let moved = false;
       for (const s of sorted) {
-        if (planNoSup[s.id] || o.toMove[s.id]) continue;
+        if (planNoSup[s.id] || o.toMove[s.id] || o.validated[s.id]) continue;
         const arr = assignments[s.id];
         if (!arr || arr.indexOf(over.id) === -1 || arr.indexOf(under.id) !== -1) continue;
         if ((o.locked[s.id] || []).indexOf(over.id) !== -1) continue;

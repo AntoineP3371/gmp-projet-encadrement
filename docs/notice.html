@@ -273,7 +273,8 @@
   <span class="ui">Par séance</span> (liste chronologique, modifiable),
   <span class="ui">Par projet</span> (groupé, modifiable) et
   <span class="ui">Par encadrant</span> (synthèse en lecture seule : séances et heures par projet, cible).
-  Chaque date est précédée du <b>nom du jour</b> (<code>ven. 18/09/2026</code>). Les boutons
+  Chaque date est précédée du <b>nom du jour</b> et suivie du <b>numéro de semaine ISO</b>
+  (<code>ven. 18/09/2026 · S38</code>) — même format dans le rapport PDF et les exports. Les boutons
   <span class="ui">Projets :</span> limitent l'affichage à certains projets (et pilotent l'export PDF
   correspondant) ; la case <span class="ui">seulement les séances sans encadrant pleinement disponible</span>
   ne garde que les séances à arbitrer en priorité.</p>
@@ -287,6 +288,23 @@
   <p>Le bouton <span class="ui">à déplacer</span> (colonne <em>Séance</em>) met une séance <b>de côté</b> :
   l'affectation automatique l'ignore (aucun encadrant placé, pas comptée comme un manque) et elle est
   signalée « à déplacer » partout, rapport PDF compris. Recliquer la réintègre.</p>
+
+  <h3>Commentaire, autre encadrant, encadrement validé</h3>
+  <ul>
+    <li><span class="ui">Commentaire</span> — sous le nom de la séance, une zone de texte libre
+    (auto-enregistrée) : la note est reprise dans le rapport PDF (<code>💬 …</code>) et les exports
+    CSV&nbsp;/&nbsp;ICS.</li>
+    <li><span class="ui">autre encadrant</span> — un champ pour noter quelqu'un qui n'a pas d'agenda
+    dans l'application (vacataire, intervenant extérieur…). Il <b>compte pour un encadrant</b> : la séance
+    n'est plus « manque » et l'affectation automatique n'y place personne d'office. Il apparaît en gris
+    « (hors liste) » dans la Répartition, le rapport et les exports.</li>
+    <li><span class="ui">encadrement validé</span> — <b>fige</b> la séance sur ses encadrants du moment.
+    Une séance validée garde exactement ses encadrants au prochain <span class="ui">Affecter
+    automatiquement</span> <b>et après une mise à jour des agendas</b>, n'est jamais comptée « manque »
+    (même sous le minimum), et s'affiche sur fond vert (statut « validé »). Recliquer lève le blocage.
+    Le bouton <code>○</code>&nbsp;/&nbsp;<code>✓</code> à côté de chaque encadrant verrouille
+    <b>ce seul encadrant</b> sans figer toute la séance.</li>
+  </ul>
 
   <h3>Pourquoi un encadrant est indisponible</h3>
   <p>Dans la colonne <em>Disponibilités</em>, un encadrant partiellement disponible ou écarté porte son
@@ -311,15 +329,18 @@
     motifs d'indisponibilité.</li>
     <li><span class="ui">Export PDF (projets visibles)</span> — le même rapport, <b>limité aux projets
     cochés</b> dans la Répartition : pratique pour éditer le bilan d'un seul projet.</li>
-    <li><span class="ui">Export CSV</span> — le tableau des affectations, colonne disponibilités comprise.</li>
-    <li><span class="ui">Export ICS</span> — un événement par séance, encadrant(s) dans le titre, à réimporter
-    dans un agenda.</li>
+    <li><span class="ui">Export CSV</span> — le tableau des affectations, avec les colonnes <em>Autre
+    encadrant</em>, <em>Statut</em> (dont <code>A DEPLACER</code> / <code>VALIDE</code>),
+    <em>Commentaire</em> et <em>Disponibilités</em>.</li>
+    <li><span class="ui">Export ICS</span> — un événement par séance, encadrant(s) dans le titre (« autre
+    encadrant » compris), commentaire éventuel en description, à réimporter dans un agenda.</li>
   </ul>
 
   <div class="callout">
     <b>Effacer / recommencer.</b> <span class="ui">Effacer (garder les verrouillés)</span> repart d'un calcul
-    propre en conservant les choix manuels ; <span class="ui">Tout effacer</span> vide aussi les verrous et
-    les séances déclarées sans encadrant (les agendas et la matrice équipe/poids sont conservés).
+    propre en conservant les choix manuels ; <span class="ui">Tout effacer</span> vide aussi les verrous,
+    les séances déclarées sans encadrant, « à déplacer » et « encadrement validé » (les commentaires et les
+    « autre encadrant » — saisis à la main — sont conservés, comme les agendas et la matrice équipe/poids).
   </div>
 </section>
 

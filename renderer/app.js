@@ -26,7 +26,14 @@
     fmtTime(d) { return timeFmt.format(d instanceof Date ? d : new Date(d)); },
     fmtShort(d) { return shortFmt.format(d instanceof Date ? d : new Date(d)); },
     fmtDow(d) { return dowFmt.format(d instanceof Date ? d : new Date(d)); },
-    fmtDated(d) { return PE.util.fmtDow(d) + ' ' + PE.util.fmtShort(d); },
+    isoWeek(d) {
+      const t = new Date(d instanceof Date ? d.getTime() : +new Date(d));
+      t.setHours(0, 0, 0, 0);
+      t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7)); // jeudi de la semaine ISO
+      const jan1 = new Date(t.getFullYear(), 0, 1);
+      return 1 + Math.round(((t - jan1) / 86400000 - 3 + ((jan1.getDay() + 6) % 7)) / 7);
+    },
+    fmtDated(d) { return PE.util.fmtDow(d) + ' ' + PE.util.fmtShort(d) + ' · S' + PE.util.isoWeek(d); },
     fmtRange(a, b) { return PE.util.fmtTime(a) + '–' + PE.util.fmtTime(b); },
     hours(a, b) { return (+new Date(b) - +new Date(a)) / 3600000; },
     monthKey(d) {
@@ -72,6 +79,9 @@
         locked: {},           // sessionId -> [sourceId]
         noSup: {},            // sessionId -> true  (seance declaree "sans encadrant")
         toMove: {},           // sessionId -> true  (seance "a deplacer" : ignoree par l'affectation auto)
+        validated: {},        // sessionId -> true  (encadrement fige : encadrants verrouilles, non touches par l'auto ni un rafraichissement)
+        altSup: {},           // sessionId -> "nom"  (encadrant hors liste, saisi a la main)
+        comment: {},          // sessionId -> "texte libre"
         visibleProjects: null,// null = tous ; sinon [projectId] affiches dans "Repartition des seances"
         hardOnly: false,      // n'afficher que les seances sans encadrant pleinement disponible
         view: 'session',      // 'session' | 'project' | 'teacher' -- vue de la repartition
@@ -105,6 +115,9 @@
     if (dsch.locked && typeof dsch.locked === 'object') s.scheduling.locked = dsch.locked;
     if (dsch.noSup && typeof dsch.noSup === 'object') s.scheduling.noSup = dsch.noSup;
     if (dsch.toMove && typeof dsch.toMove === 'object') s.scheduling.toMove = dsch.toMove;
+    if (dsch.validated && typeof dsch.validated === 'object') s.scheduling.validated = dsch.validated;
+    if (dsch.altSup && typeof dsch.altSup === 'object') s.scheduling.altSup = dsch.altSup;
+    if (dsch.comment && typeof dsch.comment === 'object') s.scheduling.comment = dsch.comment;
     if (Array.isArray(dsch.visibleProjects)) s.scheduling.visibleProjects = dsch.visibleProjects;
     s.scheduling.hardOnly = !!dsch.hardOnly;
     if (['session', 'project', 'teacher'].indexOf(dsch.view) !== -1) s.scheduling.view = dsch.view;
@@ -192,8 +205,9 @@
       sch.locked[sid] = (sch.locked[sid] || []).filter((tid) => !ids.has(tid));
       if (!sch.locked[sid].length) delete sch.locked[sid];
     });
-    Object.keys(sch.noSup || {}).forEach((sid) => { if (!validSessionIds.has(sid)) delete sch.noSup[sid]; });
-    Object.keys(sch.toMove || {}).forEach((sid) => { if (!validSessionIds.has(sid)) delete sch.toMove[sid]; });
+    ['noSup', 'toMove', 'validated', 'altSup', 'comment'].forEach((k) => {
+      Object.keys(sch[k] || {}).forEach((sid) => { if (!validSessionIds.has(sid)) delete sch[k][sid]; });
+    });
     if (Array.isArray(sch.visibleProjects)) {
       sch.visibleProjects = sch.visibleProjects.filter((pid) => !ids.has(pid));
     }
@@ -364,7 +378,10 @@
 
   PE.schedOptions = function (extra) {
     const sch = PE.state.scheduling;
-    return Object.assign({}, sch.options, { teams: sch.teams, noSup: sch.noSup || {}, toMove: sch.toMove || {} }, extra || {});
+    return Object.assign({}, sch.options, {
+      teams: sch.teams, noSup: sch.noSup || {}, toMove: sch.toMove || {},
+      validated: sch.validated || {}, altSup: sch.altSup || {}
+    }, extra || {});
   };
 
   /* Live assignment map (created from the locked picks if no run yet). */
