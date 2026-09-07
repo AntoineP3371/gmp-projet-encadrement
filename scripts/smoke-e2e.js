@@ -233,12 +233,39 @@ function attach(win, deps) {
         const dayCell = firstDateCell ? firstDateCell.textContent.trim() : '';
         const rowsBefore = repRows();
 
+        // "Seances" total du bilan par projet (colonne 2), avant / apres marquage
+        const bilanSeances = () => {
+          const h = Array.from(document.querySelectorAll('h2')).find((x) => x.textContent.indexOf('Bilan par projet') !== -1);
+          const tb = h && h.parentElement.querySelector('table.grid tbody');
+          if (!tb) return -1;
+          return Array.from(tb.querySelectorAll('tr')).reduce((n, tr) => {
+            if (/total/i.test(tr.textContent) && tr.style.fontWeight) return n; // ligne Total
+            const c = tr.children[1];
+            return n + (c ? (parseInt(c.textContent, 10) || 0) : 0);
+          }, 0);
+        };
+        const bilanSeancesBefore = bilanSeances();
+        const rowsInBilanSeance0 = (html) => {
+          const m = html.split('Bilan par seance')[1];
+          const seg = m ? m.split('</table>')[0] : '';
+          return (seg.match(/<tr>/g) || []).length;
+        };
+        const repRowsBefore = rowsInBilanSeance0(PE.views.scheduling._report());
+
         const moveBtn = repPanel() && repPanel().querySelector('.tomove-btn');
         const sid = moveBtn && moveBtn.dataset.sid;
         moveBtn && moveBtn.click(); await wait(200);
         const marked = !!(PE.state.scheduling.toMove && PE.state.scheduling.toMove[sid]);
         document.querySelector('#o-run').click(); await wait(400);   // re-run: toMove should now be excluded
         const lr = PE.state.scheduling.lastResult;
+        const bilanSeancesAfter = bilanSeances();
+        // rapport PDF : la section "Bilan par seance" perd une ligne
+        const rowsInBilanSeance = (html) => {
+          const m = html.split('Bilan par seance')[1];
+          const seg = m ? m.split('</table>')[0] : '';
+          return (seg.match(/<tr>/g) || []).length;
+        };
+        const repRowsAfter = rowsInBilanSeance(PE.views.scheduling._report());
 
         const pv = repPanel() && repPanel().querySelector('.projvis-btn');
         const pid = pv && pv.dataset.pid;
@@ -276,6 +303,8 @@ function attach(win, deps) {
           moveExcluded: sid ? (lr.assignments[sid] || []).length === 0 : null,
           inToMove: sid ? (lr.toMove || []).indexOf(sid) !== -1 : null,
           projHidden: projHidden, rowsBefore: rowsBefore, rowsWhenHidden: rowsWhenHidden, hardRows: hardRows,
+          bilanSeancesDropped: bilanSeancesBefore - bilanSeancesAfter === 1,
+          reportBilanSeanceDropped: repRowsBefore - repRowsAfter === 1,
           hardOnlyStored: PE.state.scheduling.hardOnly === false,
           commentStored: rsid ? sc.comment[rsid] === 'a caler avec le vacataire' : null,
           altStored: rsid ? sc.altSup[rsid] === 'M. Externe' : null,

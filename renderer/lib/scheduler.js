@@ -492,8 +492,13 @@
     const T = buildTeachers(teachers, o.allDayBusy);
     const byId = {};
     T.forEach((t) => { byId[t.id] = t; });
+    const toMoveSet = o.toMove || {};
 
     sessions.forEach((s) => {
+      // "a deplacer" : seance mise de cote -- ne compte dans aucun bilan
+      // (ni heures encadrant, ni couverture projet). D'eventuelles affectations
+      // residuelles ne sont pas prises en compte.
+      if (toMoveSet[s.id]) return;
       const sMs = { start: ms(s.start), end: ms(s.end) };
       const dur = (sMs.end - sMs.start) / 3600000;
       (assignments[s.id] || []).forEach((tid) => {

@@ -454,6 +454,12 @@ console.log('\n[3j] a deplacer / conflit inter-projets');
   const evMove = S.evaluate(sess, [A], { minPerSession: 1, toMove: { m1: true } }, { m0: ['A'], m1: [], m2: ['A'] });
   ok('evaluate : m1 dans toMove, hors unfilled', (evMove.toMove || []).indexOf('m1') !== -1 && (evMove.unfilled || []).indexOf('m1') === -1);
 
+  // une seance "a deplacer" qui a garde une affectation residuelle ne doit
+  // compter dans aucun bilan : ni heures encadrant, ni couverture.
+  const evStale = S.evaluate(sess, [A], { minPerSession: 1, toMove: { m1: true } }, { m0: ['A'], m1: ['A'], m2: ['A'] });
+  ok('a deplacer : affectation residuelle hors bilan encadrant', evStale.load.A === 8);
+  ok('a deplacer : m1 pas listee couverte', (evStale.unfilled || []).indexOf('m1') === -1 && (evStale.toMove || []).indexOf('m1') !== -1);
+
   // deux projets, meme creneau, meme encadrant : place sur le projet traite en
   // premier (ordre chronologique puis ordre du tableau), ecarte de l'autre.
   const t0 = new Date(2026, 8, 14, 13, 0).toISOString();

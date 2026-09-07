@@ -240,9 +240,14 @@ exports CSV / ICS. Sous le titre :
 
 **Séance à déplacer** : le bouton *à déplacer* (colonne *Séance*) met la séance
 **de côté** — l'affectation automatique l'ignore complètement (aucun encadrant
-placé, pas comptée dans « manque encadrant »), elle est signalée *à déplacer*
-partout (Répartition, bilan par projet, KPI, rapport PDF). Recliquer la
-réintègre ; les choix manuels éventuels sont conservés.
+placé, pas comptée dans « manque encadrant »). Elle est **exclue de tous les
+bilans** : bilan par projet (colonnes *Séances*, *Couvertes*, *Heures
+affectées*…), bilan par séance et répartition par encadrant — heures et
+séances comprises, y compris à l'écran et dans le rapport PDF. Elle reste
+visible dans la liste *Répartition des séances* avec sa marque *à déplacer*, et
+un compteur *à déplacer* subsiste dans les KPI et à côté du nom du projet
+(« N à déplacer (hors bilan) »). Recliquer la réintègre ; les choix manuels
+éventuels sont conservés.
 
 **Commentaire par séance** : sous le nom de la séance, une zone de texte libre
 enregistre une note (auto-sauvegardée, elle grandit avec le texte). Le
@@ -358,13 +363,14 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
 
 ## Vérification
 
-- `npm test` (`node scripts/smoke.js`) : 140 assertions sur l'arithmétique
+- `npm test` (`node scripts/smoke.js`) : 142 assertions sur l'arithmétique
   d'intervalles, le parsing iCal (fuseaux, RRULE, journée entière, filtrage par
   plage, style Pronote sans VTIMEZONE en UTC pur), le filtrage des séances
   (journée entière / blocs multi-jours écartés via *durée max*), l'algorithme
   d'affectation (répartition proportionnelle aux poids, poids « sans
   encadrant », cumul multi-projets, disponibilité partielle, encadrement
-  partiel en heures ou en %, séances sans encadrant, séances « à déplacer »,
+  partiel en heures ou en %, séances sans encadrant, séances « à déplacer »
+  exclues de tous les bilans (heures et décompte),
   « encadrement validé » figé après recalcul, « autre encadrant » hors liste,
   indisponibilités récurrentes en demi-journées), la reconnaissance des
   noms de l'Assistant (homonymes, limites de mot), la migration d'état et le
