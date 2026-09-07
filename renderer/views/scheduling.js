@@ -164,9 +164,10 @@
     const aDeplacer = (ev.toMove || []).length;
     const valide = (ev.validated || []).length;
 
-    // per-project balance sheet -- les seances « a deplacer » sont mises de
-    // cote : elles ne comptent dans aucune colonne (seul un rappel du nombre
-    // reste affiche a cote du nom du projet).
+    // per-project balance sheet -- les seances « a deplacer » restent visibles
+    // (comptees dans « Seances », avec un rappel du nombre a cote du projet)
+    // mais ne comptent ni comme couvertes, ni dans les heures affectees, ni
+    // dans les totaux par encadrant.
     const round1 = (x) => Math.round(x * 10) / 10;
     const bilan = projects.map((p) => {
       const all = sessions.filter((s) => s.projectId === p.id);
@@ -177,7 +178,7 @@
       return {
         p: p,
         supervision: sup,
-        total: ps.length,
+        total: all.length,
         toMove: all.filter((s) => toMoveSet[s.id]).length,
         valide: ps.filter((s) => validSet[s.id]).length,
         covered: ps.filter((s) => !noSupSet[s.id] &&
@@ -233,7 +234,7 @@
             <tr>
               <td><span class="dot" style="background:${b.p.color}"></span> ${U.esc(b.p.name)}
                 <span class="badge ${b.supervision === 'partial' ? 'warn' : 'ok'}" style="margin-left:6px">${b.supervision === 'partial' ? 'partiel' : 'total'}</span>
-                ${b.toMove ? `<span class="badge warn" style="margin-left:4px" title="séances mises de côté — non comptées dans ce bilan">${b.toMove} à déplacer (hors bilan)</span>` : ''}
+                ${b.toMove ? `<span class="badge warn" style="margin-left:4px" title="incluses dans « Séances » mais pas dans « Couvertes » / « Heures affectées » ni dans les totaux par encadrant">dont ${b.toMove} à déplacer</span>` : ''}
                 ${b.valide ? `<span class="badge ok" style="margin-left:4px">${b.valide} validée(s)</span>` : ''}</td>
               <td style="text-align:right">${b.total}</td>
               <td style="text-align:right">${b.covered}</td>
@@ -258,7 +259,7 @@
           </tbody>
         </table>
         </div>
-        <p class="muted" style="margin:8px 0 0"><b>total / partiel</b> : mode d'encadrement du projet (defini a l'onglet Agendas). <b>Manque</b> : seances sous le minimum d'encadrants alors qu'un encadrement est attendu (rouge). <b>Sans encadrant</b> : seances laissees sans encadrant — volontairement, ou par manque de disponibilite sur un projet en encadrement partiel ; pour ces projets, heures effectives / cible. <b>Partielles</b> : au moins un encadrant affecte n'est libre que sur une partie de la seance. <b>A arbitrer</b> : au moins 2 encadrants eligibles libres sur toute la seance. <b>Heures affectees</b> : somme (nb encadrants &times; duree). Les seances marquees <b>« a deplacer »</b> sont exclues de tous ces comptes (et des bilans par seance et par encadrant).</p>
+        <p class="muted" style="margin:8px 0 0"><b>total / partiel</b> : mode d'encadrement du projet (defini a l'onglet Agendas). <b>Manque</b> : seances sous le minimum d'encadrants alors qu'un encadrement est attendu (rouge). <b>Sans encadrant</b> : seances laissees sans encadrant — volontairement, ou par manque de disponibilite sur un projet en encadrement partiel ; pour ces projets, heures effectives / cible. <b>Partielles</b> : au moins un encadrant affecte n'est libre que sur une partie de la seance. <b>A arbitrer</b> : au moins 2 encadrants eligibles libres sur toute la seance. <b>Heures affectees</b> : somme (nb encadrants &times; duree). Les seances marquees <b>« a deplacer »</b> restent visibles (comptees dans <b>Seances</b>, listees dans les bilans par seance et par encadrant) mais ne comptent pas comme couvertes, ni dans les heures affectees, ni dans le total de seances de chaque encadrant.</p>
         ` : '<p class="muted">Ajoutez un agenda « projet ».</p>'}
       </div>
 
@@ -416,8 +417,8 @@
     return projects.map((p) => {
       const all = sessions.filter((s) => s.projectId === p.id);
       if (!all.length) return '';
-      // comptes du bandeau : hors seances « a deplacer » (elles restent
-      // affichees en ligne mais ne comptent nulle part).
+      // les seances « a deplacer » restent affichees en ligne et comptees dans
+      // le total « seance(s) », mais pas dans couvertes / heures / par encadrant.
       const ps = all.filter((s) => !toMoveSet[s.id]);
       const sup = ev.supervisionOf[p.id] || (p.supervision === 'partial' ? 'partial' : 'full');
       const cov = ps.filter((s) => !nos[s.id] &&
@@ -433,7 +434,7 @@
       const tgt = Math.round((ev.unsupTarget[p.id] || 0) * 10) / 10;
       return `<div class="grp-head"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}
         <span class="badge ${sup === 'partial' ? 'warn' : 'ok'}" style="margin-left:6px">${sup === 'partial' ? 'partiel' : 'total'}</span>
-        <span class="muted">— ${ps.length} seance(s) &middot; ${cov} couverte(s)${mq ? ' &middot; ' + mq + ' manque(nt)' : ''}${se ? ' &middot; ' + se + ' sans encadrant (' + unsupH + ' h' + (sup === 'partial' ? ' / ' + tgt + ' h cible' : '') + ')' : ''}${par ? ' &middot; ' + par + ' partielle(s)' : ''}${dep ? ' &middot; ' + dep + ' à déplacer (hors bilan)' : ''}${val ? ' &middot; ' + val + ' validée(s)' : ''} &middot; ${Math.round(hrs * 10) / 10} h affectees</span></div>
+        <span class="muted">— ${all.length} seance(s) &middot; ${cov} couverte(s)${mq ? ' &middot; ' + mq + ' manque(nt)' : ''}${se ? ' &middot; ' + se + ' sans encadrant (' + unsupH + ' h' + (sup === 'partial' ? ' / ' + tgt + ' h cible' : '') + ')' : ''}${par ? ' &middot; ' + par + ' partielle(s)' : ''}${dep ? ' &middot; ' + dep + ' à déplacer (non comptée' + (dep > 1 ? 's' : '') + ')' : ''}${val ? ' &middot; ' + val + ' validée(s)' : ''} &middot; ${Math.round(hrs * 10) / 10} h affectees</span></div>
         <div style="overflow:auto"><table class="grid">${SESSION_HEAD}<tbody>
         ${all.map((s) => sessionRow(s, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet)).join('')}
         </tbody></table></div>`;
@@ -461,9 +462,11 @@
 
   function bodyByTeacher(sessions, T, byTeacher, ev, assignments, o, covFor, reasonFor, toMoveSet) {
     const tmSet = toMoveSet || {};
-    return '<p class="muted" style="margin:-2px 0 10px">Vue synthese en lecture seule — modifier les affectations dans « Par seance » ou « Par projet ». Les seances « a deplacer » ne sont pas comptees ici.</p>' +
+    return '<p class="muted" style="margin:-2px 0 10px">Vue synthese en lecture seule — modifier les affectations dans « Par seance » ou « Par projet ». Les seances « a deplacer » sont affichees mais ne comptent pas dans les totaux (seances / heures).</p>' +
       T.map((t) => {
-        const mine = sessions.filter((s) => !tmSet[s.id] && (assignments[s.id] || []).indexOf(t.id) !== -1);
+        const mineAll = sessions.filter((s) => (assignments[s.id] || []).indexOf(t.id) !== -1);
+        const mine = mineAll.filter((s) => !tmSet[s.id]); // comptes : hors « a deplacer »
+        const nMove = mineAll.length - mine.length;
         const load = ev.load[t.id] || 0;
         const pp = perProject(mine);
         const tgtH = (ev.target && ev.target[t.id]) || 0;
@@ -472,11 +475,17 @@
             pp.map((x) => U.esc(x.project) + ' — ' + x.n + ' seance' + (x.n > 1 ? 's' : '') + ' &middot; ' + fmtH(x.hours)).join(' &nbsp;|&nbsp; ') + '</div>'
           : '';
         return `<div class="grp-head"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}
-          <span class="muted">— ${mine.length} seance(s) &middot; ${load} h &middot; cible &asymp; ${Math.round(tgtH / ((o && o.sessionHours) || 4))} (${tgtH} h)</span></div>
+          <span class="muted">— ${mine.length} seance(s) &middot; ${load} h &middot; cible &asymp; ${Math.round(tgtH / ((o && o.sessionHours) || 4))} (${tgtH} h)${nMove ? ' &middot; ' + nMove + ' à déplacer (non comptée' + (nMove > 1 ? 's' : '') + ')' : ''}</span></div>
           ${ppLine}
-          ${mine.length ? `<div style="overflow:auto"><table class="grid">
+          ${mineAll.length ? `<div style="overflow:auto"><table class="grid">
             <thead><tr><th>Date</th><th>Horaire</th><th>Projet</th><th>Seance</th><th>Sa disponibilite</th></tr></thead>
-            <tbody>${mine.map((s) => {
+            <tbody>${mineAll.map((s) => {
+              if (tmSet[s.id]) {
+                return `<tr class="tomove">
+                  <td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td>
+                  <td>${U.esc(s.project)}</td><td>${U.esc(s.label)}</td>
+                  <td><span class="badge warn">à déplacer</span> <span class="muted">non comptée</span></td></tr>`;
+              }
               const c = covFor(t.id, s);
               const rc = c.frac >= 1 - 1e-9 ? '' : (c.frac <= 1e-9 ? 'unfilled' : 'conflict');
               return `<tr class="${rc}">
@@ -968,14 +977,18 @@
     const totalH = Math.round(T.reduce((x, t) => x + (ev.load[t.id] || 0), 0) * 10) / 10;
 
     const bilan = projects.map((p) => {
-      // les seances « a deplacer » sont exclues de tous les bilans du rapport
-      const ps = sessions.filter((s) => s.projectId === p.id && !tmSet[s.id]);
+      // les seances « a deplacer » restent visibles (comptees dans « Seances »)
+      // mais ne comptent ni comme couvertes, ni dans les heures affectees, ni
+      // dans les totaux par encadrant.
+      const all = sessions.filter((s) => s.projectId === p.id);
+      const ps = all.filter((s) => !tmSet[s.id]);
       let hrs = 0;
       ps.forEach((s) => { hrs += (a[s.id] || []).length * s.hours; });
       return {
         name: p.name,
         sup: ev.supervisionOf[p.id] || (p.supervision === 'partial' ? 'partial' : 'full'),
-        total: ps.length,
+        total: all.length,
+        toMove: all.filter((s) => tmSet[s.id]).length,
         covered: ps.filter((s) => !noSupSet[s.id] &&
           (vSet[s.id] || (a[s.id] || []).length + (altOf(s) ? 1 : 0) >= o.minPerSession)).length,
         manque: ps.filter((s) => unfSet[s.id]).length,
@@ -1001,21 +1014,26 @@
     };
 
     const teacherBlocks = T.map((t, i) => {
-      const mine = sessions.filter((s) => !tmSet[s.id] && (a[s.id] || []).indexOf(t.id) !== -1)
+      const mineAll = sessions.filter((s) => (a[s.id] || []).indexOf(t.id) !== -1)
         .sort((x, y) => (x.start < y.start ? -1 : 1));
+      const mine = mineAll.filter((s) => !tmSet[s.id]); // comptes : hors « a deplacer »
+      const nMove = mineAll.length - mine.length;
       const load = ev.load[t.id] || 0;
       const tgtH = (ev.target && ev.target[t.id]) || 0;
       const pp = perProject(mine);
       return `<div class="tb${i > 0 ? ' pagebreak' : ''}">
         <h3><span class="sw" style="background:${t.color}"></span> ${esc(t.name)}</h3>
-        <p class="sub">${mine.length} seance(s) &middot; ${load} h &middot; cible &asymp; ${Math.round(tgtH / sh)} (${tgtH} h)</p>
+        <p class="sub">${mine.length} seance(s) &middot; ${load} h &middot; cible &asymp; ${Math.round(tgtH / sh)} (${tgtH} h)${nMove ? ' &middot; ' + nMove + ' a deplacer (non comptee' + (nMove > 1 ? 's' : '') + ')' : ''}</p>
         <table><thead><tr><th>Projet</th><th class="r">Seances</th><th class="r">Heures</th></tr></thead><tbody>
         ${pp.map((x) => `<tr><td>${esc(x.project)}</td><td class="r">${x.n}</td><td class="r">${x.hours} h</td></tr>`).join('')
           || '<tr><td colspan="3" class="muted">aucune seance affectee</td></tr>'}
         ${pp.length > 1 ? `<tr class="tot"><td>Total</td><td class="r">${mine.length}</td><td class="r">${Math.round(mine.reduce((x, s) => x + s.hours, 0) * 10) / 10} h</td></tr>` : ''}
         </tbody></table>
-        ${mine.length ? `<table><thead><tr><th>Date</th><th>Horaire</th><th>Projet</th><th>Seance</th><th>Encadrement assure</th></tr></thead><tbody>
-        ${mine.map((s) => {
+        ${mineAll.length ? `<table><thead><tr><th>Date</th><th>Horaire</th><th>Projet</th><th>Seance</th><th>Encadrement assure</th></tr></thead><tbody>
+        ${mineAll.map((s) => {
+          if (tmSet[s.id]) {
+            return `<tr><td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="st-warn">a deplacer &mdash; non comptee</td></tr>`;
+          }
           const c = covFor(t.id, s);
           let cov;
           let cls = '';
@@ -1078,7 +1096,7 @@
       }).join(', ') + blockedTxt;
     };
 
-    const allSessions = sessions.filter((s) => !tmSet[s.id]).sort((x, y) => (x.start < y.start ? -1 : 1));
+    const allSessions = sessions.slice().sort((x, y) => (x.start < y.start ? -1 : 1));
     const projectColor = {};
     projects.forEach((p) => { projectColor[p.id] = p.color; });
     const bilanSeanceRows = allSessions.map((s) => {
@@ -1093,7 +1111,7 @@
     }).join('');
 
     const projectsWithSessions = projects
-      .map((p) => ({ p: p, ps: sessions.filter((s) => s.projectId === p.id && !tmSet[s.id]).sort((x, y) => (x.start < y.start ? -1 : 1)) }))
+      .map((p) => ({ p: p, ps: sessions.filter((s) => s.projectId === p.id).sort((x, y) => (x.start < y.start ? -1 : 1)) }))
       .filter((x) => x.ps.length);
 
     const sessBlocks = projectsWithSessions.map(({ p, ps }, i) => {
@@ -1161,7 +1179,7 @@
       ${bilan.map((b) => `<tr>
         <td><span class="sw" style="background:${(projects.find((p) => p.name === b.name) || {}).color || '#999'}"></span> ${esc(b.name)}</td>
         <td>${b.sup === 'partial' ? 'partiel' : 'total'}</td>
-        <td class="r">${b.total}</td><td class="r">${b.covered}</td>
+        <td class="r">${b.total}${b.toMove ? ' <span class="muted">(dont ' + b.toMove + ' à déplacer)</span>' : ''}</td><td class="r">${b.covered}</td>
         <td class="r ${b.manque ? 'st-bad' : ''}">${b.manque}</td>
         <td class="r ${b.sansEnc ? 'st-neutral' : ''}">${b.sansEnc}${(b.sup === 'partial' || b.unsupTarget > 0) ? ' (' + b.unsupH + ' h / ' + b.unsupTarget + ' h)' : ''}</td>
         <td class="r ${b.partial ? 'st-warn' : ''}">${b.partial}</td>

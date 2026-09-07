@@ -240,13 +240,13 @@ exports CSV / ICS. Sous le titre :
 
 **Séance à déplacer** : le bouton *à déplacer* (colonne *Séance*) met la séance
 **de côté** — l'affectation automatique l'ignore complètement (aucun encadrant
-placé, pas comptée dans « manque encadrant »). Elle est **exclue de tous les
-bilans** : bilan par projet (colonnes *Séances*, *Couvertes*, *Heures
-affectées*…), bilan par séance et répartition par encadrant — heures et
-séances comprises, y compris à l'écran et dans le rapport PDF. Elle reste
-visible dans la liste *Répartition des séances* avec sa marque *à déplacer*, et
-un compteur *à déplacer* subsiste dans les KPI et à côté du nom du projet
-(« N à déplacer (hors bilan) »). Recliquer la réintègre ; les choix manuels
+placé, pas comptée dans « manque encadrant »). Elle **reste visible dans tous
+les bilans** (bilan par projet, bilan par séance, répartition par encadrant,
+séances par projet — à l'écran comme dans le rapport PDF), marquée *à
+déplacer*, mais **ne compte pas** : ni comme séance couverte, ni dans les
+*Heures affectées*, ni dans le **total de séances / d'heures de chaque
+encadrant**. Elle est incluse dans le décompte *Séances* du projet, avec un
+rappel « dont N à déplacer ». Recliquer la réintègre ; les choix manuels
 éventuels sont conservés.
 
 **Commentaire par séance** : sous le nom de la séance, une zone de texte libre
@@ -370,8 +370,9 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
   d'affectation (répartition proportionnelle aux poids, poids « sans
   encadrant », cumul multi-projets, disponibilité partielle, encadrement
   partiel en heures ou en %, séances sans encadrant, séances « à déplacer »
-  exclues de tous les bilans (heures et décompte),
-  « encadrement validé » figé après recalcul, « autre encadrant » hors liste,
+  visibles dans les bilans mais hors décompte des heures / séances par
+  encadrant, « encadrement validé » figé après recalcul, « autre encadrant »
+  hors liste,
   indisponibilités récurrentes en demi-journées), la reconnaissance des
   noms de l'Assistant (homonymes, limites de mot), la migration d'état et le
   modèle / l'import Excel (dont les colonnes *Adresse iCal 1/2/3* — plusieurs

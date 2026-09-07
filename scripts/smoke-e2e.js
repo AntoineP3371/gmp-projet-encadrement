@@ -245,27 +245,23 @@ function attach(win, deps) {
           }, 0);
         };
         const bilanSeancesBefore = bilanSeances();
-        const rowsInBilanSeance0 = (html) => {
-          const m = html.split('Bilan par seance')[1];
-          const seg = m ? m.split('</table>')[0] : '';
-          return (seg.match(/<tr>/g) || []).length;
-        };
-        const repRowsBefore = rowsInBilanSeance0(PE.views.scheduling._report());
-
-        const moveBtn = repPanel() && repPanel().querySelector('.tomove-btn');
-        const sid = moveBtn && moveBtn.dataset.sid;
-        moveBtn && moveBtn.click(); await wait(200);
-        const marked = !!(PE.state.scheduling.toMove && PE.state.scheduling.toMove[sid]);
-        document.querySelector('#o-run').click(); await wait(400);   // re-run: toMove should now be excluded
-        const lr = PE.state.scheduling.lastResult;
-        const bilanSeancesAfter = bilanSeances();
-        // rapport PDF : la section "Bilan par seance" perd une ligne
         const rowsInBilanSeance = (html) => {
           const m = html.split('Bilan par seance')[1];
           const seg = m ? m.split('</table>')[0] : '';
           return (seg.match(/<tr>/g) || []).length;
         };
+        const repRowsBefore = rowsInBilanSeance(PE.views.scheduling._report());
+
+        const moveBtn = repPanel() && repPanel().querySelector('.tomove-btn');
+        const sid = moveBtn && moveBtn.dataset.sid;
+        moveBtn && moveBtn.click(); await wait(200);
+        const marked = !!(PE.state.scheduling.toMove && PE.state.scheduling.toMove[sid]);
+        document.querySelector('#o-run').click(); await wait(400);   // re-run: toMove ignore par l'auto, mais reste visible dans les bilans
+        const lr = PE.state.scheduling.lastResult;
+        const bilanSeancesAfter = bilanSeances();
+        // rapport PDF : la seance "a deplacer" reste listee dans "Bilan par seance"
         const repRowsAfter = rowsInBilanSeance(PE.views.scheduling._report());
+        const reportHasADeplacer = PE.views.scheduling._report().indexOf('a deplacer') !== -1;
 
         const pv = repPanel() && repPanel().querySelector('.projvis-btn');
         const pid = pv && pv.dataset.pid;
@@ -303,8 +299,9 @@ function attach(win, deps) {
           moveExcluded: sid ? (lr.assignments[sid] || []).length === 0 : null,
           inToMove: sid ? (lr.toMove || []).indexOf(sid) !== -1 : null,
           projHidden: projHidden, rowsBefore: rowsBefore, rowsWhenHidden: rowsWhenHidden, hardRows: hardRows,
-          bilanSeancesDropped: bilanSeancesBefore - bilanSeancesAfter === 1,
-          reportBilanSeanceDropped: repRowsBefore - repRowsAfter === 1,
+          bilanSeancesKept: bilanSeancesBefore === bilanSeancesAfter && bilanSeancesBefore > 0,
+          reportBilanSeanceKept: repRowsBefore === repRowsAfter && repRowsBefore > 0,
+          reportHasADeplacer: reportHasADeplacer,
           hardOnlyStored: PE.state.scheduling.hardOnly === false,
           commentStored: rsid ? sc.comment[rsid] === 'a caler avec le vacataire' : null,
           altStored: rsid ? sc.altSup[rsid] === 'M. Externe' : null,
