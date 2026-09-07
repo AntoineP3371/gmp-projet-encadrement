@@ -4,66 +4,117 @@
 <meta charset="utf-8">
 <title>Encadrement projet — Notice d'utilisation</title>
 <style>
-  @page { size: A4; margin: 16mm 16mm 15mm; }
+  @page { size: A4; margin: 18mm 17mm 22mm; }
   * { box-sizing: border-box; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  :root {
+    --ink: #1b2230;
+    --muted: #566072;
+    --faint: #8a93a2;
+    --line: #dee2ea;
+    --line-soft: #eceef3;
+    --tint: #f6f7f9;
+    --brand: #2551a8;
+    --brand-deep: #163470;
+    --brand-pale: #eaf0fb;
+    --brand-ghost: #a9bde1;
+    --ok: #1f7a3d;   --ok-bg: #e7f4ec;
+    --warn: #93610f;  --warn-bg: #faf0dd;
+    --bad: #b3261e;   --bad-bg: #fbe9e8;
+  }
+
   body {
-    font: 10.8pt/1.48 Georgia, "Times New Roman", serif;
-    color: #1f2430;
+    font: 10.5pt/1.52 Georgia, Cambria, "Times New Roman", serif;
+    color: var(--ink);
     margin: 0;
   }
   p, li { orphans: 2; widows: 2; }
-  h1, h2, h3, .ui, .lead, th, .tag, figcaption, .cover .meta {
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-  }
+  p { margin: 0 0 2.6mm; }
+  strong, b { color: #10151f; font-weight: 700; }
+  em { font-style: italic; color: #2c3546; }
 
-  /* cover */
-  .cover { min-height: 60vh; padding-top: 8mm; }
-  .cover .kicker { font: 600 10pt/1 "Segoe UI", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #2563eb; }
-  .cover h1 { font-size: 30pt; line-height: 1.1; margin: 6mm 0 3mm; color: #1e3a8a; }
-  .cover .lead { font-size: 12.5pt; color: #45505f; max-width: 130mm; margin: 0 0 8mm; }
-  .cover .meta { font-size: 9.5pt; color: #6b7280; border-top: 1px solid #d8dce2; padding-top: 3mm; }
+  h1, h2, h3,
+  .sans, .lead, .kicker, th, thead td, .toc, figcaption, .meta,
+  .callout-label, .deg, .toc-title { font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; }
 
-  section { page-break-before: always; }
+  /* ---- cover ---- */
+  .cover { padding: 8mm 0 0; }
+  .kicker { font-size: 8.5pt; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--brand); }
+  .cover h1 { font-size: 34pt; font-weight: 700; line-height: 1.04; letter-spacing: -.015em; color: var(--brand-deep); margin: 5mm 0 0; }
+  .cover .rule { width: 34mm; height: 3pt; background: var(--brand); border-radius: 2px; margin: 6mm 0; }
+  .cover .lead { font-size: 12pt; color: var(--muted); max-width: 138mm; margin: 0 0 8mm; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 3mm 7mm; margin: 0 0 10mm; font-family: "Segoe UI", sans-serif; font-size: 8.5pt; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 2mm; }
+  .legend i { width: 3.4mm; height: 3.4mm; border-radius: 999px; flex: none; }
+  .legend .g { background: var(--ok); }
+  .legend .a { background: var(--warn); }
+  .legend .r { background: var(--bad); }
+  .legend .b { background: var(--brand); }
+
+  .toc-panel { border: 1px solid var(--line); border-radius: 7px; background: var(--tint); padding: 5mm 6mm; max-width: 132mm; }
+  .toc-title { font-size: 8pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--brand); margin-bottom: 3mm; }
+  ol.toc { list-style: none; margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; font-size: 10pt; color: var(--ink); }
+  ol.toc li { display: flex; align-items: center; gap: 3.5mm; margin: 0; padding: 1.9mm 0; border-bottom: 1px solid #e7e9ef; }
+  ol.toc li:last-child { border-bottom: 0; }
+  ol.toc .n { flex: none; width: 6mm; height: 6mm; border-radius: 999px; background: #fff; border: 1px solid var(--brand-ghost); color: var(--brand-deep); font-weight: 700; font-size: 8.5pt; display: flex; align-items: center; justify-content: center; }
+
+  .meta { font-family: "Segoe UI", sans-serif; font-size: 8.5pt; color: var(--faint); border-top: 1px solid var(--line); padding-top: 3mm; margin-top: 12mm; }
+
+  /* ---- sections ---- */
+  section { page-break-before: always; padding-top: 1mm; }
   section:first-of-type { page-break-before: avoid; }
 
   h2 {
-    font-size: 15pt; color: #fff; background: #2563eb;
-    padding: 3mm 4mm; border-radius: 3px; margin: 0 0 4mm;
+    display: flex; align-items: baseline; gap: 3.5mm;
+    font-size: 14.5pt; font-weight: 700; color: var(--brand-deep);
+    margin: 0 0 1mm; padding-bottom: 2.2mm; border-bottom: 2pt solid var(--brand);
   }
-  h3 { font-size: 12pt; color: #1e3a8a; margin: 6mm 0 2mm; }
-  h2 + h3, h2 + p { margin-top: 0; }
-  p { margin: 0 0 2.5mm; }
+  h2 .s-num { font-size: 22pt; font-weight: 700; color: var(--brand-ghost); line-height: 1; letter-spacing: -.02em; }
+
+  h3 {
+    font-size: 10.5pt; font-weight: 700; color: var(--brand-deep);
+    margin: 5.5mm 0 1.6mm; padding-left: 3mm; border-left: 2.5pt solid var(--brand-ghost);
+  }
+  h2 + h3, h2 + p, h2 + .lead { margin-top: 3.5mm; }
+
+  .lead { font-family: "Segoe UI", sans-serif; font-size: 10.5pt; color: var(--muted); margin: 0 0 3mm; }
+
   ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
-  li { margin-bottom: 1.2mm; }
-  li > ul { margin-top: 1.2mm; }
-  b, strong { color: #14202b; }
-  .ui { font-weight: 600; color: #1e3a8a; }
-  code { font-family: "Consolas", "SFMono-Regular", monospace; font-size: 9.5pt; background: #eef2f7; padding: .5mm 1.5mm; border-radius: 2px; }
+  li { margin-bottom: 1.4mm; }
+  li::marker { color: var(--brand); }
+  li > ul { margin-top: 1.4mm; }
 
-  .lead { font-size: 11.5pt; color: #45505f; }
+  .ui { font-family: "Segoe UI", sans-serif; font-size: 9pt; font-weight: 600; color: var(--brand-deep); background: var(--brand-pale); padding: .2mm 3px; border-radius: 3px; }
+  code { font-family: "Cascadia Mono", Consolas, "SFMono-Regular", monospace; font-size: 8.5pt; background: #eef0f3; color: #33404f; padding: .3mm 1.3mm; border-radius: 3px; }
 
-  figure { margin: 4mm 0; page-break-inside: avoid; }
-  figure img { display: block; width: 100%; max-width: 160mm; border: 1px solid #cbd5e1; border-radius: 3px; }
-  figure.crop img { height: 118mm; object-fit: cover; object-position: bottom; }
-  figcaption { font-size: 8.5pt; color: #6b7280; margin-top: 1.5mm; }
+  /* ---- figures ---- */
+  figure { margin: 4mm 0 5mm; page-break-inside: avoid; }
+  figure img { display: block; width: 100%; border: 1px solid var(--line); border-radius: 5px; }
+  figure.crop img { height: 116mm; object-fit: cover; object-position: bottom; }
+  figcaption { font-family: "Segoe UI", sans-serif; font-size: 8pt; color: var(--faint); margin-top: 1.8mm; padding-left: 2.5mm; border-left: 2px solid var(--line); }
 
-  table { border-collapse: collapse; width: 100%; margin: 3mm 0 4mm; font-size: 10pt; page-break-inside: avoid; }
-  th, td { border: 1px solid #cbd5e1; padding: 1.8mm 2.5mm; text-align: left; vertical-align: top; }
-  th { background: #e8f0fe; color: #1e3a8a; font-size: 9pt; }
+  /* ---- tables ---- */
+  table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); margin: 3mm 0 5mm; font: 9.5pt/1.42 Georgia, serif; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  th { font-size: 7.8pt; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; color: var(--brand-deep); text-align: left; background: var(--brand-pale); padding: 2mm 3mm; border-bottom: 1.5pt solid var(--brand); }
+  td { padding: 2mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) td { background: #f8f9fb; }
   tr { page-break-inside: avoid; }
 
-  .callout { border-left: 3px solid #2563eb; background: #f4f8ff; padding: 2.5mm 4mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid; break-inside: avoid; }
-  .callout.warn { border-left-color: #d97706; background: #fdf6ec; }
+  /* ---- callouts ---- */
+  .callout { border: 1px solid var(--line); border-left: 3pt solid var(--brand); background: var(--brand-pale); border-radius: 5px; padding: 3mm 4mm; margin: 4mm 0; font: 9.5pt/1.5 Georgia, serif; page-break-inside: avoid; break-inside: avoid; }
+  .callout.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+  .callout-label { display: block; font-size: 7.4pt; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--brand); margin-bottom: 1.2mm; }
+  .callout.warn .callout-label { color: var(--warn); }
 
-  .deg { display: inline-block; min-width: 5mm; text-align: center; font-weight: 700; border-radius: 2px; padding: 0 1.5mm; }
-  .deg0 { background: #e7f6ec; color: #15803d; }
-  .deg1 { background: #fdf0e0; color: #b45309; }
-  .deg2 { background: #fdecec; color: #b91c1c; }
-
-  .toc { font-family: "Segoe UI", sans-serif; font-size: 10.5pt; }
-  .toc ol { padding-left: 6mm; }
-  .toc li { margin-bottom: 1.5mm; }
+  /* ---- degree chips ---- */
+  .deg { display: inline-block; min-width: 4.5mm; text-align: center; font-family: "Segoe UI", sans-serif; font-weight: 700; font-size: 8.4pt; border-radius: 999px; padding: .3mm 1.8mm; }
+  .deg0 { background: var(--ok-bg); color: var(--ok); }
+  .deg1 { background: var(--warn-bg); color: var(--warn); }
+  .deg2 { background: var(--bad-bg); color: var(--bad); }
 </style>
 </head>
 <body>
@@ -71,26 +122,36 @@
 <div class="cover">
   <div class="kicker">Notice d'utilisation</div>
   <h1>Encadrement&nbsp;projet</h1>
+  <div class="rule"></div>
   <p class="lead">Application de bureau pour lire les agendas iCal des encadrants et des projets,
   comparer les disponibilités, et répartir automatiquement les encadrants sur les séances de projet.</p>
-  <div class="toc">
-    <b>Sommaire</b>
-    <ol>
-      <li>Présentation &amp; démarrage</li>
-      <li>Onglet Agendas</li>
-      <li>Onglet Planning (liste)</li>
-      <li>Onglet Périodes communes</li>
-      <li>Onglet Affectation</li>
-      <li>Onglet Assistant</li>
-      <li>Réglages de l'affectation (référence)</li>
-      <li>Astuces &amp; dépannage</li>
+
+  <div class="legend">
+    <span><i class="g"></i> disponible · validé · couvert</span>
+    <span><i class="a"></i> partiel · à arbitrer · à éviter</span>
+    <span><i class="r"></i> manque · bloqué · indisponible</span>
+    <span><i class="b"></i> élément cliquable de l'application</span>
+  </div>
+
+  <div class="toc-panel">
+    <div class="toc-title">Sommaire</div>
+    <ol class="toc">
+      <li><span class="n">1</span> Présentation &amp; démarrage</li>
+      <li><span class="n">2</span> Onglet Agendas</li>
+      <li><span class="n">3</span> Onglet Planning (liste)</li>
+      <li><span class="n">4</span> Onglet Périodes communes</li>
+      <li><span class="n">5</span> Onglet Affectation</li>
+      <li><span class="n">6</span> Onglet Assistant</li>
+      <li><span class="n">7</span> Réglages de l'affectation (référence)</li>
+      <li><span class="n">8</span> Astuces &amp; dépannage</li>
     </ol>
   </div>
+
   <p class="meta">Version 1.5.0 &nbsp;·&nbsp; IUT de Bordeaux &nbsp;·&nbsp; les libellés de cette notice reprennent exactement ceux de l'application.</p>
 </div>
 
 <section>
-  <h2>1 — Présentation &amp; démarrage</h2>
+  <h2><span class="s-num">1</span> Présentation &amp; démarrage</h2>
 
   <p>L'application s'organise en cinq onglets, dans l'ordre où l'on s'en sert :
   on renseigne les <span class="ui">Agendas</span>, on vérifie le <span class="ui">Planning</span>,
@@ -114,13 +175,14 @@
   </ul>
 
   <div class="callout">
+    <span class="callout-label">À noter</span>
     <b>Tout reste sur le poste.</b> Aucune donnée n'est envoyée à l'extérieur : agendas, réglages et
     affectations sont enregistrés automatiquement dans <code>%APPDATA%\Encadrement projet\project.json</code>.
   </div>
 </section>
 
 <section>
-  <h2>2 — Onglet Agendas</h2>
+  <h2><span class="s-num">2</span> Onglet Agendas</h2>
   <p class="lead">Chaque encadrant et chaque projet possède son ou ses agendas iCal.</p>
 
   <figure>
@@ -198,7 +260,7 @@
 </section>
 
 <section>
-  <h2>3 — Onglet Planning (liste)</h2>
+  <h2><span class="s-num">3</span> Onglet Planning (liste)</h2>
   <p>Vue chronologique de tous les événements des agendas actifs, groupés par jour.</p>
   <ul>
     <li>Filtres par <span class="ui">type</span> (encadrant / projet), par <span class="ui">agenda</span>
@@ -209,7 +271,7 @@
 </section>
 
 <section>
-  <h2>4 — Onglet Périodes communes</h2>
+  <h2><span class="s-num">4</span> Onglet Périodes communes</h2>
   <p>Comparer plusieurs agendas pour trouver quand tout le monde est libre — ou au contraire tous occupés.</p>
   <ol>
     <li>Cocher au moins deux agendas.</li>
@@ -221,7 +283,7 @@
 </section>
 
 <section>
-  <h2>5 — Onglet Affectation</h2>
+  <h2><span class="s-num">5</span> Onglet Affectation</h2>
   <p class="lead">Répartir automatiquement les encadrants sur les séances de projet, en respectant
   qui est libre, qui encadre quoi, et dans quelles proportions.</p>
 
@@ -306,8 +368,8 @@
   <h3>Commentaire, autre encadrant, encadrement validé</h3>
   <ul>
     <li><span class="ui">Commentaire</span> — sous le nom de la séance, une zone de texte libre
-    (auto-enregistrée) : la note est reprise dans le rapport PDF (<code>💬 …</code>) et les exports
-    CSV&nbsp;/&nbsp;ICS.</li>
+    (auto-enregistrée) : la note est reprise dans le rapport PDF (précédée d'une icône « commentaire »)
+    et les exports CSV&nbsp;/&nbsp;ICS.</li>
     <li><span class="ui">autre encadrant</span> — un champ pour noter quelqu'un qui n'a pas d'agenda
     dans l'application (vacataire, intervenant extérieur…). Il <b>compte pour un encadrant</b> : la séance
     n'est plus « manque » et l'affectation automatique n'y place personne d'office. Il apparaît en gris
@@ -351,7 +413,8 @@
   </ul>
 
   <div class="callout">
-    <b>Effacer / recommencer.</b> <span class="ui">Effacer (garder les verrouillés)</span> repart d'un calcul
+    <span class="callout-label">Effacer / recommencer</span>
+    <span class="ui">Effacer (garder les verrouillés)</span> repart d'un calcul
     propre en conservant les choix manuels ; <span class="ui">Tout effacer</span> vide aussi les verrous,
     les séances déclarées sans encadrant, « à déplacer » et « encadrement validé » (les commentaires et les
     « autre encadrant » — saisis à la main — sont conservés, comme les agendas et la matrice équipe/poids).
@@ -359,7 +422,7 @@
 </section>
 
 <section>
-  <h2>6 — Onglet Assistant</h2>
+  <h2><span class="s-num">6</span> Onglet Assistant</h2>
   <p class="lead">Une poignée de questions d'organisation, reconnues par mots-clés — pas de langage libre,
   mais tout est calculé sur le poste (aucune donnée envoyée à l'extérieur).</p>
 
@@ -385,7 +448,7 @@
 </section>
 
 <section>
-  <h2>7 — Réglages de l'affectation (référence)</h2>
+  <h2><span class="s-num">7</span> Réglages de l'affectation (référence)</h2>
   <table>
     <thead><tr><th style="width:52mm">Réglage</th><th>Rôle</th></tr></thead>
     <tbody>
@@ -406,7 +469,7 @@
 </section>
 
 <section>
-  <h2>8 — Astuces &amp; dépannage</h2>
+  <h2><span class="s-num">8</span> Astuces &amp; dépannage</h2>
   <table>
     <thead><tr><th style="width:58mm">Situation</th><th>À faire</th></tr></thead>
     <tbody>
@@ -417,6 +480,14 @@
       <tr><td>Un encadrant ne doit jamais être placé un jour donné</td><td>Sur sa carte (onglet Agendas), ajouter une <span class="ui">indisponibilité récurrente</span> de degré <span class="deg deg2">2</span> sur la ou les demi-journées concernées.</td></tr>
     </tbody>
   </table>
+
+  <div class="callout warn">
+    <span class="callout-label">Rappel</span>
+    L'application n'est pas signée : au premier lancement, Windows peut demander une confirmation
+    (<span class="ui">Informations complémentaires</span> → <span class="ui">Exécuter quand même</span>).
+    Les mises à jour se font en remplaçant l'<code>.exe</code> ; le fichier
+    <code>%APPDATA%\Encadrement projet\project.json</code> (agendas, réglages, affectations) est conservé.
+  </div>
 </section>
 
 </body>

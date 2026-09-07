@@ -17,11 +17,21 @@ app.whenReady().then(async () => {
   try {
     await win.loadFile(SRC);
     await new Promise((r) => setTimeout(r, 400)); // let images lay out
+    const foot =
+      '<div style="width:100%;margin:0 17mm;padding-top:2.5mm;border-top:0.5px solid #dee2ea;' +
+      'font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;color:#8a93a2;' +
+      'display:flex;justify-content:space-between;">' +
+      '<span>Encadrement projet — Notice d\'utilisation</span>' +
+      '<span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>' +
+      '</div>';
     const buf = await win.webContents.printToPDF({
       printBackground: true,
       pageSize: 'A4',
       margins: { marginType: 'default' },
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: foot
     });
     fs.writeFileSync(OUT, buf);
     const kb = (buf.length / 1024).toFixed(0);
