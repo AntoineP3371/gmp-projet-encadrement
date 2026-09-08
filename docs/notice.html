@@ -389,10 +389,12 @@
   conflit</b> (la ligne ne passe pas en rouge, pas de « indispo » pour ce seul motif).
   « Correspond » exige <b>les deux</b> conditions :</p>
   <ul>
-    <li><b>même intitulé</b> : les deux libellés, découpés sur les tirets (<code>-</code> <code>–</code>
-    <code>—</code>), portent exactement les <b>mêmes segments</b>, quel que soit leur ordre (casse et
-    espaces superflus ignorés). Ex. <code>SAE 2A - PROJET_S3 - S3:4 - P4</code> correspond à
-    <code>P4 - S3:4 - PROJET_S3 - SAE 2A</code> ;</li>
+    <li><b>intitulés compatibles</b> : les deux libellés sont découpés sur les tirets
+    (<code>-</code> <code>–</code> <code>—</code>…) ; les segments du <b>plus court</b> doivent
+    <b>tous</b> se retrouver dans l'autre (au moins deux en commun), quel que soit leur ordre (casse et
+    espaces superflus ignorés). Côté projet le libellé est souvent plus riche (salle, enseignants ajoutés
+    en fin). Ex. la séance <code>S3:4 - P4 - SAE 2A - Projet_4h - M. X, M. Y</code> correspond à
+    l'événement d'agenda <code>SAE 2A - Projet_4h - S3:4 - P4</code> ;</li>
     <li><b>recouvrement horaire</b> : les deux créneaux se chevauchent.</li>
   </ul>
 

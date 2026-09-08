@@ -13,20 +13,30 @@
     return free.map((iv) => U.fmtTime(iv.start) + '–' + U.fmtTime(iv.end)).join(', ');
   }
 
-  /* Deux intitules "correspondent" quand, decoupes sur les tirets (- – —), ils
-     portent exactement les memes segments — quel que soit leur ordre, casse et
-     espaces superflus ignores. Ex. "SAE 2A - PROJET_S3 - S3:4 - P4" correspond a
-     "P4 - S3:4 - PROJET_S3 - SAE 2A". */
-  function sameLabelSegments(a, b) {
-    const seg = (str) => String(str || '')
-      .split(/[-–—]/)
-      .map((x) => x.trim().replace(/\s+/g, ' ').toLowerCase())
-      .filter(Boolean)
-      .sort();
-    const A = seg(a);
-    const B = seg(b);
-    if (!A.length || A.length !== B.length) return false;
-    return A.every((x, i) => x === B[i]);
+  /* Deux intitules "correspondent" quand, decoupes sur les tirets, les segments
+     du plus court sont TOUS presents dans l'autre — quel que soit leur ordre,
+     casse et espaces superflus ignores, et a condition d'en partager au moins
+     deux. Cote projet le libelle est souvent plus riche (salle, enseignants
+     ajoutes en fin) que la version qui figure dans l'agenda de l'enseignant.
+     Ex. "S3:4 - P4 - SAE 2A - Projet_4h - M. X, M. Y" correspond a
+     "SAE 2A - Projet_4h - S3:4 - P4". */
+  const DASHES = /[-‐‑‒–—―−]/;
+  function labelSegs(str) {
+    const set = new Set();
+    String(str || '').split(DASHES).forEach((x) => {
+      const k = x.trim().replace(/\s+/g, ' ').toLowerCase();
+      if (k) set.add(k);
+    });
+    return set;
+  }
+  function labelsCorrespond(a, b) {
+    const A = labelSegs(a);
+    const B = labelSegs(b);
+    const small = A.size <= B.size ? A : B;
+    const big = A.size <= B.size ? B : A;
+    if (small.size < 2) return false;
+    for (const x of small) if (!big.has(x)) return false;
+    return true;
   }
 
   /* La seance de projet figure-t-elle telle quelle dans l'agenda de l'encadrant ?
@@ -42,7 +52,7 @@
       const eS = +new Date(e.start);
       const eE = +new Date(e.end);
       if (!(eS < sE && eE > sS)) return false;        // recouvrement horaire
-      return sameLabelSegments(s.label, e.summary);   // memes segments d'intitule
+      return labelsCorrespond(s.label, e.summary);    // intitules qui correspondent
     });
   }
 

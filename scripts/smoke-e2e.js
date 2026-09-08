@@ -343,7 +343,8 @@ function attach(win, deps) {
       console.log('SMOKE-E2E-REPART ' + repart);
 
       // séance présente dans l'agenda de l'encadrant affecté -> nom surligné vert.
-      // Il faut MÊME INTITULÉ (segments entre tirets, ordre libre) + recouvrement.
+      // Il faut intitulés qui CORRESPONDENT (sous-ensemble de segments entre
+      // tirets, ordre libre, casse ignorée, >= 2 en commun) + recouvrement horaire.
       const agenda = await win.webContents.executeJavaScript(`(async () => {
         const PE = window.PE;
         PE.state.scheduling.toMove = {}; PE.state.scheduling.validated = {};
@@ -358,30 +359,30 @@ function attach(win, deps) {
         const src = PE.state.sources.find((x) => x.id === tid);
         const isMatched = () => !!document.querySelector('#view select.swap[data-sid="' + sid + '"][data-old="' + tid + '"]').classList.contains('matched');
         const before = isMatched();
-        // même créneau, intitulé différent -> pas de vert
-        const ev0 = { start: sess.start, end: sess.end, summary: 'Reunion pedagogique' };
+        const seg = String(sess.label).split(/[-–—]/).map((x) => x.trim()).filter(Boolean); // >= 3 segments
+        // même créneau mais un seul segment -> pas de vert (il en faut >= 2)
+        const ev0 = { start: sess.start, end: sess.end, summary: seg[0] };
         (src.events = src.events || []).push(ev0);
         PE.rerender(); await new Promise((r) => setTimeout(r, 200));
-        const sameTimeDiffTitle = isMatched();
-        // bon intitulé (segments inversés) mais décalé de 5 h -> pas de recouvrement -> pas de vert
-        const seg = String(sess.label).split('-').map((x) => x.trim()).filter(Boolean);
+        const oneSegNoMatch = isMatched();
+        // 2 segments dans le désordre mais décalé de 5 h -> pas de recouvrement -> pas de vert
         const shift = 5 * 3600000;
         src.events.push({
           start: new Date(+new Date(sess.start) + shift).toISOString(),
           end: new Date(+new Date(sess.end) + shift).toISOString(),
-          summary: seg.slice().reverse().join(' - ')
+          summary: seg[2] + ' - ' + seg[0]
         });
         PE.rerender(); await new Promise((r) => setTimeout(r, 200));
         const titleOkNoOverlap = isMatched();
-        // même créneau + mêmes segments dans le désordre / casse différente -> vert
-        ev0.summary = seg.slice().reverse().join('  -  ').toUpperCase();
+        // même créneau + sous-ensemble de segments dans le désordre / MAJUSCULES -> vert
+        ev0.summary = (seg[2] + '  —  ' + seg[0]).toUpperCase();
         PE.rerender(); await new Promise((r) => setTimeout(r, 200));
         const card2 = document.querySelector('#view');
         const row = card2.querySelector('select.swap[data-sid="' + sid + '"][data-old="' + tid + '"]');
         const tr = row && row.closest('tr');
         return JSON.stringify({
           found: true, matchedBefore: before,
-          sameTimeDiffTitleNoMatch: sameTimeDiffTitle === false,
+          oneSegNoMatch: oneSegNoMatch === false,
           titleOkNoOverlapNoMatch: titleOkNoOverlap === false,
           selMatched: !!(row && row.classList.contains('matched')),
           nameNote: !!(tr && /dans son agenda/.test(tr.textContent)),

@@ -324,10 +324,13 @@ son **nom est surligné en vert foncé** (`✓ dans son agenda`) et un badge
 *agenda ✓* apparaît dans *Statut*. Cet événement d'agenda n'est alors **pas
 compté comme un conflit** : la ligne ne passe pas en rouge et le statut n'indique
 pas « indispo » pour ce seul motif. « Correspond » exige **les deux** conditions :
-- **même intitulé** : les deux libellés, découpés sur les tirets (`-` `–` `—`),
-  portent exactement les **mêmes segments**, quel que soit leur ordre (casse et
-  espaces superflus ignorés). Ex. `SAE 2A - PROJET_S3 - S3:4 - P4` correspond à
-  `P4 - S3:4 - PROJET_S3 - SAE 2A` ;
+- **intitulés compatibles** : les deux libellés sont découpés sur les tirets
+  (`-` `–` `—`…) ; les segments du **plus court** doivent **tous** se retrouver
+  dans l'autre (au moins deux en commun), quel que soit leur ordre, casse et
+  espaces superflus ignorés. Côté projet le libellé est souvent plus riche
+  (salle, enseignants ajoutés en fin) que la version qui figure dans l'agenda de
+  l'enseignant. Ex. la séance `S3:4 - P4 - SAE 2A - Projet_4h - M. X, M. Y`
+  correspond à l'événement d'agenda `SAE 2A - Projet_4h - S3:4 - P4` ;
 - **recouvrement horaire** : les deux créneaux se chevauchent.
 
 **Exports** :
