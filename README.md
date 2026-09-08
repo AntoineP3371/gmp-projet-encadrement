@@ -318,6 +318,14 @@ créneau libre, `— X h seulement` = disponibilité partielle, `— hors équip
 modification manuelle est verrouillée et survit au prochain *Affecter
 automatiquement*.
 
+**Séance déjà dans l'agenda d'un encadrant affecté** : si l'un des encadrants
+affectés a, dans son propre agenda, un événement qui **coïncide avec la séance**
+(mêmes bornes à ~20 min près — typiquement le même événement publié à la fois sur
+le calendrier du projet et sur celui de l'enseignant), son **nom est surligné en
+vert foncé** (`✓ dans son agenda`) et un badge *agenda ✓* apparaît dans *Statut*.
+Cet événement d'agenda n'est alors **pas compté comme un conflit** : la ligne ne
+passe pas en rouge et le statut n'indique pas « indispo » pour ce seul motif.
+
 **Exports** :
 - *Export PDF* : un rapport **daté et horodaté** (« Édité le … »), en couleurs
   (bandeaux de section, statuts vert / orange / rouge / gris, pastille de couleur

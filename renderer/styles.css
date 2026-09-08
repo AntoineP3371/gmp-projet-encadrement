@@ -201,6 +201,8 @@ td.enc-cell { min-width: 240px; }
 .enc-line select { flex: 1; max-width: 250px; }
 select.swap.bad { border-color: var(--danger); background: var(--danger-soft); }
 select.swap.partial { border-color: var(--warn); background: var(--warn-soft); }
+select.swap.matched { border-color: #166534; background: var(--ok-soft); color: #14532d; font-weight: 700; }
+.agenda-ok { font-size: 11px; font-weight: 700; color: #166534; white-space: nowrap; }
 
 .cellbox { display: inline-flex; align-items: center; gap: 5px; }
 .cellbox input[type="number"]:disabled { background: var(--bg); color: var(--muted); }

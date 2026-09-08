@@ -13,6 +13,21 @@
     return free.map((iv) => U.fmtTime(iv.start) + '–' + U.fmtTime(iv.end)).join(', ');
   }
 
+  /* La seance de projet figure-t-elle telle quelle dans l'agenda de l'encadrant ?
+     (meme creneau, a ~20 min pres sur chaque borne). Cas typique : le meme
+     evenement est publie sur le calendrier du projet ET sur celui de
+     l'enseignant -> l'encadrement est deja cale dans son agenda. */
+  function teacherHasSessionInAgenda(t, s) {
+    if (!t || !t.events || !t.events.length) return false;
+    const sS = +new Date(s.start);
+    const sE = +new Date(s.end);
+    const TOL = 20 * 60000;
+    return t.events.some((e) => {
+      if (!e || e.allDay) return false;
+      return Math.abs(+new Date(e.start) - sS) <= TOL && Math.abs(+new Date(e.end) - sE) <= TOL;
+    });
+  }
+
   const teachersModel = PE.teacherModels;
   const schedOptions = PE.schedOptions;
 
@@ -584,6 +599,12 @@
                   <td>${U.esc(s.project)}</td><td>${U.esc(s.label)}</td>
                   <td><span class="badge warn">à déplacer</span> <span class="muted">non comptée</span></td></tr>`;
               }
+              if (teacherHasSessionInAgenda(t, s)) {
+                return `<tr>
+                  <td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td>
+                  <td>${U.esc(s.project)}</td><td>${U.esc(s.label)}</td>
+                  <td><span class="agenda-ok">✓ dans son agenda</span></td></tr>`;
+              }
               const c = covFor(t.id, s);
               const rc = c.frac >= 1 - 1e-9 ? '' : (c.frac <= 1e-9 ? 'unfilled' : 'conflict');
               return `<tr class="${rc}">
@@ -659,11 +680,13 @@
       const pref = S.inPreferred(t.preferred, +new Date(s.start));
       const elig = PE.isEligible(s.projectId, t.id);
       const idg = S.indispoDegree(t.indispo || [], s);
+      const inAgenda = teacherHasSessionInAgenda(t, s);
       let tag = '';
-      if (idg === 2) tag = ' — indispo (recurrent)';
+      if (inAgenda) tag = ' — dans son agenda';
+      else if (idg === 2) tag = ' — indispo (recurrent)';
       else if (c.frac <= 1e-9) tag = ' — indispo';
       else if (c.frac < 1 - 1e-9) tag = ' — ' + fmtH(hoursOf(c.freeMs)) + ' seulement';
-      if (idg === 1) tag += ' — a eviter';
+      if (!inAgenda && idg === 1) tag += ' — a eviter';
       if (!elig) tag += ' — hors equipe';
       return `<option value="${t.id}" ${t.id === opts.current ? 'selected' : ''}>${pref ? '★ ' : ''}${U.esc(t.name)}${tag}</option>`;
     }).join('');
@@ -708,7 +731,7 @@
     // eligible encadrants blocked for this session (freeMs ~ 0), with the reason
     const shownIds = {};
     list.forEach((x) => { shownIds[x.tid] = 1; });
-    const blocked = T.filter((t) => PE.isEligible(s.projectId, t.id) && !shownIds[t.id])
+    const blocked = T.filter((t) => PE.isEligible(s.projectId, t.id) && !shownIds[t.id] && arr.indexOf(t.id) === -1)
       .map((t) => ({ t: t, why: reason(t.id, s) }))
       .filter((b) => b.why)
       .slice(0, 8);
@@ -746,10 +769,18 @@
         </tr>`;
     }
 
+    // encadrants affectes dont l'agenda contient deja cette seance : leur nom est
+    // surligne en vert fonce, et l'evenement d'agenda correspondant n'est plus
+    // compte comme un conflit (ni ligne rouge, ni statut « indispo »).
+    const matchedSet = {};
+    arr.forEach((tid) => { if (teacherHasSessionInAgenda(byTeacher[tid], s)) matchedSet[tid] = 1; });
+    const anyMatched = Object.keys(matchedSet).length > 0;
+    const indispoEff = indispo.filter((tid) => !matchedSet[tid]);
+
     const altOne = altSup.trim() ? 1 : 0;
     const missing = Math.max(0, o.minPerSession - arr.length - altOne);
     const rowCls = isValidated ? 'validated'
-      : ((missing || indispo.length) ? 'unfilled'
+      : ((missing || indispoEff.length) ? 'unfilled'
         : ((oot.length || partial.length) ? 'conflict'
           : (availFull >= 2 ? 'choice' : '')));
 
@@ -758,15 +789,19 @@
       if (!pool.find((t) => t.id === tid) && byTeacher[tid]) pool.push(byTeacher[tid]);
       const others = arr.filter((x) => x !== tid);
       const c = covFor(tid, s);
-      const cls = indispo.indexOf(tid) !== -1 ? 'bad' : (partial.indexOf(tid) !== -1 || oot.indexOf(tid) !== -1 ? 'partial' : '');
+      const isMatched = !!matchedSet[tid];
+      const cls = isMatched ? 'matched'
+        : (indispo.indexOf(tid) !== -1 ? 'bad' : (partial.indexOf(tid) !== -1 || oot.indexOf(tid) !== -1 ? 'partial' : ''));
       const color = byTeacher[tid] ? byTeacher[tid].color : '#999';
       const opt = optionList(pool, s, { exclude: new Set(others), current: tid }, covFor);
-      const isPart = c.frac > 1e-9 && c.frac < 1 - 1e-9;
-      const why = c.frac < 1 - 1e-9 ? reason(tid, s) : '';
-      const note = c.frac <= 1e-9 ? ('indisponible sur cette seance' + (why ? ' — ' + why : ''))
-        : (isPart ? 'disponible ' + fmtH(hoursOf(c.freeMs)) + ' sur ' + s.hours + ' h : ' + fmtSlots(c.free) + (why ? ' — ' + why : '') : 'disponible toute la seance');
-      const slotTag = (isPart || (c.frac <= 1e-9 && why))
-        ? ` <span class="muted" style="font-size:11px">${isPart ? fmtSlots(c.free) + (why ? ' — ' : '') : ''}${why ? U.esc(why) : ''}</span>` : '';
+      const isPart = !isMatched && c.frac > 1e-9 && c.frac < 1 - 1e-9;
+      const why = (!isMatched && c.frac < 1 - 1e-9) ? reason(tid, s) : '';
+      const note = isMatched ? 'cette séance figure déjà dans l\'agenda de ' + (byTeacher[tid] ? byTeacher[tid].name : 'l\'encadrant')
+        : (c.frac <= 1e-9 ? ('indisponible sur cette seance' + (why ? ' — ' + why : ''))
+          : (isPart ? 'disponible ' + fmtH(hoursOf(c.freeMs)) + ' sur ' + s.hours + ' h : ' + fmtSlots(c.free) + (why ? ' — ' + why : '') : 'disponible toute la seance'));
+      const slotTag = isMatched ? ' <span class="agenda-ok">✓ dans son agenda</span>'
+        : ((isPart || (c.frac <= 1e-9 && why))
+          ? ` <span class="muted" style="font-size:11px">${isPart ? fmtSlots(c.free) + (why ? ' — ' : '') : ''}${why ? U.esc(why) : ''}</span>` : '');
       const lk = lockedArr.indexOf(tid) !== -1;
       return `<span class="enc-line">
         <span class="dot" style="background:${color}"></span>
@@ -784,12 +819,14 @@
 
     const baseStatus = missing
       ? `<span class="badge danger">manque ${missing}</span>`
-      : (indispo.length ? `<span class="badge danger">indispo</span>`
+      : (indispoEff.length ? `<span class="badge danger">indispo</span>`
         : (oot.length ? `<span class="badge warn">hors equipe</span>`
           : (partial.length ? `<span class="badge warn">partiel</span>`
             : (availFull >= 2 ? `<span class="badge" style="background:var(--accent-soft);color:var(--accent)">${availFull} dispo.</span>`
               : `<span class="badge ok">ok</span>`))));
-    const status = isValidated ? `<span class="badge ok">validé</span> ${baseStatus}` : baseStatus;
+    const marks = (anyMatched ? '<span class="badge ok" title="séance présente dans l\'agenda de l\'encadrant affecté">agenda&nbsp;✓</span> ' : '')
+      + (isValidated ? '<span class="badge ok">validé</span> ' : '');
+    const status = marks + baseStatus;
 
     return `
       <tr class="${rowCls}">

@@ -342,6 +342,37 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-REPART ' + repart);
 
+      // séance présente dans l'agenda de l'encadrant affecté -> nom surligné vert
+      const agenda = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE;
+        PE.state.scheduling.toMove = {}; PE.state.scheduling.validated = {};
+        PE.state.scheduling.altSup = {}; PE.state.scheduling.locked = {};
+        PE.setTab('scheduling'); PE.rerender();
+        document.querySelector('#o-run').click(); await new Promise((r) => setTimeout(r, 400));
+        const card = document.querySelector('#view');
+        const sw = card.querySelector('table.grid tbody tr select.swap');
+        if (!sw) return JSON.stringify({ found: false });
+        const sid = sw.dataset.sid; const tid = sw.dataset.old;
+        const sess = PE.sessions().find((x) => x.id === sid);
+        const src = PE.state.sources.find((x) => x.id === tid);
+        const before = !!card.querySelector('select.swap.matched');
+        (src.events = src.events || []).push({ start: sess.start, end: sess.end, summary: 'Encadrement projet' });
+        PE.rerender();
+        await new Promise((r) => setTimeout(r, 200));
+        const card2 = document.querySelector('#view');
+        const row = card2.querySelector('select.swap[data-sid="' + sid + '"][data-old="' + tid + '"]');
+        const tr = row && row.closest('tr');
+        return JSON.stringify({
+          found: true, matchedBefore: before,
+          selMatched: !!(row && row.classList.contains('matched')),
+          nameNote: !!(tr && /dans son agenda/.test(tr.textContent)),
+          rowNotRed: !!(tr && !tr.classList.contains('unfilled')),
+          statusAgenda: !!(tr && /agenda/.test(tr.lastElementChild.textContent)),
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-AGENDA ' + agenda);
+
       await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
       const common = await win.webContents.executeJavaScript(`(() => {
