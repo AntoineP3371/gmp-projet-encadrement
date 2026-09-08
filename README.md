@@ -319,12 +319,16 @@ modification manuelle est verrouillée et survit au prochain *Affecter
 automatiquement*.
 
 **Séance déjà dans l'agenda d'un encadrant affecté** : si l'un des encadrants
-affectés a, dans son propre agenda, un événement qui **coïncide avec la séance**
-(mêmes bornes à ~20 min près — typiquement le même événement publié à la fois sur
-le calendrier du projet et sur celui de l'enseignant), son **nom est surligné en
-vert foncé** (`✓ dans son agenda`) et un badge *agenda ✓* apparaît dans *Statut*.
-Cet événement d'agenda n'est alors **pas compté comme un conflit** : la ligne ne
-passe pas en rouge et le statut n'indique pas « indispo » pour ce seul motif.
+affectés a, dans son propre agenda, un événement qui **correspond à la séance**,
+son **nom est surligné en vert foncé** (`✓ dans son agenda`) et un badge
+*agenda ✓* apparaît dans *Statut*. Cet événement d'agenda n'est alors **pas
+compté comme un conflit** : la ligne ne passe pas en rouge et le statut n'indique
+pas « indispo » pour ce seul motif. « Correspond » exige **les deux** conditions :
+- **même intitulé** : les deux libellés, découpés sur les tirets (`-` `–` `—`),
+  portent exactement les **mêmes segments**, quel que soit leur ordre (casse et
+  espaces superflus ignorés). Ex. `SAE 2A - PROJET_S3 - S3:4 - P4` correspond à
+  `P4 - S3:4 - PROJET_S3 - SAE 2A` ;
+- **recouvrement horaire** : les deux créneaux se chevauchent.
 
 **Exports** :
 - *Export PDF* : un rapport **daté et horodaté** (« Édité le … »), en couleurs

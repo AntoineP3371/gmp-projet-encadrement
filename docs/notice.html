@@ -383,12 +383,18 @@
   </ul>
 
   <h3>Séance déjà dans l'agenda de l'encadrant</h3>
-  <p>Si un encadrant affecté a, dans son propre agenda, un événement qui <b>coïncide avec la séance</b>
-  (mêmes bornes à ~20&nbsp;min près — typiquement le même événement publié sur le calendrier du projet
-  <em>et</em> sur celui de l'enseignant), son <b>nom est surligné en vert foncé</b>
-  (<code>✓ dans son agenda</code>) et un badge <em>agenda&nbsp;✓</em> s'ajoute dans <em>Statut</em>. Cet
-  événement n'est alors <b>pas compté comme un conflit</b> : la ligne ne passe pas en rouge et le statut
-  n'indique pas « indispo » pour ce seul motif.</p>
+  <p>Si un encadrant affecté a, dans son propre agenda, un événement qui <b>correspond à la séance</b>,
+  son <b>nom est surligné en vert foncé</b> (<code>✓ dans son agenda</code>) et un badge
+  <em>agenda&nbsp;✓</em> s'ajoute dans <em>Statut</em> ; cet événement n'est alors <b>pas compté comme un
+  conflit</b> (la ligne ne passe pas en rouge, pas de « indispo » pour ce seul motif).
+  « Correspond » exige <b>les deux</b> conditions :</p>
+  <ul>
+    <li><b>même intitulé</b> : les deux libellés, découpés sur les tirets (<code>-</code> <code>–</code>
+    <code>—</code>), portent exactement les <b>mêmes segments</b>, quel que soit leur ordre (casse et
+    espaces superflus ignorés). Ex. <code>SAE 2A - PROJET_S3 - S3:4 - P4</code> correspond à
+    <code>P4 - S3:4 - PROJET_S3 - SAE 2A</code> ;</li>
+    <li><b>recouvrement horaire</b> : les deux créneaux se chevauchent.</li>
+  </ul>
 
   <h3>Pourquoi un encadrant est indisponible</h3>
   <p>Dans la colonne <em>Disponibilités</em>, un encadrant partiellement disponible ou écarté porte son
