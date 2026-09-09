@@ -246,14 +246,14 @@
   <h3>Mode d'encadrement d'un projet</h3>
   <ul>
     <li><span class="ui">total</span> — chaque séance doit avoir un encadrant (défaut).</li>
-    <li><span class="ui">partiel</span> — des séances peuvent rester sans encadrant. La cible d'heures
+    <li><span class="ui">partiel</span> — des séances peuvent rester en autonomie. La cible d'heures
     <em>non</em> encadrées s'exprime au choix (champ <span class="ui">Répartition</span>) :
       <ul>
         <li><b>en heures</b> : <em>Heures totales</em> − <em>Heures encadrées</em> ;</li>
         <li><b>en % de séances encadrées</b> : <code>X %</code> ⇒ <code>volume horaire × (1 − X/100)</code>.</li>
       </ul>
-      L'affectation laisse alors volontairement ce volume d'heures sans encadrant, en commençant par les
-      séances les plus difficiles à pourvoir. Un poids dans la colonne <span class="ui">Sans encadrant</span>
+      L'affectation laisse alors volontairement ce volume d'heures en autonomie, en commençant par les
+      séances les plus difficiles à pourvoir. Un poids dans la colonne <span class="ui">En autonomie</span>
       de la matrice (onglet Affectation) l'emporte sur ce réglage.
     </li>
   </ul>
@@ -302,22 +302,22 @@
   <p>Ce sont tous les événements des agendas de type <span class="ui">Projet</span>, hors « journée entière »
   et hors blocs plus longs que la <span class="ui">Durée max d'une séance</span> (12&nbsp;h par défaut —
   écarte les blocs « vacances » émis par certains flux). Le bandeau du haut résume : nombre de séances,
-  couvertes, manque encadrant, sans encadrant, partielles, à arbitrer, heures affectées.</p>
+  couvertes, manque encadrant, en autonomie, partielles, à arbitrer, heures affectées.</p>
 
   <h3>Bilan par projet</h3>
   <p>Un tableau, une ligne par projet : <em>Séances</em>, <em>Couvertes</em>, <em>Manque</em> (sous le
-  minimum alors qu'un encadrement est attendu — rouge), <em>Sans encadrant</em> (pour un projet partiel :
+  minimum alors qu'un encadrement est attendu — rouge), <em>En autonomie</em> (pour un projet partiel :
   <code>heures effectives / cible</code>), <em>Partielles</em>, <em>À arbitrer</em> (≥ 2 encadrants
   éligibles libres sur toute la séance), <em>Heures affectées</em>.</p>
 
   <h3>Équipe par projet &amp; poids des encadrants</h3>
-  <p>Une matrice projets × enseignants, plus une colonne <span class="ui">Sans encadrant</span>. Chaque case
+  <p>Une matrice projets × enseignants, plus une colonne <span class="ui">En autonomie</span>. Chaque case
   a une <b>coche</b> (« concerné par le projet ») et un <b>poids relatif</b> (1 par défaut). Aucune coche sur
   un projet ⇒ tous les enseignants éligibles, poids 1.</p>
   <p>Les <b>poids définissent le nombre de séances</b> : pour un projet, la part de chacun =
-  <code>poids / somme des poids du projet</code> (colonne <em>Sans encadrant</em> comprise), appliquée au
+  <code>poids / somme des poids du projet</code> (colonne <em>En autonomie</em> comprise), appliquée au
   volume horaire. Un encadrant présent sur plusieurs projets <b>cumule</b> une cible de chacun. Le même
-  barème compare donc les encadrants entre eux, les projets entre eux, et « avec / sans encadrant ».</p>
+  barème compare donc les encadrants entre eux, les projets entre eux, et « avec / en autonomie ».</p>
   <p>Sous chaque case : <code>N&nbsp;aff.</code> (séances affectées) · <code>cible&nbsp;≈</code> (d'après les
   poids) · <code>dispo : X compl. + Y part.</code> (séances où l'encadrant est libre).</p>
 
@@ -335,7 +335,7 @@
   comptées à l'heure près (une couverture partielle compte pour sa durée réelle), une <b>barre</b>
   proportionnelle (aux <span class="ui">heures</span> par défaut, bouton pour basculer en
   <span class="ui">séances</span>), un trait vertical = <b>cible</b> d'après les poids, et l'écart
-  (<code>+3 h</code>, <code>−1</code>, <code>équilibré</code>). La ligne <em>sans encadrant</em> est incluse ;
+  (<code>+3 h</code>, <code>−1</code>, <code>équilibré</code>). La ligne <em>en autonomie</em> est incluse ;
   l'en-tête de chaque projet indique le total et l'<b>écart max</b> entre encadrants. Sert à répartir les
   séances de façon équilibrée en voyant l'effet de chaque choix tout de suite.</p>
 
@@ -344,7 +344,7 @@
     <li>Vérifier les <span class="ui">Réglages</span> (voir §7), puis <span class="ui">Affecter automatiquement</span>.</li>
     <li>Ajuster à la main : chaque encadrant proposé est un menu déroulant (échanger, ou
     <em>— retirer —</em>) ; <span class="ui">+ ajouter un encadrant…</span> en propose un second ;
-    une case <span class="ui">séance sans encadrant</span> par ligne. Les choix manuels sont <b>verrouillés</b>
+    une case <span class="ui">séance en autonomie</span> par ligne. Les choix manuels sont <b>verrouillés</b>
     et ne bougent plus au prochain calcul.</li>
     <li>Un encadrant marqué <span class="deg deg2">2</span> (indispo récurrente) apparaît « indispo (récurrent) »
     dans les menus ; un <span class="deg deg1">1</span> apparaît « à éviter » et « (à éviter) » dans la
@@ -359,7 +359,7 @@
   Chaque date est précédée du <b>nom du jour</b> et suivie du <b>numéro de semaine ISO</b>
   (<code>ven. 18/09/2026 · S38</code>) — même format dans le rapport PDF et les exports. Les boutons
   <span class="ui">Projets :</span> limitent l'affichage à certains projets (et pilotent l'export PDF
-  correspondant) ; la case <span class="ui">seulement les séances sans encadrant pleinement disponible</span>
+  correspondant) ; la case <span class="ui">seulement les séances à arbitrer (aucun encadrant pleinement disponible)</span>
   ne garde que les séances à arbitrer en priorité.</p>
 
   <figure class="crop">
@@ -443,7 +443,7 @@
     <span class="callout-label">Effacer / recommencer</span>
     <span class="ui">Effacer (garder les verrouillés)</span> repart d'un calcul
     propre en conservant les choix manuels ; <span class="ui">Tout effacer</span> vide aussi les verrous,
-    les séances déclarées sans encadrant, « à déplacer » et « encadrement validé » (les commentaires et les
+    les séances déclarées en autonomie, « à déplacer » et « encadrement validé » (les commentaires et les
     « autre encadrant » — saisis à la main — sont conservés, comme les agendas et la matrice équipe/poids).
   </div>
 </section>

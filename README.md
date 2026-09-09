@@ -100,7 +100,7 @@ et *mar. après-midi*), chacune avec son **degré**. Les demi-journées vont de
 
 Pour un agenda de type **Projet**, on choisit son mode d'**encadrement** :
 - *total* — chaque séance doit avoir un encadrant (défaut) ;
-- *partiel* — des séances peuvent rester sans encadrant. La cible d'heures *non*
+- *partiel* — des séances peuvent rester en autonomie. La cible d'heures *non*
   encadrées s'exprime au choix (champ *Répartition*) :
   - **en heures** : *heures totales* − *heures encadrées* ;
   - **en % de séances encadrées** : `X %` ⇒ `volume horaire × (1 − X/100)`.
@@ -108,7 +108,7 @@ Pour un agenda de type **Projet**, on choisit son mode d'**encadrement** :
   L'affectation automatique laissera volontairement ce volume d'heures sans
   encadrant, en commençant par les séances les plus difficiles à pourvoir ; les
   gaps qu'elle ne peut pas combler ne sont pas comptés comme un problème. Un
-  poids dans la colonne *Sans encadrant* de la matrice l'emporte sur ce réglage.
+  poids dans la colonne *En autonomie* de la matrice l'emporte sur ce réglage.
 
 ### 2. Onglet *Planning (liste)*
 Vue chronologique de tous les événements des agendas actifs. Filtres par type,
@@ -140,7 +140,7 @@ s'écartent de la durée cible.
 *total* / *partiel*, + ligne *Total* si plusieurs projets) :
 - *Séances*, *Couvertes* ;
 - *Manque* (séances sous le minimum alors qu'un encadrement est attendu — rouge) ;
-- *Sans encadrant* : nombre de séances laissées sans encadrant ; pour un projet
+- *En autonomie* : nombre de séances laissées en autonomie (sans encadrant) ; pour un projet
   *partiel*, aussi `heures effectives / cible` (orange si la cible est dépassée) ;
 - *Partielles* (au moins un encadrant affecté n'est libre que sur une partie de
   la séance) ;
@@ -148,22 +148,22 @@ s'écartent de la durée cible.
 - *Heures affectées* (somme `nb encadrants × durée` sur les séances du projet).
 
 **Équipe par projet & poids des encadrants** : un tableau projets × enseignants,
-plus une colonne **Sans encadrant**. Chaque case a une **coche** (« concerné par
+plus une colonne **En autonomie**. Chaque case a une **coche** (« concerné par
 le projet ») et un **poids relatif** (1 par défaut). Coche décochée = exclu du
 projet. Aucune coche sur un projet = tous les enseignants éligibles, poids 1.
 
 Les **poids définissent le nombre de séances** de chaque encadrant. Pour un
 projet, la *part* de chacun = `poids / somme des poids du projet` (la colonne
-*Sans encadrant* entre dans cette somme), appliquée au volume horaire du projet :
+*En autonomie* entre dans cette somme), appliquée au volume horaire du projet :
 - part de l'encadrant × volume × *nombre cible d'encadrants* = sa **cible d'heures** ;
-- part de *Sans encadrant* × volume = les **heures non encadrées** visées
+- part de *En autonomie* × volume = les **heures non encadrées** visées
   (équivalent, dans la matrice, du réglage *Heures totales / encadrées* de
   l'onglet Agendas — la matrice l'emporte si elle est renseignée).
 
 Comme un encadrant présent sur plusieurs projets **cumule** une cible de chacun,
 son total de séances croît avec le nombre de projets qu'il encadre et avec ses
 poids. Le même barème compare donc les encadrants d'un projet entre eux, les
-projets entre eux, et « avec ou sans encadrant ».
+projets entre eux, et « avec ou en autonomie ».
 
 Sous chaque case : `N aff.` (séances affectées) · `cible ≈` (d'après les poids) ·
 `dispo : X compl. + Y part.` (séances où l'encadrant est libre). Le bloc
@@ -179,7 +179,7 @@ chacun : `N séances · X h` (heures **réellement encadrées**, comptées à l'
 près — une couverture partielle compte pour sa durée réelle, pas pour la séance
 entière), une **barre** proportionnelle (aux heures par défaut, bascule
 *heures ⇄ séances*) avec un trait vertical = **cible** d'après les poids, et
-l'**écart à la cible** (`+3 h`, `−1`, `équilibré`). La ligne *sans encadrant* est
+l'**écart à la cible** (`+3 h`, `−1`, `équilibré`). La ligne *en autonomie* est
 incluse dans la comparaison ; l'en-tête de chaque projet rappelle le total, le
 nombre de séances *à placer* / *à déplacer* et l'**écart max** entre encadrants.
 Le choix *heures / séances* est mémorisé.
@@ -197,7 +197,7 @@ Réglages (valeurs par défaut, réglables dans *Réglages*) :
 | Paramètre | Défaut | Rôle |
 |---|---|---|
 | Nombre cible d'encadrants par séance | 1 | nombre d'encadrants visé par séance |
-| Nombre minimum d'encadrants par séance | 1 | en-dessous → séance « manque » (rouge), sauf séance déclarée sans encadrant ou projet en encadrement partiel |
+| Nombre minimum d'encadrants par séance | 1 | en-dessous → séance « manque » (rouge), sauf séance en autonomie ou projet en encadrement partiel |
 | Durée cible (h) | 4 | badge « ≠4h » + calcul « X h sur 4 h » de disponibilité |
 | Durée max d'une séance (h) | 12 | au-delà, l'événement du projet n'est pas une séance (écarte les blocs « vacances » / multi-jours de Pronote) |
 | Poids préférence | 1 | force donnée à une période préférée dans le score |
@@ -210,7 +210,7 @@ dans l'onglet.
 **Algorithme** (glouton, deux tiers de disponibilité) :
 1. Les affectations **verrouillées** (choisies à la main) sont posées d'abord et
    jamais déplacées.
-2. **Séances sans encadrant** : celles déclarées à la main, plus — pour un projet
+2. **Séances en autonomie** : celles déclarées à la main, plus — pour un projet
    en encadrement *partiel* — assez de séances pour atteindre son quota d'heures
    non encadrées (les plus difficiles à pourvoir puis les plus tardives d'abord).
    Elles sont retirées de la file d'affectation.
@@ -230,12 +230,12 @@ dans l'onglet.
    l'encadrant le plus **au-dessus** de sa cible vers le plus **en-dessous**,
    tant que cela rapproche les deux de leurs cibles.
 7. Une séance qu'aucun encadrant ne peut prendre est comptée « manque » (rouge)
-   pour un projet en encadrement *total*, et « sans encadrant » (neutre) pour un
+   pour un projet en encadrement *total*, et « en autonomie » (neutre) pour un
    projet en encadrement *partiel*.
 
-**Déclarer une séance sans encadrant** : dans la colonne *Encadrant(s)*, la case
-*« séance sans encadrant »* vide les encadrants de la séance et la sort du calcul
-(fond hachuré gris, statut neutre « sans encadrant », non comptée en « manque »).
+**Déclarer une séance en autonomie** : dans la colonne *Encadrant(s)*, la case
+*« séance en autonomie »* vide les encadrants de la séance et la sort du calcul
+(fond hachuré gris, statut neutre « en autonomie », non comptée en « manque »).
 Décocher la case, ou choisir un encadrant dans le menu, la réintègre. C'est une
 option à part entière de l'algorithme : les projets en encadrement partiel en
 produisent automatiquement pour tenir leur quota d'heures non encadrées.
@@ -252,7 +252,7 @@ ISO** (`ven. 18/09/2026 · S38`) — même format dans le rapport PDF et les
 exports CSV / ICS. Sous le titre :
 - des **boutons *Projets :*** pour n'afficher que certains projets (+ *tous* /
   *aucun*) — ce choix commande aussi l'*Export PDF (projets visibles)* ;
-- une case **« seulement les séances sans encadrant pleinement disponible »** :
+- une case **« seulement les séances à arbitrer (aucun encadrant pleinement disponible) »** :
   ne garde que les séances où aucun encadrant éligible n'est libre sur toute la
   durée (celles à arbitrer en priorité).
 
@@ -299,7 +299,7 @@ Fond de ligne (vues *Par séance* / *Par projet*) :
   séance, ou est hors équipe ;
 - **bleu** : au moins **deux** encadrants éligibles sont libres sur **toute** la
   séance → un choix est possible ;
-- **hachuré gris** : séance sans encadrant (déclarée, ou encadrement partiel).
+- **hachuré gris** : séance en autonomie (déclarée, ou encadrement partiel).
 
 Colonne **Disponibilités** : pour chaque encadrant éligible ayant du temps libre
 sur le créneau, `nom — X h` (avec sa pastille de couleur ; ⚠ = disponibilité
@@ -403,7 +403,7 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
   (journée entière / blocs multi-jours écartés via *durée max*), l'algorithme
   d'affectation (répartition proportionnelle aux poids, poids « sans
   encadrant », cumul multi-projets, disponibilité partielle, encadrement
-  partiel en heures ou en %, séances sans encadrant, séances « à déplacer »
+  partiel en heures ou en %, séances en autonomie, séances « à déplacer »
   visibles dans les bilans mais hors décompte des heures / séances par
   encadrant, « encadrement validé » figé après recalcul, « autre encadrant »
   hors liste,

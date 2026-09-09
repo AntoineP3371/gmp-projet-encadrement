@@ -257,7 +257,7 @@
           <div class="k"><b>${sessions.length}</b><span>seances</span></div>
           <div class="k"><b>${covered}</b><span>couvertes</span></div>
           <div class="k"><b style="color:${manque ? 'var(--danger)' : 'inherit'}">${manque}</b><span>manque encadrant</span></div>
-          <div class="k"><b style="color:${sansEnc ? 'var(--muted)' : 'inherit'}">${sansEnc}</b><span>sans encadrant</span></div>
+          <div class="k"><b style="color:${sansEnc ? 'var(--muted)' : 'inherit'}">${sansEnc}</b><span>en autonomie</span></div>
           <div class="k"><b style="color:${partielles ? 'var(--warn)' : 'inherit'}">${partielles}</b><span>partielles</span></div>
           <div class="k"><b style="color:${arbitrer ? 'var(--accent)' : 'inherit'}">${arbitrer}</b><span>a arbitrer</span></div>
           ${aDeplacer ? `<div class="k"><b style="color:var(--warn)">${aDeplacer}</b><span>a deplacer</span></div>` : ''}
@@ -273,7 +273,7 @@
         <table class="grid">
           <thead><tr>
             <th>Projet</th><th style="text-align:right">Seances</th><th style="text-align:right">Couvertes</th>
-            <th style="text-align:right">Manque</th><th style="text-align:right">Sans encadrant</th>
+            <th style="text-align:right">Manque</th><th style="text-align:right">En autonomie</th>
             <th style="text-align:right">Partielles</th><th style="text-align:right">A arbitrer</th>
             <th style="text-align:right">Heures affectees</th>
           </tr></thead>
@@ -307,7 +307,7 @@
           </tbody>
         </table>
         </div>
-        <p class="muted" style="margin:8px 0 0"><b>total / partiel</b> : mode d'encadrement du projet (defini a l'onglet Agendas). <b>Manque</b> : seances sous le minimum d'encadrants alors qu'un encadrement est attendu (rouge). <b>Sans encadrant</b> : seances laissees sans encadrant — volontairement, ou par manque de disponibilite sur un projet en encadrement partiel ; pour ces projets, heures effectives / cible. <b>Partielles</b> : au moins un encadrant affecte n'est libre que sur une partie de la seance. <b>A arbitrer</b> : au moins 2 encadrants eligibles libres sur toute la seance. <b>Heures affectees</b> : somme (nb encadrants &times; duree). Les seances marquees <b>« a deplacer »</b> restent visibles (comptees dans <b>Seances</b>, listees dans les bilans par seance et par encadrant) mais ne comptent pas comme couvertes, ni dans les heures affectees, ni dans le total de seances de chaque encadrant.</p>
+        <p class="muted" style="margin:8px 0 0"><b>total / partiel</b> : mode d'encadrement du projet (defini a l'onglet Agendas). <b>Manque</b> : seances sous le minimum d'encadrants alors qu'un encadrement est attendu (rouge). <b>En autonomie</b> : seances laissees sans encadrant (les etudiants travaillent seuls) — volontairement, ou par manque de disponibilite sur un projet en encadrement partiel ; pour ces projets, heures effectives / cible. <b>Partielles</b> : au moins un encadrant affecte n'est libre que sur une partie de la seance. <b>A arbitrer</b> : au moins 2 encadrants eligibles libres sur toute la seance. <b>Heures affectees</b> : somme (nb encadrants &times; duree). Les seances marquees <b>« a deplacer »</b> restent visibles (comptees dans <b>Seances</b>, listees dans les bilans par seance et par encadrant) mais ne comptent pas comme couvertes, ni dans les heures affectees, ni dans le total de seances de chaque encadrant.</p>
         ` : '<p class="muted">Ajoutez un agenda « projet ».</p>'}
       </div>
 
@@ -335,7 +335,7 @@
             <li><b>Respecter le plafond d'heures</b> : si coche, aucun encadrant n'est affecte au-dela de son « plafond h ».</li>
             <li><b>Journee entiere = indisponible</b> : un evenement « journee entiere » (conges, mission) rend l'encadrant indisponible ce jour-la.</li>
           </ul>
-          <p class="muted" style="margin:6px 0 0"><b>Nombre de seances par encadrant</b> : chaque encadrant recoit une <b>cible</b> = volume horaire du projet &times; son poids / somme des poids du projet (colonne « Sans encadrant » incluse), cumulee sur tous ses projets. L'affectation privilegie a chaque seance l'encadrant le plus loin sous sa cible, parmi ceux <b>libres sur toute la seance</b> (sinon un partiellement disponible), puis un passage de reequilibrage rapproche les charges des cibles. Les choix manuels sont verrouilles et jamais deplaces.</p>
+          <p class="muted" style="margin:6px 0 0"><b>Nombre de seances par encadrant</b> : chaque encadrant recoit une <b>cible</b> = volume horaire du projet &times; son poids / somme des poids du projet (colonne « En autonomie » incluse), cumulee sur tous ses projets. L'affectation privilegie a chaque seance l'encadrant le plus loin sous sa cible, parmi ceux <b>libres sur toute la seance</b> (sinon un partiellement disponible), puis un passage de reequilibrage rapproche les charges des cibles. Les choix manuels sont verrouilles et jamais deplaces.</p>
         </details>
         <div class="row" style="margin-top:12px">
           <button class="primary" id="o-run">Affecter automatiquement</button>
@@ -353,9 +353,9 @@
       <div class="panel">
         <h2>Equipe par projet &amp; poids des encadrants</h2>
         ${projects.length && T.length ? `
-          <p class="muted" style="margin:0 0 8px">Cochez chaque encadrant <b>concerne</b> par le projet et son <b>poids relatif</b>. Les poids se comparent entre encadrants d'un projet, entre projets, et avec la colonne <b>Sans encadrant</b> : la part de chacun = poids / somme des poids du projet, appliquee au volume horaire du projet. Un encadrant present sur plusieurs projets cumule donc les seances. Sous chaque case : <b>N aff.</b> = seances affectees &middot; <b>cible ≈</b> selon les poids &middot; <b>dispo</b> = seances ou l'encadrant est libre (compl. / part.).</p>
+          <p class="muted" style="margin:0 0 8px">Cochez chaque encadrant <b>concerne</b> par le projet et son <b>poids relatif</b>. Les poids se comparent entre encadrants d'un projet, entre projets, et avec la colonne <b>En autonomie</b> : la part de chacun = poids / somme des poids du projet, appliquee au volume horaire du projet. Un encadrant present sur plusieurs projets cumule donc les seances. Sous chaque case : <b>N aff.</b> = seances affectees &middot; <b>cible ≈</b> selon les poids &middot; <b>dispo</b> = seances ou l'encadrant est libre (compl. / part.).</p>
           <table class="grid">
-            <thead><tr><th>Projet</th>${T.map((t) => `<th style="text-align:center"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</th>`).join('')}<th style="text-align:center">Sans<br>encadrant</th></tr></thead>
+            <thead><tr><th>Projet</th>${T.map((t) => `<th style="text-align:center"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</th>`).join('')}<th style="text-align:center">En<br>autonomie</th></tr></thead>
             <tbody>
             ${projects.map((p) => {
               const sh = o.sessionHours || 4;
@@ -390,11 +390,11 @@
                   const nsCnt = sessions.filter((s) => s.projectId === p.id && noSupSet[s.id]).length;
                   return `<td style="text-align:center;background:var(--bg)">
                     <label class="cellbox">
-                      <input type="checkbox" class="team-on" data-pid="${p.id}" data-tid="${PE.NOSUP_KEY}" title="donner un poids aux seances sans encadrant" ${on ? 'checked' : ''} />
-                      <input type="number" class="team-w" data-pid="${p.id}" data-tid="${PE.NOSUP_KEY}" min="0" step="0.5" value="${on ? w : ''}" ${on ? '' : 'disabled'} title="poids des seances sans encadrant" style="width:52px" />
+                      <input type="checkbox" class="team-on" data-pid="${p.id}" data-tid="${PE.NOSUP_KEY}" title="donner un poids aux seances en autonomie" ${on ? 'checked' : ''} />
+                      <input type="number" class="team-w" data-pid="${p.id}" data-tid="${PE.NOSUP_KEY}" min="0" step="0.5" value="${on ? w : ''}" ${on ? '' : 'disabled'} title="poids des seances en autonomie" style="width:52px" />
                     </label>
                     <div class="cell-meta">
-                      <div${nsCnt ? '' : ' class="dim"'}>${nsCnt} sans enc. &middot; cible ≈ ${Math.round(uh / sh)}</div>
+                      <div${nsCnt ? '' : ' class="dim"'}>${nsCnt} en autonomie &middot; cible ≈ ${Math.round(uh / sh)}</div>
                       <div${uh ? '' : ' class="dim"'}>${uh} h non encadrees</div>
                     </div>
                   </td>`;
@@ -440,7 +440,7 @@
           <button class="small" id="projvis-all">tous</button>
           <button class="small" id="projvis-none">aucun</button>
           <span class="spacer" style="flex:1"></span>
-          <label class="muted"><input type="checkbox" id="hardonly-tgl" ${hardOnly ? 'checked' : ''} /> seulement les seances sans encadrant pleinement disponible</label>
+          <label class="muted"><input type="checkbox" id="hardonly-tgl" ${hardOnly ? 'checked' : ''} /> seulement les seances a arbitrer (aucun encadrant pleinement disponible)</label>
         </div>` : ''}
         <p class="muted" style="margin:0 0 8px">
           <span class="swatch" style="background:var(--danger-soft)"></span> non couverte / encadrant indisponible &nbsp;
@@ -495,7 +495,7 @@
       const tgt = Math.round((ev.unsupTarget[p.id] || 0) * 10) / 10;
       return `<div class="grp-head"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}
         <span class="badge ${sup === 'partial' ? 'warn' : 'ok'}" style="margin-left:6px">${sup === 'partial' ? 'partiel' : 'total'}</span>
-        <span class="muted">— ${all.length} seance(s) &middot; ${cov} couverte(s)${mq ? ' &middot; ' + mq + ' manque(nt)' : ''}${se ? ' &middot; ' + se + ' sans encadrant (' + unsupH + ' h' + (sup === 'partial' ? ' / ' + tgt + ' h cible' : '') + ')' : ''}${par ? ' &middot; ' + par + ' partielle(s)' : ''}${dep ? ' &middot; ' + dep + ' à déplacer (non comptée' + (dep > 1 ? 's' : '') + ')' : ''}${val ? ' &middot; ' + val + ' validée(s)' : ''} &middot; ${Math.round(hrs * 10) / 10} h affectees</span></div>
+        <span class="muted">— ${all.length} seance(s) &middot; ${cov} couverte(s)${mq ? ' &middot; ' + mq + ' manque(nt)' : ''}${se ? ' &middot; ' + se + ' en autonomie (' + unsupH + ' h' + (sup === 'partial' ? ' / ' + tgt + ' h cible' : '') + ')' : ''}${par ? ' &middot; ' + par + ' partielle(s)' : ''}${dep ? ' &middot; ' + dep + ' à déplacer (non comptée' + (dep > 1 ? 's' : '') + ')' : ''}${val ? ' &middot; ' + val + ' validée(s)' : ''} &middot; ${Math.round(hrs * 10) / 10} h affectees</span></div>
         <div style="overflow:auto"><table class="grid">${SESSION_HEAD}<tbody>
         ${all.map((s) => sessionRow(s, ev, byTeacher, T, assignments, o, covFor, reasonFor, toMoveSet)).join('')}
         </tbody></table></div>`;
@@ -545,7 +545,7 @@
       const nsTgtH = r1((ev.unsupTarget && ev.unsupTarget[p.id]) || 0);
       if (nsList.length || nsTgtH > 0) {
         rows.push({
-          name: 'sans encadrant', color: '#94a3b8', sansEnc: true,
+          name: 'en autonomie', color: '#94a3b8', sansEnc: true,
           n: nsList.length, h: r1(nsList.reduce((a, s) => a + s.hours, 0)),
           tgtH: nsTgtH, tgtN: Math.round(nsTgtH / sh)
         });
@@ -774,7 +774,7 @@
       + (blocked.length ? `<div class="avail-blocked muted">non dispo : ${blocked.map((b) => U.esc(b.t.name) + ' <span class="muted">(' + U.esc(b.why) + ')</span>').join(', ')}</div>` : '');
 
     const eligT = T.filter((t) => PE.isEligible(s.projectId, t.id));
-    const nosupToggle = `<label class="nosup-tgl"><input type="checkbox" class="nosup-cb" data-sid="${s.id}" ${explicitNoSup ? 'checked' : ''} /> seance sans encadrant</label>`;
+    const nosupToggle = `<label class="nosup-tgl"><input type="checkbox" class="nosup-cb" data-sid="${s.id}" ${explicitNoSup ? 'checked' : ''} /> séance en autonomie</label>`;
 
     if (isNoSup) {
       const addOptN = optionList(eligT, s, { exclude: new Set(arr), current: '' }, covFor);
@@ -786,14 +786,14 @@
           <td>${U.esc(s.project)}</td>
           <td>${U.esc(s.label)}${s.location ? '<br><span class="muted">' + U.esc(s.location) + '</span>' : ''}<br>${moveBtn}${commentBox}</td>
           <td class="enc-cell">
-            <div class="muted" style="font-style:italic">seance sans encadrant${explicitNoSup ? '' : ' (encadrement partiel du projet)'}</div>
+            <div class="muted" style="font-style:italic">séance en autonomie${explicitNoSup ? '' : ' (encadrement partiel du projet)'}</div>
             <span class="enc-line"><span class="dot" style="background:transparent"></span>
               <select class="add-teacher" data-sid="${s.id}"><option value="">+ affecter un encadrant…</option>${addOptN}</select></span>
             ${altBox}
             ${nosupToggle}
           </td>
           <td class="dispo-cell">${dispoCell}</td>
-          <td><span class="badge" style="background:var(--bg);color:var(--muted)">sans encadrant</span></td>
+          <td><span class="badge" style="background:var(--bg);color:var(--muted)">en autonomie</span></td>
         </tr>`;
     }
 
@@ -1071,7 +1071,7 @@
       PE.rerender();
     }));
 
-    // "seance sans encadrant" toggle
+    // "en autonomie" (seance sans encadrant) toggle
     root.querySelectorAll('.nosup-cb').forEach((cb) => cb.addEventListener('change', () => {
       setNoSup(cb.dataset.sid, cb.checked);
       PE.save();
@@ -1172,7 +1172,7 @@
     const statusOf = (s) => {
       if (tmSet[s.id]) return { t: 'a deplacer', c: 'st-warn' };
       if (vSet[s.id]) return { t: 'validé', c: 'st-ok' };
-      if (noSupSet[s.id]) return { t: 'sans encadrant', c: 'st-neutral' };
+      if (noSupSet[s.id]) return { t: 'en autonomie', c: 'st-neutral' };
       const arr = a[s.id] || [];
       const missing = Math.max(0, o.minPerSession - arr.length - (altOf(s) ? 1 : 0));
       if (missing) return { t: 'manque ' + missing, c: 'st-bad' };
@@ -1337,14 +1337,14 @@
         <span><b>${sessions.length}</b> seances</span>
         <span><b>${covered}</b> couvertes</span>
         <span class="${(ev.unfilled || []).length ? 'bad' : ''}"><b>${(ev.unfilled || []).length}</b> manque encadrant</span>
-        <span class="neutral"><b>${(ev.noSup || []).length}</b> sans encadrant</span>
+        <span class="neutral"><b>${(ev.noSup || []).length}</b> en autonomie</span>
         ${aDeplacer ? `<span class="neutral"><b>${aDeplacer}</b> a deplacer</span>` : ''}
         ${nValide ? `<span><b>${nValide}</b> validee(s)</span>` : ''}
         <span><b>${totalH} h</b> affectees</span>
       </p>
 
       <h2>Bilan par projet</h2>
-      <table><thead><tr><th>Projet</th><th>Encadrement</th><th class="r">Seances</th><th class="r">Couvertes</th><th class="r">Manque</th><th class="r">Sans encadrant</th><th class="r">Partielles</th><th class="r">Heures affectees</th></tr></thead><tbody>
+      <table><thead><tr><th>Projet</th><th>Encadrement</th><th class="r">Seances</th><th class="r">Couvertes</th><th class="r">Manque</th><th class="r">En autonomie</th><th class="r">Partielles</th><th class="r">Heures affectees</th></tr></thead><tbody>
       ${bilan.map((b) => `<tr>
         <td><span class="sw" style="background:${(projects.find((p) => p.name === b.name) || {}).color || '#999'}"></span> ${esc(b.name)}</td>
         <td>${b.sup === 'partial' ? 'partiel' : 'total'}</td>
@@ -1385,7 +1385,7 @@
       const missing = Math.max(0, o.minPerSession - arr.length - (alt ? 1 : 0));
       const status = (sch.toMove || {})[s.id] ? 'A DEPLACER'
         : (sch.validated || {})[s.id] ? 'VALIDE'
-          : nos[s.id] ? 'SANS ENCADRANT'
+          : nos[s.id] ? 'EN AUTONOMIE'
             : missing ? ('MANQUE ' + missing)
               : (ev.indispo[s.id] || []).length ? 'INDISPO'
                 : (ev.outOfTeam[s.id] || []).length ? 'HORS EQUIPE'

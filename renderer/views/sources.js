@@ -72,7 +72,7 @@
             <label>Encadrement
               <select class="s-sup">
                 <option value="full" ${src.supervision !== 'partial' ? 'selected' : ''}>total (toute seance encadree)</option>
-                <option value="partial" ${src.supervision === 'partial' ? 'selected' : ''}>partiel (seances sans encadrant admises)</option>
+                <option value="partial" ${src.supervision === 'partial' ? 'selected' : ''}>partiel (seances en autonomie admises)</option>
               </select>
             </label>
             <span class="s-part-wrap" ${src.supervision === 'partial' ? '' : 'hidden'}>
