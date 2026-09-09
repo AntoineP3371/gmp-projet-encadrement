@@ -97,6 +97,7 @@
         result: null
       },
       planning: { sources: null, type: 'all', q: '' },
+      calendar: { hiddenWeeks: [] }, // onglet Calendrier : cles ISO "AAAA-SS" masquees
       assistant: { log: [] },
       ui: { tab: 'sources' }
     };
@@ -166,6 +167,9 @@
       w.endH = Math.max.apply(null, w.ranges.map((r) => r.to));
     })();
     s.planning = Object.assign(s.planning, data.planning || {});
+    if (data.calendar && Array.isArray(data.calendar.hiddenWeeks)) {
+      s.calendar.hiddenWeeks = data.calendar.hiddenWeeks.filter((k) => typeof k === 'string');
+    }
     if (data.assistant && Array.isArray(data.assistant.log)) s.assistant.log = data.assistant.log.slice(-24);
     s.ui = Object.assign(s.ui, data.ui || {});
     return s;
@@ -412,6 +416,55 @@
       sch.lastResult = Object.assign({}, sch.lastResult, { assignments: a });
     }
     return sch.lastResult.assignments;
+  };
+
+  /* Shared scheduling mutations — used by both the Affectation tab and the
+     Calendrier tab so an edit in one shows up in the other. */
+  PE.sched = {
+    lock(sid, tid) {
+      const L = PE.state.scheduling.locked;
+      L[sid] = L[sid] || [];
+      if (L[sid].indexOf(tid) === -1) L[sid].push(tid);
+    },
+    unlock(sid, tid) {
+      const L = PE.state.scheduling.locked;
+      if (L[sid]) L[sid] = L[sid].filter((x) => x !== tid);
+    },
+    setAutonome(sid, on) {
+      const sch = PE.state.scheduling;
+      sch.noSup = sch.noSup || {};
+      if (on) {
+        sch.noSup[sid] = true;
+        if (sch.locked[sid]) delete sch.locked[sid];
+        if (sch.validated) delete sch.validated[sid];
+        const a = PE.assignments();
+        a[sid] = [];
+      } else {
+        delete sch.noSup[sid];
+      }
+    },
+    addTeacher(sid, tid) {
+      const sch = PE.state.scheduling;
+      if (sch.noSup && sch.noSup[sid]) delete sch.noSup[sid];
+      const a = PE.assignments();
+      a[sid] = a[sid] || [];
+      if (a[sid].indexOf(tid) === -1) a[sid].push(tid);
+      PE.sched.lock(sid, tid);
+    },
+    removeTeacher(sid, tid) {
+      const a = PE.assignments();
+      if (a[sid]) a[sid] = a[sid].filter((x) => x !== tid);
+      PE.sched.unlock(sid, tid);
+    },
+    toggleValidated(sid) {
+      const sch = PE.state.scheduling;
+      sch.validated = sch.validated || {};
+      if (sch.validated[sid]) { delete sch.validated[sid]; return false; }
+      sch.validated[sid] = true;
+      const a = PE.assignments();
+      (a[sid] || []).forEach((tid) => PE.sched.lock(sid, tid));
+      return true;
+    }
   };
 
   /* Team = { teacherId: { on: bool, w: number } } for a project.

@@ -393,6 +393,53 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-AGENDA ' + agenda);
 
+      // onglet Calendrier (concept C) : grille + édition en ligne synchronisée avec Affectation
+      const calendar = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE; const sch = PE.state.scheduling;
+        sch.toMove = {}; sch.validated = {}; sch.noSup = {}; sch.altSup = {}; sch.locked = {};
+        sch.visibleProjects = null; PE.state.calendar = { hiddenWeeks: [] };
+        PE.setTab('calendar'); PE.rerender(); await new Promise((r) => setTimeout(r, 250));
+        const card = document.getElementById('view');
+        const cols0 = card.querySelectorAll('.cxw').length;
+        const blocks = card.querySelectorAll('.cxblk').length;
+        const firstBlk = card.querySelector('.cxblk');
+        const blkText = firstBlk ? firstBlk.querySelector('.m').textContent : '';
+        // édition : ajouter un encadrant via un select .cx-add qui a des options
+        const sel = Array.from(card.querySelectorAll('.cx-add')).find((s) => s.options.length > 1);
+        let sid = null, tid = null, inAssign = null, inLocked = null;
+        if (sel) {
+          sid = sel.dataset.sid; tid = sel.options[1].value;
+          sel.value = tid; sel.dispatchEvent(new Event('change'));
+          await new Promise((r) => setTimeout(r, 250));
+          inAssign = (PE.assignments()[sid] || []).indexOf(tid) !== -1;
+          inLocked = (sch.locked[sid] || []).indexOf(tid) !== -1;
+        }
+        // valider l'encadrement sur ce bloc
+        let validated = null;
+        const vb = sid && document.querySelector('.cx-valid[data-sid="' + sid + '"]');
+        if (vb) { vb.click(); await new Promise((r) => setTimeout(r, 200)); validated = sch.validated[sid] === true; }
+        // rendre une AUTRE séance en autonomie
+        let autoOk = null, autoSid = null;
+        const ab = Array.from(document.querySelectorAll('.cx-auto')).find((b) => b.dataset.sid !== sid);
+        if (ab) { autoSid = ab.dataset.sid; ab.click(); await new Promise((r) => setTimeout(r, 200)); autoOk = sch.noSup[autoSid] === true; }
+        // masquer une semaine
+        const hb = document.querySelector('.cxw-hide');
+        let colsAfterHide = cols0;
+        if (hb) { hb.click(); await new Promise((r) => setTimeout(r, 200)); colsAfterHide = document.querySelectorAll('.cxw').length; }
+        // l'onglet Affectation voit-il les mêmes affectations ?
+        PE.setTab('scheduling'); PE.rerender(); await new Promise((r) => setTimeout(r, 250));
+        const schSees = sid ? (PE.assignments()[sid] || []).indexOf(tid) !== -1 : null;
+        return JSON.stringify({
+          cols: cols0, blocks: blocks, blkHasTime: /\\d\\d:\\d\\d[–-]\\d\\d:\\d\\d/.test(blkText),
+          addWrites: inAssign === true && inLocked === true,
+          validated: validated, autoOk: autoOk, autoDistinct: autoSid !== sid,
+          weekHidden: colsAfterHide === cols0 - 1,
+          affectationSyncs: schSees,
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-CALENDAR ' + calendar);
+
       await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
       const common = await win.webContents.executeJavaScript(`(async () => {
@@ -636,6 +683,27 @@ function attach(win, deps) {
         const cm = await win.webContents.capturePage();
         fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-common.png', cm.toPNG());
         console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-common.png');
+      }
+      if (shotArg) {
+        await win.webContents.executeJavaScript(`(async () => {
+          const PE = window.PE; const sch = PE.state.scheduling;
+          sch.visibleProjects = null; PE.state.calendar = { hiddenWeeks: [] };
+          sch.lastResult = null; PE.setTab('scheduling'); PE.rerender();
+          document.querySelector('#o-run').click(); await new Promise((r) => setTimeout(r, 400));
+          PE.setTab('calendar'); PE.rerender(); await new Promise((r) => setTimeout(r, 300));
+          // masquer les semaines sans séance pour resserrer la capture
+          const seen = {};
+          Array.from(document.querySelectorAll('.cxw')).forEach((col) => {
+            const k = (col.querySelector('.cxw-hide') || {}).dataset && col.querySelector('.cxw-hide').dataset.k;
+            if (k && !col.querySelector('.cxblk')) (PE.state.calendar.hiddenWeeks = PE.state.calendar.hiddenWeeks || []).push(k);
+          });
+          PE.rerender(); await new Promise((r) => setTimeout(r, 250));
+        })()`);
+        win.setContentSize(1440, 1400);
+        await new Promise((r) => setTimeout(r, 300));
+        const cx = await win.webContents.capturePage();
+        fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-calendar.png', cx.toPNG());
+        console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-calendar.png');
       }
       if (shotArg) {
         await win.webContents.executeJavaScript(`(async () => {

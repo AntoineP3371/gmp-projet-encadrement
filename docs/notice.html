@@ -141,9 +141,10 @@
       <li><span class="n">3</span> Onglet Planning (liste)</li>
       <li><span class="n">4</span> Onglet Périodes communes</li>
       <li><span class="n">5</span> Onglet Affectation</li>
-      <li><span class="n">6</span> Onglet Assistant</li>
-      <li><span class="n">7</span> Réglages de l'affectation (référence)</li>
-      <li><span class="n">8</span> Astuces &amp; dépannage</li>
+      <li><span class="n">6</span> Onglet Calendrier</li>
+      <li><span class="n">7</span> Onglet Assistant</li>
+      <li><span class="n">8</span> Réglages de l'affectation (référence)</li>
+      <li><span class="n">9</span> Astuces &amp; dépannage</li>
     </ol>
   </div>
 
@@ -153,10 +154,10 @@
 <section>
   <h2><span class="s-num">1</span> Présentation &amp; démarrage</h2>
 
-  <p>L'application s'organise en cinq onglets, dans l'ordre où l'on s'en sert :
+  <p>L'application s'organise en six onglets, dans l'ordre où l'on s'en sert :
   on renseigne les <span class="ui">Agendas</span>, on vérifie le <span class="ui">Planning</span>,
   on repère les <span class="ui">Périodes communes</span>, on lance l'<span class="ui">Affectation</span>,
-  et on interroge l'<span class="ui">Assistant</span>.</p>
+  on relit le <span class="ui">Calendrier</span>, et on interroge l'<span class="ui">Assistant</span>.</p>
 
   <h3>Lancer l'application</h3>
   <ul>
@@ -449,7 +450,45 @@
 </section>
 
 <section>
-  <h2><span class="s-num">6</span> Onglet Assistant</h2>
+  <h2><span class="s-num">6</span> Onglet Calendrier</h2>
+  <p class="lead">Une grille <b>demi-journées × semaines</b> : chaque colonne est un petit agenda de la semaine.</p>
+
+  <figure class="crop">
+    <img src="img/calendar.png" alt="Onglet Calendrier : grille demi-journées × semaines">
+    <figcaption>L'onglet Calendrier : une colonne par semaine ISO, dix lignes de <em>lun. matin</em> à
+    <em>ven. après-midi</em>, un bloc éditable par séance.</figcaption>
+  </figure>
+
+  <ul>
+    <li><b>Lignes</b> : les dix demi-journées (coupure du midi à 12&nbsp;h). Une séance à cheval sur midi est
+    rangée dans sa demi-journée <b>principale</b>. Deux séances la même demi-journée → blocs
+    <b>côte à côte</b>.</li>
+    <li><b>Colonnes</b> : toutes les semaines de la plage analysée. <span class="ui">Semaines affichées</span>
+    (cases à cocher) et le <b>×</b> de chaque en-tête permettent d'en masquer ; le choix est mémorisé.</li>
+    <li><b>Portée</b> : les projets cochés (mêmes boutons <span class="ui">Projets :</span> que la Répartition).</li>
+    <li><b>Couleur d'un bloc</b> = le <b>statut</b> (validé, manque, partiel, plusieurs encadrants dispos,
+    en autonomie).</li>
+  </ul>
+
+  <h3>Contenu d'un bloc</h3>
+  <p>La séance (pastille projet + intitulé), la <b>salle</b> et l'<b>horaire</b> ; les
+  <b>encadrants disponibles</b> (⚠ = partiel) puis les <b>indisponibles</b>, chacun avec sa
+  <b>raison en survol</b> (<code>occupé : …</code>, <code>agenda : …</code>,
+  <code>indisponible récurrent</code>).</p>
+
+  <h3>Éditer sans quitter la grille</h3>
+  <p>Toute modification est <b>répercutée dans l'onglet Affectation</b> :</p>
+  <ul>
+    <li>chips des encadrants affectés avec un <b>×</b> pour retirer, menu <span class="ui">+ encadrant…</span>
+    pour en ajouter ;</li>
+    <li><span class="ui">valider</span> = <em>encadrement validé</em> (fige les encadrants, même après un
+    recalcul ou un rafraîchissement) ;</li>
+    <li><span class="ui">en autonomie</span> = séance laissée sans encadrant.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="s-num">7</span> Onglet Assistant</h2>
   <p class="lead">Une poignée de questions d'organisation, reconnues par mots-clés — pas de langage libre,
   mais tout est calculé sur le poste (aucune donnée envoyée à l'extérieur).</p>
 
@@ -475,7 +514,7 @@
 </section>
 
 <section>
-  <h2><span class="s-num">7</span> Réglages de l'affectation (référence)</h2>
+  <h2><span class="s-num">8</span> Réglages de l'affectation (référence)</h2>
   <table>
     <thead><tr><th style="width:52mm">Réglage</th><th>Rôle</th></tr></thead>
     <tbody>
@@ -496,7 +535,7 @@
 </section>
 
 <section>
-  <h2><span class="s-num">8</span> Astuces &amp; dépannage</h2>
+  <h2><span class="s-num">9</span> Astuces &amp; dépannage</h2>
   <table>
     <thead><tr><th style="width:58mm">Situation</th><th>À faire</th></tr></thead>
     <tbody>

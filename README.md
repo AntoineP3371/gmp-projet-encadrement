@@ -369,7 +369,33 @@ Dans la table des séances à l'écran, une disponibilité partielle affiche aus
 ses créneaux (`13:00–15:00`) sous le menu de l'encadrant et dans la colonne
 *Disponibilités*.
 
-### 5. Onglet *Assistant*
+### 5. Onglet *Calendrier*
+
+Une **grille demi-journées × semaines** : une colonne par semaine ISO de la plage
+analysée, **une ligne par demi-journée** (`lun. matin` → `ven. après-midi`,
+coupure du midi à 12 h ; une séance à cheval sur midi est rangée dans sa
+demi-journée **principale**). Chaque colonne est un petit agenda de la semaine.
+
+- **Portée** : les projets cochés (mêmes boutons *Projets :* que la Répartition).
+- **Colonnes** : toutes les semaines de la plage. Le bouton *Semaines affichées*
+  (cases à cocher) et le **×** sur chaque en-tête permettent d'en **masquer** ;
+  *tout afficher* les remet. Le choix est mémorisé.
+- **Couleur d'une case** : le **statut** (validé vert · manque/indispo rouge ·
+  partiel/hors équipe orange · plusieurs encadrants dispos bleu · en autonomie
+  hachuré).
+- Deux séances la même demi-journée → blocs **côte à côte**.
+
+**Contenu d'un bloc** : la séance (pastille projet + intitulé), la **salle** et
+l'**horaire** ; les **encadrants disponibles** (⚠ = partiel) et, en fin de ligne,
+les **indisponibles avec la raison en survol** (`occupé : …`, `agenda : …`,
+`indisponible récurrent`). En dessous, **on édite sur place** (répercuté dans
+l'onglet *Affectation*) :
+- chips des encadrants affectés avec un **×** pour retirer, et un menu
+  *+ encadrant…* pour en ajouter ;
+- bouton **valider** = *encadrement validé* (fige les encadrants) ;
+- bouton **en autonomie** = séance laissée sans encadrant.
+
+### 6. Onglet *Assistant*
 
 Un assistant **100 % local** (aucune donnée envoyée à un service tiers, pas de
 clé API). Il ne comprend pas le langage libre : il reconnaît **un ou deux noms
@@ -413,11 +439,13 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
   agendas par ligne).
 - `npm run smoke` (`electron . --smoke`) : lance l'app sans fenêtre visible,
   charge les agendas d'exemple via l'IPC réel, exécute une affectation
-  automatique, un calcul de périodes communes, un export PDF, l'ajout / retrait
-  d'un second agenda iCal sur un encadrant directement dans l'interface, et les
-  5 intentions de l'Assistant, et quitte avec le code 0 si aucune erreur JS
-  n'est survenue. Le scénario vit dans `scripts/smoke-e2e.js`, à l'écart de
-  `main.js`.
+  automatique, un calcul de périodes communes (plusieurs plages horaires +
+  filtre durée), un export PDF, l'ajout / retrait d'un second agenda iCal sur un
+  encadrant, l'onglet *Calendrier* (grille rendue, ajout d'un encadrant /
+  validation / mise en autonomie répercutés dans l'onglet Affectation, masquage
+  d'une semaine), et les 5 intentions de l'Assistant, et quitte avec le code 0
+  si aucune erreur JS n'est survenue. Le scénario vit dans
+  `scripts/smoke-e2e.js`, à l'écart de `main.js`.
 
 **Testé sur de vrais flux Pronote** (IUT) : agendas enseignants et projet réels
 — parsing correct (Pronote émet des horaires UTC sans `VTIMEZONE`), affectation
@@ -448,5 +476,6 @@ renderer/
     planning.js         onglet Planning (liste)
     common.js           onglet Périodes communes
     scheduling.js       onglet Affectation (équipes/poids, répartition, exports CSV/ICS/PDF)
+    calendar.js         onglet Calendrier (grille demi-journées × semaines, édition en ligne)
     assistant.js        onglet Assistant (questions d'organisation, local)
 ```
