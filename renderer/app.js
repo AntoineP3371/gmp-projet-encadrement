@@ -91,7 +91,9 @@
       common: {
         selected: [],         // sourceId[]
         mode: 'free',          // 'free' | 'busy'
-        work: { days: [1, 2, 3, 4, 5], startH: 8, endH: 20 },
+        // ranges = plages horaires quotidiennes (une ou plusieurs) ; startH/endH
+        // sont l'enveloppe globale, gardee a jour pour les autres vues.
+        work: { days: [1, 2, 3, 4, 5], startH: 8, endH: 20, ranges: [{ from: 8, to: 20 }], durMin: 0, durMax: 0 },
         result: null
       },
       planning: { sources: null, type: 'all', q: '' },
@@ -148,6 +150,21 @@
     const dc = data.common || {};
     s.common = Object.assign(s.common, dc);
     s.common.work = Object.assign(PE.DEFAULT_STATE().common.work, dc.work || {});
+    (function () {
+      const w = s.common.work;
+      if (Array.isArray(w.ranges) && w.ranges.length) {
+        w.ranges = w.ranges
+          .map((r) => ({ from: Math.max(0, +r.from || 0), to: Math.min(24, +r.to || 0) }))
+          .filter((r) => r.to > r.from);
+      } else {
+        w.ranges = [];
+      }
+      if (!w.ranges.length) w.ranges = [{ from: +w.startH || 8, to: +w.endH || 20 }];
+      w.durMin = Math.max(0, +w.durMin || 0);
+      w.durMax = Math.max(0, +w.durMax || 0);
+      w.startH = Math.min.apply(null, w.ranges.map((r) => r.from));
+      w.endH = Math.max.apply(null, w.ranges.map((r) => r.to));
+    })();
     s.planning = Object.assign(s.planning, data.planning || {});
     if (data.assistant && Array.isArray(data.assistant.log)) s.assistant.log = data.assistant.log.slice(-24);
     s.ui = Object.assign(s.ui, data.ui || {});

@@ -87,6 +87,31 @@
     return normalize(out);
   }
 
+  /* Working-hours grid over [windowStart, windowEnd] with SEVERAL daily ranges,
+     e.g. [{from:8,to:11},{from:14,to:16}]. Fractional hours allowed (8.5 = 08:30). */
+  function workingWindowRanges(windowStart, windowEnd, ranges, workdays) {
+    const rs = (ranges || []).filter((r) => r && +r.to > +r.from);
+    if (!rs.length) return [];
+    const out = [];
+    const cur = new Date(windowStart);
+    cur.setHours(0, 0, 0, 0);
+    while (cur.getTime() < windowEnd) {
+      if (workdays.indexOf(cur.getDay()) !== -1) {
+        for (const r of rs) {
+          const from = +r.from;
+          const to = +r.to;
+          const ds = new Date(cur); ds.setHours(Math.floor(from), Math.round((from % 1) * 60), 0, 0);
+          const de = new Date(cur); de.setHours(Math.floor(to), Math.round((to % 1) * 60), 0, 0);
+          const s = Math.max(windowStart, ds.getTime());
+          const e = Math.min(windowEnd, de.getTime());
+          if (e > s) out.push({ start: s, end: e });
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return normalize(out);
+  }
+
   /* Full working-hours grid over [windowStart, windowEnd]. */
   function workingWindow(windowStart, windowEnd, dayStartH, dayEndH, workdays) {
     const out = [];
@@ -111,6 +136,6 @@
 
   window.PE.fb = {
     normalize, intersectTwo, intersectMany, invert, overlaps, overlapsAny,
-    clampToWorkingHours, workingWindow, totalHours
+    clampToWorkingHours, workingWindow, workingWindowRanges, totalHours
   };
 })();

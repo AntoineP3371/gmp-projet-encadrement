@@ -86,6 +86,15 @@ const grid = FB.workingWindow(H(1, 0), H(6, 0), 8, 20, [1, 2, 3, 4, 5]);
 ok('workingWindow skips weekend (Tue..Fri = 4)', grid.length === 4);
 ok('workingWindow slot is 12h', (grid[0].end - grid[0].start) === 12 * 3600000);
 
+// plusieurs plages horaires par jour + demi-heures
+const g2 = FB.workingWindowRanges(H(1, 0), H(3, 0), [{ from: 8, to: 11 }, { from: 14, to: 16.5 }], [1, 2, 3, 4, 5]);
+ok('workingWindowRanges : 2 plages x 2 jours (Tue..Wed) = 4 creneaux', g2.length === 4);
+ok('workingWindowRanges : 1re plage = 3 h', (g2[0].end - g2[0].start) === 3 * 3600000);
+ok('workingWindowRanges : 2e plage = 2 h 30 (demi-heure)', (g2[1].end - g2[1].start) === 2.5 * 3600000);
+ok('workingWindowRanges : plages non chevauchantes -> non fusionnees', g2[0].end < g2[1].start);
+ok('workingWindowRanges : ignore une plage invalide (to <= from)',
+  FB.workingWindowRanges(H(1, 0), H(3, 0), [{ from: 10, to: 10 }, { from: 8, to: 9 }], [2]).length === 1);
+
 /* ---- 3. scheduler ---- */
 console.log('\n[3] scheduler');
 const teachers = [

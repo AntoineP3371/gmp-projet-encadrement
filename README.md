@@ -120,8 +120,15 @@ Cochez ≥ 2 agendas, choisissez :
   dans la fenêtre horaire de travail ;
 - *Créneaux occupés communs* : intersection des périodes occupées.
 
-Réglez les heures (par défaut 8 h–20 h) et les jours (par défaut lun–ven), puis
-*Calculer*. Résultat groupé par jour + export CSV.
+Réglez la recherche, puis *Calculer* (résultat groupé par jour + export CSV) :
+- **plages horaires** : une ou plusieurs plages par jour (`+ ajouter une plage`,
+  jusqu'à 4) — p. ex. `8 h–11 h` **et** `14 h–16 h 30`. Pas de la demi-heure
+  (`14.5` = 14 h 30). Par défaut une seule plage `8 h–20 h` ;
+- **durée du créneau** : `min` / `max` en heures (`0` = pas de limite). Le *max*
+  **exclut** les créneaux plus longs (il ne les tronque pas) ;
+- **jours** de la semaine (par défaut lun–ven).
+
+L'en-tête du résultat rappelle les critères utilisés (jours · plages · durée).
 
 ### 4. Onglet *Affectation*
 
@@ -389,8 +396,9 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
 
 ## Vérification
 
-- `npm test` (`node scripts/smoke.js`) : 142 assertions sur l'arithmétique
-  d'intervalles, le parsing iCal (fuseaux, RRULE, journée entière, filtrage par
+- `npm test` (`node scripts/smoke.js`) : 147 assertions sur l'arithmétique
+  d'intervalles (dont plusieurs plages horaires par jour, demi-heures), le
+  parsing iCal (fuseaux, RRULE, journée entière, filtrage par
   plage, style Pronote sans VTIMEZONE en UTC pur), le filtrage des séances
   (journée entière / blocs multi-jours écartés via *durée max*), l'algorithme
   d'affectation (répartition proportionnelle aux poids, poids « sans

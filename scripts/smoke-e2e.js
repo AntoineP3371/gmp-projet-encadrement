@@ -395,12 +395,50 @@ function attach(win, deps) {
 
       await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
-      const common = await win.webContents.executeJavaScript(`(() => {
-        const c = window.PE.state.common;
-        c.selected = window.PE.state.sources.filter((s) => s.type === 'teacher').map((s) => s.id);
-        c.mode = 'free';
-        document.querySelector('#cm-run') && document.querySelector('#cm-run').click();
-        return JSON.stringify({ hasResult: !!c.result, intervals: c.result && c.result.intervals && c.result.intervals.length });
+      const common = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE; const c = PE.state.common;
+        c.selected = PE.state.sources.filter((s) => s.type === 'teacher').map((s) => s.id);
+        c.mode = 'free'; PE.rerender(); await new Promise((r) => setTimeout(r, 150));
+        // ajouter une 2e plage horaire
+        document.querySelector('#cm-r-add').click(); await new Promise((r) => setTimeout(r, 150));
+        const rangesAfterAdd = c.work.ranges.length;
+        // regler 2 plages : 8-11 et 14-16.5
+        const rows = document.querySelectorAll('.cm-range');
+        rows[0].querySelector('.cm-r-from').value = '8'; rows[0].querySelector('.cm-r-from').dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 100));
+        let rows2 = document.querySelectorAll('.cm-range');
+        rows2[0].querySelector('.cm-r-to').value = '11'; rows2[0].querySelector('.cm-r-to').dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 100));
+        rows2 = document.querySelectorAll('.cm-range');
+        rows2[1].querySelector('.cm-r-from').value = '14'; rows2[1].querySelector('.cm-r-from').dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 100));
+        rows2 = document.querySelectorAll('.cm-range');
+        rows2[1].querySelector('.cm-r-to').value = '16.5'; rows2[1].querySelector('.cm-r-to').dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 100));
+        // durée min 1 h
+        const dmin = document.querySelector('#cm-dmin'); dmin.value = '1'; dmin.dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 100));
+        document.querySelector('#cm-run').click(); await new Promise((r) => setTimeout(r, 200));
+        const r = c.result;
+        const spanOk = c.work.startH === 8 && c.work.endH === 16.5;
+        const ivs = (r && r.intervals) || [];
+        const withinRanges = ivs.every((iv) => {
+          const h = new Date(iv.start).getHours() + new Date(iv.start).getMinutes() / 60;
+          const he = new Date(iv.end).getHours() + new Date(iv.end).getMinutes() / 60;
+          return (h >= 8 && he <= 11 + 1e-9) || (h >= 14 && he <= 16.5 + 1e-9);
+        });
+        const minOk = ivs.every((iv) => iv.end - iv.start >= 3600000 - 1e-6);
+        // retirer la 2e plage -> revient à 1
+        document.querySelectorAll('.cm-range')[1].querySelector('.cm-r-del').click();
+        await new Promise((r) => setTimeout(r, 150));
+        return JSON.stringify({
+          hasResult: !!r, intervals: ivs.length,
+          rangesAfterAdd: rangesAfterAdd, spanOk: spanOk,
+          withinRanges: withinRanges, minOk: minOk,
+          criteriaRanges: r && r.criteria && r.criteria.ranges.length,
+          rangesAfterDel: c.work.ranges.length,
+          errors: window.__errors.length
+        });
       })()`);
       console.log('SMOKE-E2E-COMMON ' + common);
 
@@ -580,6 +618,24 @@ function attach(win, deps) {
         const im = await win.webContents.capturePage();
         fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-indispo.png', im.toPNG());
         console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-indispo.png');
+      }
+      if (shotArg) {
+        await win.webContents.executeJavaScript(`(async () => {
+          const PE = window.PE; const c = PE.state.common;
+          c.selected = PE.state.sources.filter((s) => s.type === 'teacher').map((s) => s.id);
+          c.mode = 'free';
+          c.work.ranges = [{ from: 8, to: 11 }, { from: 14, to: 16.5 }];
+          c.work.startH = 8; c.work.endH = 16.5; c.work.durMin = 1; c.work.durMax = 3;
+          PE.setTab('common'); PE.rerender();
+          await new Promise((r) => setTimeout(r, 150));
+          document.querySelector('#cm-run').click();
+          await new Promise((r) => setTimeout(r, 250));
+        })()`);
+        win.setContentSize(1440, 1100);
+        await new Promise((r) => setTimeout(r, 300));
+        const cm = await win.webContents.capturePage();
+        fs.writeFileSync(shotArg.slice(7).replace(/\.png$/, '') + '-common.png', cm.toPNG());
+        console.log('SMOKE-SHOT ' + shotArg.slice(7).replace(/\.png$/, '') + '-common.png');
       }
       if (shotArg) {
         await win.webContents.executeJavaScript(`(async () => {
