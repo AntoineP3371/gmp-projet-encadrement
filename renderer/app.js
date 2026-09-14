@@ -418,6 +418,50 @@
     return sch.lastResult.assignments;
   };
 
+  /* Deux intitules "correspondent" quand, decoupes sur les tirets, les segments
+     du plus court sont TOUS presents dans l'autre — quel que soit leur ordre,
+     casse et espaces superflus ignores, et a condition d'en partager au moins
+     deux. Cote projet le libelle est souvent plus riche (salle, enseignants
+     ajoutes en fin) que la version qui figure dans l'agenda de l'enseignant.
+     Ex. "S3:4 - P4 - SAE 2A - Projet_4h - M. X, M. Y" correspond a
+     "SAE 2A - Projet_4h - S3:4 - P4". Partage par l'Affectation et le
+     Calendrier pour que les deux vues s'accordent sur qui est "dans son agenda". */
+  const DASHES = /[-‐‑‒–—―−]/;
+  function labelSegs(str) {
+    const set = new Set();
+    String(str || '').split(DASHES).forEach((x) => {
+      const k = x.trim().replace(/\s+/g, ' ').toLowerCase();
+      if (k) set.add(k);
+    });
+    return set;
+  }
+  PE.labelsCorrespond = function (a, b) {
+    const A = labelSegs(a);
+    const B = labelSegs(b);
+    const small = A.size <= B.size ? A : B;
+    const big = A.size <= B.size ? B : A;
+    if (small.size < 2) return false;
+    for (const x of small) if (!big.has(x)) return false;
+    return true;
+  };
+
+  /* La seance de projet figure-t-elle telle quelle dans l'agenda de l'encadrant ?
+     Il faut a la fois le MEME INTITULE (memes segments entre tirets, ordre libre)
+     ET un recouvrement horaire des deux evenements. Cas typique : le meme cours
+     est publie sur le calendrier du projet ET sur celui de l'enseignant. */
+  PE.teacherHasSessionInAgenda = function (t, s) {
+    if (!t || !t.events || !t.events.length) return false;
+    const sS = +new Date(s.start);
+    const sE = +new Date(s.end);
+    return t.events.some((e) => {
+      if (!e || e.allDay) return false;
+      const eS = +new Date(e.start);
+      const eE = +new Date(e.end);
+      if (!(eS < sE && eE > sS)) return false;        // recouvrement horaire
+      return PE.labelsCorrespond(s.label, e.summary);  // intitules qui correspondent
+    });
+  };
+
   /* Shared scheduling mutations — used by both the Affectation tab and the
      Calendrier tab so an edit in one shows up in the other. */
   PE.sched = {
@@ -463,6 +507,13 @@
       sch.validated[sid] = true;
       const a = PE.assignments();
       (a[sid] || []).forEach((tid) => PE.sched.lock(sid, tid));
+      return true;
+    },
+    toggleToMove(sid) {
+      const sch = PE.state.scheduling;
+      sch.toMove = sch.toMove || {};
+      if (sch.toMove[sid]) { delete sch.toMove[sid]; return false; }
+      sch.toMove[sid] = true;
       return true;
     }
   };

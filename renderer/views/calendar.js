@@ -101,14 +101,24 @@
       return evc ? 'agenda : ' + (evc.summary || 'occupé') + (evc.allDay ? ' (journée entière)' : ' ' + U.fmtRange(evc.start, evc.end)) : '';
     }
 
-    function statusOf(s) {
+    // encadrants affectes dont l'agenda contient deja cette seance (meme regle
+    // que l'Affectation, PE.teacherHasSessionInAgenda) : ils ne comptent pas
+    // comme un conflit, pour que les deux vues s'accordent.
+    function matchedTeachersOf(s) {
+      const set = {};
+      (assignments[s.id] || []).forEach((tid) => { if (PE.teacherHasSessionInAgenda(byT[tid], s)) set[tid] = 1; });
+      return set;
+    }
+
+    function statusOf(s, matched) {
       if ((sch.validated || {})[s.id]) return { t: 'validé', c: 'ok' };
       if ((ev.noSup || []).indexOf(s.id) !== -1) return { t: 'en autonomie', c: 'neutral' };
       const arr = assignments[s.id] || [];
       const alt = String((sch.altSup || {})[s.id] || '').trim();
       const missing = Math.max(0, o.minPerSession - arr.length - (alt ? 1 : 0));
       if (missing) return { t: 'manque ' + missing, c: 'danger' };
-      if ((ev.indispo[s.id] || []).length) return { t: 'indispo', c: 'danger' };
+      const indispoEff = (ev.indispo[s.id] || []).filter((tid) => !matched[tid]);
+      if (indispoEff.length) return { t: 'indispo', c: 'danger' };
       if ((ev.outOfTeam[s.id] || []).length) return { t: 'hors équipe', c: 'warn' };
       if ((ev.partial[s.id] || []).length) return { t: 'partiel', c: 'warn' };
       if ((ev.availFull[s.id] || 0) >= 2) return { t: (ev.availFull[s.id]) + ' dispos', c: 'accent' };
@@ -154,8 +164,24 @@
       }).join('');
     }
 
+    function tomoveBlockHTML(s) {
+      const comment = String((sch.comment || {})[s.id] || '');
+      return `<div class="cxblk cx-tomove">
+        <div class="t" title="${U.esc(s.project + ' — ' + s.label)}"><span class="cx-strike">${U.esc(s.label)}</span> <span class="badge warn">à déplacer</span></div>
+        <div class="m">${U.esc(s.location || 'salle ?')} · ${U.fmtRange(s.start, s.end)}</div>
+        <div class="m muted" style="font-style:italic">mise de côté — non prise en compte par l'affectation automatique${comment ? ' · 💬 ' + U.esc(comment) : ''}</div>
+        <div class="cx-ctrls">
+          <button type="button" class="small cx-tomove-btn primary" data-sid="${s.id}" title="réintégrer cette séance dans l'affectation automatique">✓ à déplacer</button>
+        </div>
+      </div>`;
+    }
+
     function blockHTML(s) {
-      const st = statusOf(s);
+      if ((sch.toMove || {})[s.id]) return tomoveBlockHTML(s);
+
+      const matched = matchedTeachersOf(s);
+      const anyMatched = Object.keys(matched).length > 0;
+      const st = statusOf(s, matched);
       const arr = assignments[s.id] || [];
       const alt = String((sch.altSup || {})[s.id] || '').trim();
       const comment = String((sch.comment || {})[s.id] || '');
@@ -168,24 +194,32 @@
         const col = byT[x.tid] ? byT[x.tid].color : '#999';
         const why = x.full ? '' : reasonFor(x.tid, s);
         return `<span class="cx-av ${x.full ? '' : 'part'}"${why ? ' title="' + U.esc(why) + '"' : ''}>`
-          + `<span class="dot" style="background:${col}"></span>${U.esc(x.name)} ${fmtH(x.hours)}${x.full ? '' : ' ⚠'}</span>`;
+          + `<span class="dot" style="background:${col}"></span>${U.esc(x.name)} ${fmtH(x.hours)}${x.full ? '' : ' ⚠'}${x.soft ? ' (à éviter)' : ''}</span>`;
       }).join('');
       const blocked = T.filter((t) => PE.isEligible(s.projectId, t.id) && !shown[t.id] && arr.indexOf(t.id) === -1)
         .map((t) => ({ t: t, why: reasonFor(t.id, s) })).filter((b) => b.why).slice(0, 6)
         .map((b) => `<span class="cx-av bad" title="${U.esc(b.why)}"><span class="dot" style="background:${b.t.color}"></span>${U.esc(b.t.name)}</span>`).join('');
 
+      const indispo = ev.indispo[s.id] || [];
+      const partial = ev.partial[s.id] || [];
       const encChips = arr.map((tid) => {
         const t = byT[tid];
         const col = t ? t.color : '#999';
         const nm = t ? t.name : tid;
-        return `<span class="cx-enc-chip"><span class="dot" style="background:${col}"></span>${U.esc(nm)}`
+        const isM = !!matched[tid];
+        const cls = isM ? 'matched' : (indispo.indexOf(tid) !== -1 ? 'bad' : (partial.indexOf(tid) !== -1 ? 'partial' : ''));
+        const note = isM ? 'cette séance figure déjà dans l\'agenda de ' + nm
+          : reasonFor(tid, s) || 'disponible toute la séance';
+        return `<span class="cx-enc-chip ${cls}" style="border-color:${col};background:${col}22" title="${U.esc(note)}"><span class="dot" style="background:${col}"></span>${U.esc(nm)}${isM ? ' <span class="cx-agenda-ok">✓ agenda</span>' : ''}`
           + `<button type="button" class="cx-enc-rm" data-sid="${s.id}" data-tid="${tid}" title="retirer">&times;</button></span>`;
       }).join('') + (alt ? `<span class="cx-enc-chip alt"><span class="dot" style="background:#94a3b8"></span>${U.esc(alt)} <span class="muted">(hors liste)</span></span>` : '');
 
       const pc = (PE.sourcesOfType('project').find((p) => p.id === s.projectId) || {}).color || '#999';
+      const marks = anyMatched ? '<span class="badge ok" title="séance présente dans l\'agenda de l\'encadrant affecté">agenda&nbsp;✓</span> ' : '';
+      const badgeCls = st.c === 'ok' ? 'ok' : st.c === 'danger' ? 'danger' : st.c === 'warn' ? 'warn' : '';
       return `<div class="cxblk cx-${st.c}">
-        <div class="t" title="${U.esc(s.project + ' — ' + s.label)}"><span class="dot" style="background:${pc}"></span>${U.esc(s.label)} <span class="badge ${st.c === 'ok' ? 'ok' : st.c === 'danger' ? 'danger' : st.c === 'warn' ? 'warn' : ''}">${st.t}</span></div>
-        <div class="m">${U.esc(s.location || 'salle ?')} · ${U.fmtRange(s.start, s.end)}${comment ? ' · 💬' : ''}</div>
+        <div class="t" title="${U.esc(s.project + ' — ' + s.label)}"><span class="dot" style="background:${pc}"></span>${U.esc(s.label)} ${marks}<span class="badge ${badgeCls}">${st.t}</span></div>
+        <div class="m">${U.esc(s.location || 'salle ?')} · ${U.fmtRange(s.start, s.end)}${comment ? ' · 💬 ' + U.esc(comment) : ''}</div>
         <div class="cx-disp">${avail || '<span class="muted">aucun encadrant éligible disponible</span>'}${blocked ? ' <span class="muted">— indispo :</span> ' + blocked : ''}</div>
         <div class="cx-enc">${encChips || '<span class="muted">—</span>'}
           <select class="cx-add" data-sid="${s.id}"><option value="">+ encadrant…</option>${addOptions(s)}</select></div>
@@ -228,9 +262,9 @@
             </div></details>` : ''}
         </div>
         <p class="muted" style="margin:0 0 8px">
-          <span class="swatch" style="background:var(--ok-soft)"></span> validé &nbsp;
+          <span class="swatch" style="background:var(--ok-soft)"></span> validé / agenda ✓ &nbsp;
           <span class="swatch" style="background:var(--danger-soft)"></span> manque / indispo &nbsp;
-          <span class="swatch" style="background:var(--warn-soft)"></span> partiel / hors équipe &nbsp;
+          <span class="swatch" style="background:var(--warn-soft)"></span> partiel / hors équipe / à déplacer &nbsp;
           <span class="swatch" style="background:var(--accent-soft)"></span> plusieurs encadrants dispos &nbsp;
           <span class="swatch" style="background:repeating-linear-gradient(45deg,#fff,#fff 4px,#e9ebef 4px,#e9ebef 8px)"></span> en autonomie
         </p>
@@ -288,6 +322,10 @@
     root.querySelectorAll('.cx-auto').forEach((b) => b.addEventListener('click', () => {
       const sid = b.dataset.sid;
       PE.sched.setAutonome(sid, !(sch.noSup || {})[sid]);
+      done();
+    }));
+    root.querySelectorAll('.cx-tomove-btn').forEach((b) => b.addEventListener('click', () => {
+      PE.sched.toggleToMove(b.dataset.sid);
       done();
     }));
   }

@@ -323,8 +323,12 @@ td.dispo-cell { min-width: 150px; font-size: 12px; line-height: 1.7; }
 .cx-av.part { color: var(--warn); }
 .cx-av.bad { color: var(--muted); text-decoration: line-through; }
 .cxblk .cx-enc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }
-.cx-enc-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 1px 5px 1px 6px; }
-.cx-enc-chip.alt { color: var(--muted); }
+.cx-enc-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; background: var(--bg); border: 1.5px solid var(--border); border-radius: 999px; padding: 1px 5px 1px 6px; }
+.cx-enc-chip .dot { width: 11px; height: 11px; }
+.cx-enc-chip.alt { color: var(--muted); font-weight: 400; border-style: dashed; }
+.cx-enc-chip.bad { border-style: dashed; }
+.cx-enc-chip.matched { box-shadow: 0 0 0 1px var(--ok) inset; }
+.cx-agenda-ok { font-size: 9.5px; font-weight: 700; color: #166534; }
 .cx-enc-rm { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
 .cx-enc-rm:hover { color: var(--danger); }
 .cxblk .cx-add { font-size: 11px; max-width: 150px; }
@@ -337,3 +341,10 @@ td.dispo-cell { min-width: 150px; font-size: 12px; line-height: 1.7; }
 .cxblk.cx-accent { border-left-color: var(--accent); background: var(--accent-soft); }
 .cxblk.cx-neutral { border-left-color: var(--muted); background: repeating-linear-gradient(45deg, var(--panel), var(--panel) 7px, var(--bg) 7px, var(--bg) 14px); }
 .cxblk.cx-plain { border-left-color: var(--border); }
+.cxblk.cx-tomove { border-left-color: var(--warn); background: var(--warn-soft); color: var(--muted); }
+.cx-strike { text-decoration: line-through; }
+
+/* petite pastille ronde pour le choix de couleur d'un agenda (Agendas) */
+input.s-color { width: 22px; height: 22px; padding: 0; border-radius: 50%; overflow: hidden; cursor: pointer; border: 1px solid var(--border); background: none; }
+input.s-color::-webkit-color-swatch-wrapper { padding: 0; }
+input.s-color::-webkit-color-swatch { border: none; border-radius: 50%; }

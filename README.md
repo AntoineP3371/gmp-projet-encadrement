@@ -47,7 +47,10 @@ npm run notice      # -> docs/notice.pdf (rendu A4 via Electron)
 
 ### 1. Onglet *Agendas*
 Ajoutez chaque flux iCal : un **nom**, un **type** (*Enseignant* ou *Projet*) et
-l'**URL**. Cliquez sur *Ajouter* : l'agenda est chargé immédiatement.
+l'**URL**. Cliquez sur *Ajouter* : l'agenda est chargé immédiatement. La
+**pastille de couleur** devant le nom est un **sélecteur de couleur** — cliquez
+pour la changer ; le choix est mémorisé et se répercute partout (Planning,
+Répartition, Calendrier, rapport PDF, exports).
 La **plage analysée** (barre du haut, « Du … au … ») borne l'expansion des
 événements récurrents — réglez-la sur la durée du projet (par défaut : mois
 courant → +9 mois).
@@ -386,14 +389,21 @@ demi-journée **principale**). Chaque colonne est un petit agenda de la semaine.
 - Deux séances la même demi-journée → blocs **côte à côte**.
 
 **Contenu d'un bloc** : la séance (pastille projet + intitulé), la **salle** et
-l'**horaire** ; les **encadrants disponibles** (⚠ = partiel) et, en fin de ligne,
-les **indisponibles avec la raison en survol** (`occupé : …`, `agenda : …`,
-`indisponible récurrent`). En dessous, **on édite sur place** (répercuté dans
-l'onglet *Affectation*) :
-- chips des encadrants affectés avec un **×** pour retirer, et un menu
-  *+ encadrant…* pour en ajouter ;
+l'**horaire** ; les **encadrants disponibles** (⚠ = partiel, « à éviter » signalé)
+et, en fin de ligne, les **indisponibles avec la raison en survol** (`occupé : …`,
+`agenda : …`, `indisponible récurrent`). En dessous, **on édite sur place**
+(répercuté dans l'onglet *Affectation*) :
+- **chips des encadrants affectés**, colorées avec la couleur de l'encadrant
+  (fond teinté + liseré) pour les repérer d'un coup d'œil, avec un **×** pour
+  retirer, et un menu *+ encadrant…* pour en ajouter ;
 - bouton **valider** = *encadrement validé* (fige les encadrants) ;
 - bouton **en autonomie** = séance laissée sans encadrant.
+
+Le Calendrier est **strictement cohérent avec l'Affectation** : un encadrant
+dont l'agenda contient déjà la séance porte le même badge *agenda ✓* et la même
+absence de conflit dans les deux vues ; une séance **« à déplacer »** s'y affiche
+réduite (pas d'édition d'encadrant, juste le bouton pour la réintégrer), comme
+dans la Répartition.
 
 ### 6. Onglet *Assistant*
 
@@ -442,9 +452,11 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
   automatique, un calcul de périodes communes (plusieurs plages horaires +
   filtre durée), un export PDF, l'ajout / retrait d'un second agenda iCal sur un
   encadrant, l'onglet *Calendrier* (grille rendue, ajout d'un encadrant /
-  validation / mise en autonomie répercutés dans l'onglet Affectation, masquage
-  d'une semaine), et les 5 intentions de l'Assistant, et quitte avec le code 0
-  si aucune erreur JS n'est survenue. Le scénario vit dans
+  validation / mise en autonomie répercutés dans l'onglet Affectation, séance
+  « à déplacer » affichée réduite, agenda ✓ cohérent avec l'Affectation,
+  masquage d'une semaine, couleur d'un encadrant changée dans Agendas et
+  répercutée dans le Calendrier), et les 5 intentions de l'Assistant, et quitte
+  avec le code 0 si aucune erreur JS n'est survenue. Le scénario vit dans
   `scripts/smoke-e2e.js`, à l'écart de `main.js`.
 
 **Testé sur de vrais flux Pronote** (IUT) : agendas enseignants et projet réels

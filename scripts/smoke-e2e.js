@@ -404,8 +404,18 @@ function attach(win, deps) {
         const blocks = card.querySelectorAll('.cxblk').length;
         const firstBlk = card.querySelector('.cxblk');
         const blkText = firstBlk ? firstBlk.querySelector('.m').textContent : '';
+
+        // parité avec l'Affectation : la séance "agenda ✓" mise en place par
+        // SMOKE-E2E-AGENDA doit apparaître ici aussi, en vert, jamais en indispo/manque.
+        const matchedChip = card.querySelector('.cx-enc-chip.matched');
+        const matchedBlk = matchedChip && matchedChip.closest('.cxblk');
+        const agendaParity = !!matchedBlk && !matchedBlk.classList.contains('cx-danger')
+          && /agenda/.test(matchedBlk.querySelector('.t').textContent);
+
         // édition : ajouter un encadrant via un select .cx-add qui a des options
-        const sel = Array.from(card.querySelectorAll('.cx-add')).find((s) => s.options.length > 1);
+        // (on évite le bloc déjà agenda-matché pour ne pas interférer avec lui)
+        const sel = Array.from(card.querySelectorAll('.cx-add'))
+          .find((s) => s.options.length > 1 && s.closest('.cxblk') !== matchedBlk);
         let sid = null, tid = null, inAssign = null, inLocked = null;
         if (sel) {
           sid = sel.dataset.sid; tid = sel.options[1].value;
@@ -422,18 +432,55 @@ function attach(win, deps) {
         let autoOk = null, autoSid = null;
         const ab = Array.from(document.querySelectorAll('.cx-auto')).find((b) => b.dataset.sid !== sid);
         if (ab) { autoSid = ab.dataset.sid; ab.click(); await new Promise((r) => setTimeout(r, 200)); autoOk = sch.noSup[autoSid] === true; }
+
+        // parité "à déplacer" : marquée depuis le Calendrier, une séance doit
+        // apparaître réduite (pas d'édition d'encadrant) ici, et repasser
+        // normale ailleurs (Affectation) une fois réintégrée.
+        const usedSids = { }; if (sid) usedSids[sid] = 1; if (autoSid) usedSids[autoSid] = 1;
+        const tmBlk = Array.from(card.querySelectorAll('.cxblk')).find((b) => {
+          const vbtn = b.querySelector('.cx-valid');
+          return vbtn && !usedSids[vbtn.dataset.sid];
+        });
+        let tomoveSid = null, tomoveShowsReduced = null, tomoveToggleOk = null;
+        if (tmBlk) {
+          tomoveSid = tmBlk.querySelector('.cx-valid').dataset.sid;
+          PE.sched.toggleToMove(tomoveSid); PE.rerender(); await new Promise((r) => setTimeout(r, 200));
+          const tb = document.querySelector('.cxblk.cx-tomove');
+          tomoveShowsReduced = !!tb && /à déplacer/.test(tb.textContent) && !tb.querySelector('.cx-add');
+          const btn = document.querySelector('.cx-tomove-btn');
+          if (btn) { btn.click(); await new Promise((r) => setTimeout(r, 200)); tomoveToggleOk = !sch.toMove[tomoveSid]; }
+        }
+
         // masquer une semaine
         const hb = document.querySelector('.cxw-hide');
         let colsAfterHide = cols0;
         if (hb) { hb.click(); await new Promise((r) => setTimeout(r, 200)); colsAfterHide = document.querySelectorAll('.cxw').length; }
+
+        // couleur d'un encadrant changée depuis l'onglet Agendas -> visible ici
+        PE.setTab('sources'); PE.rerender(); await new Promise((r) => setTimeout(r, 200));
+        const teacherSrc = PE.state.sources.find((x) => x.type === 'teacher');
+        const colorInput = teacherSrc && document.querySelector('.src-card[data-id="' + teacherSrc.id + '"] .s-color');
+        let colorChanged = null, colorPropagates = null;
+        if (colorInput) {
+          colorInput.value = '#123456';
+          colorInput.dispatchEvent(new Event('change'));
+          await new Promise((r) => setTimeout(r, 200));
+          colorChanged = String(teacherSrc.color).toLowerCase() === '#123456';
+          PE.setTab('calendar'); PE.rerender(); await new Promise((r) => setTimeout(r, 250));
+          colorPropagates = !!document.querySelector('#view [style*="123456" i]');
+        }
+
         // l'onglet Affectation voit-il les mêmes affectations ?
         PE.setTab('scheduling'); PE.rerender(); await new Promise((r) => setTimeout(r, 250));
         const schSees = sid ? (PE.assignments()[sid] || []).indexOf(tid) !== -1 : null;
         return JSON.stringify({
           cols: cols0, blocks: blocks, blkHasTime: /\\d\\d:\\d\\d[–-]\\d\\d:\\d\\d/.test(blkText),
+          agendaParity: agendaParity,
           addWrites: inAssign === true && inLocked === true,
           validated: validated, autoOk: autoOk, autoDistinct: autoSid !== sid,
+          tomoveShowsReduced: tomoveShowsReduced, tomoveToggleOk: tomoveToggleOk,
           weekHidden: colsAfterHide === cols0 - 1,
+          colorChanged: colorChanged, colorPropagates: colorPropagates,
           affectationSyncs: schSees,
           errors: window.__errors.length
         });

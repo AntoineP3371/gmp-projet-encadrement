@@ -197,6 +197,9 @@
     coller l'<span class="ui">URL iCal</span> (ou, à défaut, le contenu <code>.ics</code> dans le champ prévu), puis <span class="ui">Ajouter</span>.</li>
     <li>Le téléchargement passe par l'application, pas par un navigateur : les flux d'emploi du temps
     (Pronote, ADE…) qui bloquent l'accès direct fonctionnent normalement.</li>
+    <li>La <b>pastille de couleur</b> devant le nom est un <b>sélecteur de couleur</b> : cliquer pour la
+    changer. Le choix est mémorisé et se répercute partout (Planning, Répartition, Calendrier, rapport
+    PDF, exports).</li>
   </ul>
 
   <h3>Plusieurs agendas pour un même encadrant (ou projet)</h3>
@@ -472,19 +475,27 @@
 
   <h3>Contenu d'un bloc</h3>
   <p>La séance (pastille projet + intitulé), la <b>salle</b> et l'<b>horaire</b> ; les
-  <b>encadrants disponibles</b> (⚠ = partiel) puis les <b>indisponibles</b>, chacun avec sa
-  <b>raison en survol</b> (<code>occupé : …</code>, <code>agenda : …</code>,
+  <b>encadrants disponibles</b> (⚠ = partiel, « à éviter » signalé) puis les <b>indisponibles</b>, chacun
+  avec sa <b>raison en survol</b> (<code>occupé : …</code>, <code>agenda : …</code>,
   <code>indisponible récurrent</code>).</p>
 
   <h3>Éditer sans quitter la grille</h3>
   <p>Toute modification est <b>répercutée dans l'onglet Affectation</b> :</p>
   <ul>
-    <li>chips des encadrants affectés avec un <b>×</b> pour retirer, menu <span class="ui">+ encadrant…</span>
-    pour en ajouter ;</li>
+    <li><b>chips des encadrants affectés</b>, colorées avec la couleur de l'encadrant (fond teinté +
+    liseré) pour les repérer d'un coup d'œil, avec un <b>×</b> pour retirer, menu
+    <span class="ui">+ encadrant…</span> pour en ajouter ;</li>
     <li><span class="ui">valider</span> = <em>encadrement validé</em> (fige les encadrants, même après un
     recalcul ou un rafraîchissement) ;</li>
     <li><span class="ui">en autonomie</span> = séance laissée sans encadrant.</li>
   </ul>
+
+  <div class="callout">
+    <span class="callout-label">Cohérent avec l'Affectation</span>
+    Un encadrant dont l'agenda contient déjà la séance porte le même badge <em>agenda&nbsp;✓</em> et la
+    même absence de conflit dans les deux vues ; une séance <b>« à déplacer »</b> s'affiche ici réduite
+    (pas d'édition d'encadrant, juste le bouton pour la réintégrer), comme dans la Répartition.
+  </div>
 </section>
 
 <section>

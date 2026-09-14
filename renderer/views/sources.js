@@ -45,11 +45,13 @@
     const ev = (src.events || []).length;
     const sync = src.lastSync ? U.fmtShort(src.lastSync) + ' ' + U.fmtTime(src.lastSync) : 'jamais';
     const feeds = src.feeds || [];
+    if (!src.color) src.color = U.color(idx); // fixe la couleur une fois pour toutes
+    const color = src.color;
     return `
       <div class="src-card ${src.error ? 'err' : ''}" data-id="${src.id}">
         <div class="spread">
           <div class="row wrap-tight">
-            <span class="dot" style="background:${src.color || U.color(idx)}"></span>
+            <input type="color" class="s-color" value="${color}" title="changer la couleur de cet agenda" />
             <input class="s-name" value="${U.esc(src.name)}" style="width:220px" />
             <select class="s-type">
               <option value="teacher" ${src.type === 'teacher' ? 'selected' : ''}>Enseignant</option>
@@ -256,6 +258,7 @@
       const q = (sel) => cardEl.querySelector(sel);
 
       q('.s-name').addEventListener('change', (e) => { src.name = e.target.value; PE.save(); });
+      q('.s-color').addEventListener('change', (e) => { src.color = e.target.value; PE.save(); PE.rerender(); });
       q('.s-type').addEventListener('change', (e) => { src.type = e.target.value; PE.save(); PE.rerender(); });
       q('.s-enabled').addEventListener('change', (e) => { src.enabled = e.target.checked; PE.save(); PE.rerender(); });
 
