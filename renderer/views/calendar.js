@@ -55,22 +55,28 @@
   function render(root) {
     const sch = PE.state.scheduling;
     const o = sch.options;
-    const cal = PE.state.calendar || (PE.state.calendar = { hiddenWeeks: [] });
+    const cal = PE.state.calendar || (PE.state.calendar = { hiddenWeeks: [], visibleTeachers: null });
     const T = PE.teacherModels();
     const byT = {}; T.forEach((t) => { byT[t.id] = t; });
     const projects = PE.sourcesOfType('project').filter((s) => s.enabled !== false);
 
-    // portée = comme la Répartition (projets visibles)
+    const allSessions = PE.sessions();
+    const assignments = PE.assignments();
+    Object.keys(assignments).forEach((k) => { if (!allSessions.find((s) => s.id === k)) delete assignments[k]; });
+
+    // portée = comme la Répartition (projets visibles), + un filtre par
+    // encadrant en plus : ne garder que les séances où l'un des encadrants
+    // cochés est affecté -> « calendrier d'un encadrant » (ou de plusieurs).
     const vp = Array.isArray(sch.visibleProjects) ? sch.visibleProjects : null;
     let visProjects = vp ? projects.filter((p) => vp.indexOf(p.id) !== -1) : projects.slice();
     if (vp && vp.length && !visProjects.length && projects.length) visProjects = projects.slice();
     const visIds = {}; visProjects.forEach((p) => { visIds[p.id] = 1; });
 
-    const allSessions = PE.sessions();
-    const sessions = allSessions.filter((s) => visIds[s.projectId]);
+    const vt = Array.isArray(cal.visibleTeachers) ? cal.visibleTeachers : null;
+    const visTea = {}; if (vt) vt.forEach((id) => { visTea[id] = 1; });
+    const sessions = allSessions.filter((s) => visIds[s.projectId]
+      && (!vt || (assignments[s.id] || []).some((tid) => visTea[tid])));
 
-    const assignments = PE.assignments();
-    Object.keys(assignments).forEach((k) => { if (!allSessions.find((s) => s.id === k)) delete assignments[k]; });
     const ev = S.evaluate(allSessions, T, PE.schedOptions(), assignments);
 
     const busyMap = {}; T.forEach((t) => { busyMap[t.id] = S.teacherBusy(t.events, o.allDayBusy); });
@@ -247,10 +253,10 @@
     root.innerHTML = `
       <div class="view-head">
         <h1>Calendrier</h1>
-        <span class="sub">Une ligne par demi-journée (lun.–ven.) &middot; une colonne par semaine &middot; d'après l'affectation courante</span>
+        <span class="sub">Une ligne par demi-journée (lun.–ven.) &middot; une colonne par semaine &middot; filtrable par projet et par encadrant &middot; d'après l'affectation courante</span>
       </div>
       <div class="panel">
-        <div class="row wrap-tight" style="margin-bottom:8px">
+        <div class="row wrap-tight" style="margin-bottom:6px">
           ${projects.length ? `<span class="muted">Projets :</span>
             ${projects.map((p) => `<button class="small projvis-btn ${visIds[p.id] ? 'primary' : ''}" data-pid="${p.id}"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}</button>`).join('')}
             <button class="small" id="cx-proj-all">tous</button>` : ''}
@@ -261,6 +267,12 @@
               ${weeks.map((w) => `<label><input type="checkbox" class="cx-wk" data-k="${w.key}" ${hidden[w.key] ? '' : 'checked'} /> S${w.n} <span class="muted">${w.label}</span></label>`).join('')}
             </div></details>` : ''}
         </div>
+        ${T.length ? `<div class="row wrap-tight" style="margin-bottom:8px">
+          <span class="muted">Encadrants :</span>
+          ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="n'afficher que le calendrier de ${U.esc(t.name)}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
+          <button class="small" id="cx-tea-all">tous</button>
+          <button class="small" id="cx-tea-none">aucun</button>
+        </div>` : ''}
         <p class="muted" style="margin:0 0 8px">
           <span class="swatch" style="background:var(--ok-soft)"></span> validé / agenda ✓ &nbsp;
           <span class="swatch" style="background:var(--danger-soft)"></span> manque / indispo &nbsp;
@@ -269,7 +281,7 @@
           <span class="swatch" style="background:repeating-linear-gradient(45deg,#fff,#fff 4px,#e9ebef 4px,#e9ebef 8px)"></span> en autonomie
         </p>
         ${!projects.length ? '<p class="muted">Ajoutez un agenda « projet ».</p>'
-        : !sessions.length ? '<p class="muted">Aucune séance pour les projets cochés.</p>'
+        : !sessions.length ? '<p class="muted">Aucune séance pour les projets / encadrants cochés.</p>'
           : !visWeeks.length ? '<p class="muted">Toutes les semaines sont masquées.</p>'
             : gridHTML()}
         ${offGrid ? `<p class="muted" style="margin-top:8px">${offGrid} séance(s) hors lun.–ven. non affichée(s) ici.</p>` : ''}
@@ -280,7 +292,7 @@
 
   function wire(root) {
     const sch = PE.state.scheduling;
-    const cal = PE.state.calendar || (PE.state.calendar = { hiddenWeeks: [] });
+    const cal = PE.state.calendar || (PE.state.calendar = { hiddenWeeks: [], visibleTeachers: null });
     const done = () => { PE.save(); PE.rerender(); };
 
     root.querySelectorAll('.projvis-btn').forEach((b) => b.addEventListener('click', () => {
@@ -294,6 +306,20 @@
     }));
     const pa = root.querySelector('#cx-proj-all');
     if (pa) pa.addEventListener('click', () => { sch.visibleProjects = null; done(); });
+
+    root.querySelectorAll('.tv-btn').forEach((b) => b.addEventListener('click', () => {
+      const tid = b.dataset.tid;
+      const allIds = PE.teacherModels().map((t) => t.id);
+      let vis = Array.isArray(cal.visibleTeachers) ? cal.visibleTeachers.slice() : allIds.slice();
+      const i = vis.indexOf(tid);
+      if (i === -1) vis.push(tid); else vis.splice(i, 1);
+      cal.visibleTeachers = (vis.length === allIds.length && allIds.every((x) => vis.indexOf(x) !== -1)) ? null : vis;
+      done();
+    }));
+    const ta = root.querySelector('#cx-tea-all');
+    if (ta) ta.addEventListener('click', () => { cal.visibleTeachers = null; done(); });
+    const tn = root.querySelector('#cx-tea-none');
+    if (tn) tn.addEventListener('click', () => { cal.visibleTeachers = []; done(); });
 
     const toggleWeek = (k, hide) => {
       cal.hiddenWeeks = cal.hiddenWeeks || [];

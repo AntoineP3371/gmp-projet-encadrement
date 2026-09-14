@@ -397,13 +397,27 @@ function attach(win, deps) {
       const calendar = await win.webContents.executeJavaScript(`(async () => {
         const PE = window.PE; const sch = PE.state.scheduling;
         sch.toMove = {}; sch.validated = {}; sch.noSup = {}; sch.altSup = {}; sch.locked = {};
-        sch.visibleProjects = null; PE.state.calendar = { hiddenWeeks: [] };
+        sch.visibleProjects = null; PE.state.calendar = { hiddenWeeks: [], visibleTeachers: null };
         PE.setTab('calendar'); PE.rerender(); await new Promise((r) => setTimeout(r, 250));
         const card = document.getElementById('view');
         const cols0 = card.querySelectorAll('.cxw').length;
         const blocks = card.querySelectorAll('.cxblk').length;
         const firstBlk = card.querySelector('.cxblk');
         const blkText = firstBlk ? firstBlk.querySelector('.m').textContent : '';
+
+        // filtre "par encadrant" : "aucun" puis un encadrant précis ne garde
+        // que ses séances ; "tous" restaure tout.
+        const teaBtns = Array.from(card.querySelectorAll('.tv-btn'));
+        let teacherFilterOk = null, teacherFilterRestored = null;
+        if (teaBtns.length) {
+          document.querySelector('#cx-tea-none').click(); await new Promise((r) => setTimeout(r, 200));
+          const pickTid = teaBtns[0].dataset.tid;
+          document.querySelector('.tv-btn[data-tid="' + pickTid + '"]').click(); await new Promise((r) => setTimeout(r, 200));
+          const blocksNow = Array.from(document.querySelectorAll('.cxblk')).filter((b) => !b.classList.contains('cx-tomove'));
+          teacherFilterOk = blocksNow.length > 0 && blocksNow.every((b) => Array.from(b.querySelectorAll('.cx-enc-rm')).some((r) => r.dataset.tid === pickTid));
+          document.querySelector('#cx-tea-all').click(); await new Promise((r) => setTimeout(r, 200));
+          teacherFilterRestored = document.querySelectorAll('.cxblk').length === blocks;
+        }
 
         // parité avec l'Affectation : la séance "agenda ✓" mise en place par
         // SMOKE-E2E-AGENDA doit apparaître ici aussi, en vert, jamais en indispo/manque.
@@ -475,6 +489,7 @@ function attach(win, deps) {
         const schSees = sid ? (PE.assignments()[sid] || []).indexOf(tid) !== -1 : null;
         return JSON.stringify({
           cols: cols0, blocks: blocks, blkHasTime: /\\d\\d:\\d\\d[–-]\\d\\d:\\d\\d/.test(blkText),
+          teacherFilterOk: teacherFilterOk, teacherFilterRestored: teacherFilterRestored,
           agendaParity: agendaParity,
           addWrites: inAssign === true && inLocked === true,
           validated: validated, autoOk: autoOk, autoDistinct: autoSid !== sid,

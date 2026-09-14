@@ -97,7 +97,9 @@
         result: null
       },
       planning: { sources: null, type: 'all', q: '' },
-      calendar: { hiddenWeeks: [] }, // onglet Calendrier : cles ISO "AAAA-SS" masquees
+      calendar: { hiddenWeeks: [], visibleTeachers: null }, // onglet Calendrier :
+                          // hiddenWeeks = cles ISO "AAAA-SS" masquees ;
+                          // visibleTeachers = null (tous) ou [encadrantId] (calendrier filtre par encadrant)
       assistant: { log: [] },
       ui: { tab: 'sources' }
     };
@@ -169,6 +171,9 @@
     s.planning = Object.assign(s.planning, data.planning || {});
     if (data.calendar && Array.isArray(data.calendar.hiddenWeeks)) {
       s.calendar.hiddenWeeks = data.calendar.hiddenWeeks.filter((k) => typeof k === 'string');
+    }
+    if (data.calendar && Array.isArray(data.calendar.visibleTeachers)) {
+      s.calendar.visibleTeachers = data.calendar.visibleTeachers.filter((k) => typeof k === 'string');
     }
     if (data.assistant && Array.isArray(data.assistant.log)) s.assistant.log = data.assistant.log.slice(-24);
     s.ui = Object.assign(s.ui, data.ui || {});

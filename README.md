@@ -379,7 +379,11 @@ analysée, **une ligne par demi-journée** (`lun. matin` → `ven. après-midi`,
 coupure du midi à 12 h ; une séance à cheval sur midi est rangée dans sa
 demi-journée **principale**). Chaque colonne est un petit agenda de la semaine.
 
-- **Portée** : les projets cochés (mêmes boutons *Projets :* que la Répartition).
+- **Portée** : les projets cochés (mêmes boutons *Projets :* que la Répartition),
+  **et** les encadrants cochés (boutons *Encadrants :*, + *tous* / *aucun*) — ne
+  garder qu'un ou plusieurs encadrants affiche **leur calendrier personnel**
+  (une séance apparaît si l'un des encadrants cochés y est affecté). Les deux
+  filtres se combinent et sont mémorisés.
 - **Colonnes** : toutes les semaines de la plage. Le bouton *Semaines affichées*
   (cases à cocher) et le **×** sur chaque en-tête permettent d'en **masquer** ;
   *tout afficher* les remet. Le choix est mémorisé.
@@ -451,7 +455,8 @@ affectations verrouillées) est sauvegardé automatiquement dans le dossier
   charge les agendas d'exemple via l'IPC réel, exécute une affectation
   automatique, un calcul de périodes communes (plusieurs plages horaires +
   filtre durée), un export PDF, l'ajout / retrait d'un second agenda iCal sur un
-  encadrant, l'onglet *Calendrier* (grille rendue, ajout d'un encadrant /
+  encadrant, l'onglet *Calendrier* (grille rendue, filtre *Encadrants :* qui
+  réduit la grille au calendrier d'un encadrant, ajout d'un encadrant /
   validation / mise en autonomie répercutés dans l'onglet Affectation, séance
   « à déplacer » affichée réduite, agenda ✓ cohérent avec l'Affectation,
   masquage d'une semaine, couleur d'un encadrant changée dans Agendas et
