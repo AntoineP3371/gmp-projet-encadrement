@@ -237,7 +237,7 @@
     }
 
     function gridHTML() {
-      return '<div class="cxc-scroll"><div class="cxc">' + visWeeks.map((w) => {
+      return '<div class="cxc-scroll" data-keep-scroll="cal-grid"><div class="cxc">' + visWeeks.map((w) => {
         const col = cell[w.key] || {};
         return `<div class="cxw">
           <div class="cxw-h"><span><b>S${w.n}</b> ${w.label}</span>

@@ -440,8 +440,16 @@ function attach(win, deps) {
         }
         // valider l'encadrement sur ce bloc
         let validated = null;
+        // le défilement doit être conservé après une modification de case
+        const gridEl = () => document.querySelector('.cxc-scroll');
+        const viewEl = document.getElementById('view');
+        if (gridEl()) { gridEl().scrollLeft = 150; gridEl().scrollTop = 40; }
+        viewEl.scrollTop = 30;
+        const sc0 = gridEl() ? [gridEl().scrollLeft, gridEl().scrollTop] : [0, 0];
+        const vs0 = viewEl.scrollTop;
         const vb = sid && document.querySelector('.cx-valid[data-sid="' + sid + '"]');
         if (vb) { vb.click(); await new Promise((r) => setTimeout(r, 200)); validated = sch.validated[sid] === true; }
+        const scrollKept = !!gridEl() && gridEl().scrollLeft === sc0[0] && gridEl().scrollTop === sc0[1] && viewEl.scrollTop === vs0;
         // rendre une AUTRE séance en autonomie
         let autoOk = null, autoSid = null;
         const ab = Array.from(document.querySelectorAll('.cx-auto')).find((b) => b.dataset.sid !== sid);
@@ -492,7 +500,7 @@ function attach(win, deps) {
           teacherFilterOk: teacherFilterOk, teacherFilterRestored: teacherFilterRestored,
           agendaParity: agendaParity,
           addWrites: inAssign === true && inLocked === true,
-          validated: validated, autoOk: autoOk, autoDistinct: autoSid !== sid,
+          validated: validated, scrollKept: scrollKept, scrollInfo: [sc0, vs0], autoOk: autoOk, autoDistinct: autoSid !== sid,
           tomoveShowsReduced: tomoveShowsReduced, tomoveToggleOk: tomoveToggleOk,
           weekHidden: colsAfterHide === cols0 - 1,
           colorChanged: colorChanged, colorPropagates: colorPropagates,

@@ -570,14 +570,30 @@
   };
 
   /* ---------------- rendering ---------------- */
+  let lastRenderedTab = null;
   PE.rerender = function () {
     const c = document.getElementById('view');
+    const tab = PE.state.ui.tab;
+    // Même onglet : on garde la position de défilement (page + conteneurs [data-keep-scroll]),
+    // pour ne pas revenir au début après une modification sur place.
+    const keep = (tab === lastRenderedTab)
+      ? { top: c.scrollTop, left: c.scrollLeft,
+          inner: Array.from(c.querySelectorAll('[data-keep-scroll]')).map((el) => [el.dataset.keepScroll, el.scrollTop, el.scrollLeft]) }
+      : null;
     c.innerHTML = '';
     document.querySelectorAll('.tab').forEach((b) => {
-      b.classList.toggle('active', b.dataset.tab === PE.state.ui.tab);
+      b.classList.toggle('active', b.dataset.tab === tab);
     });
-    const view = PE.views[PE.state.ui.tab] || PE.views.sources;
+    const view = PE.views[tab] || PE.views.sources;
     view.render(c);
+    lastRenderedTab = tab;
+    if (keep) {
+      keep.inner.forEach(([id, t, l]) => {
+        const el = c.querySelector('[data-keep-scroll="' + id + '"]');
+        if (el) { el.scrollTop = t; el.scrollLeft = l; }
+      });
+      c.scrollTop = keep.top; c.scrollLeft = keep.left;
+    }
   };
 
   PE.setTab = function (tab) {
