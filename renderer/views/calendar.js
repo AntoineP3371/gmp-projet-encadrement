@@ -236,13 +236,20 @@
       </div>`;
     }
 
+    // date complÃ¨te de la demi-journÃ©e, affichÃ©e au survol de la ligne
+    function slotTitle(w, si) {
+      const d = new Date(w.monday); d.setDate(d.getDate() + Math.floor(si / 2));
+      const txt = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      return U.esc(txt + (si % 2 ? ' — après-midi' : ' — matin'));
+    }
+
     function gridHTML() {
       return '<div class="cxc-scroll" data-keep-scroll="cal-grid"><div class="cxc">' + visWeeks.map((w) => {
         const col = cell[w.key] || {};
         return `<div class="cxw">
           <div class="cxw-h"><span><b>S${w.n}</b> ${w.label}</span>
             <button type="button" class="cxw-hide" data-k="${w.key}" title="masquer cette semaine">&times;</button></div>
-          ${SLOTLBL.map((lb, si) => `<div class="cxh">
+          ${SLOTLBL.map((lb, si) => `<div class="cxh" title="${slotTitle(w, si)}">
             <div class="cxh-lab">${lb}</div>
             <div class="cxh-cells">${(col[si] || []).map(blockHTML).join('')}</div>
           </div>`).join('')}

@@ -449,6 +449,7 @@ function attach(win, deps) {
         const vs0 = viewEl.scrollTop;
         const vb = sid && document.querySelector('.cx-valid[data-sid="' + sid + '"]');
         if (vb) { vb.click(); await new Promise((r) => setTimeout(r, 200)); validated = sch.validated[sid] === true; }
+        const dayTitles = (function () { const hs = document.querySelectorAll('.cxh'); return hs.length > 0 && /^lundi \\d+ \\S+ \\d{4} — matin$/.test(hs[0].title) && /^vendredi .* — après-midi$/.test(hs[hs.length > 9 ? 9 : 0].title); })();
         const scrollKept = !!gridEl() && gridEl().scrollLeft === sc0[0] && gridEl().scrollTop === sc0[1] && viewEl.scrollTop === vs0;
         // rendre une AUTRE séance en autonomie
         let autoOk = null, autoSid = null;
@@ -498,6 +499,7 @@ function attach(win, deps) {
         return JSON.stringify({
           cols: cols0, blocks: blocks, blkHasTime: /\\d\\d:\\d\\d[–-]\\d\\d:\\d\\d/.test(blkText),
           teacherFilterOk: teacherFilterOk, teacherFilterRestored: teacherFilterRestored,
+          dayTitles: dayTitles,
           agendaParity: agendaParity,
           addWrites: inAssign === true && inLocked === true,
           validated: validated, scrollKept: scrollKept, scrollInfo: [sc0, vs0], autoOk: autoOk, autoDistinct: autoSid !== sid,
