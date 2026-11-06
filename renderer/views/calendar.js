@@ -236,7 +236,7 @@
       </div>`;
     }
 
-    // date complÃ¨te de la demi-journÃ©e, affichÃ©e au survol de la ligne
+    // date complète de la demi-journée, affichée au survol de la ligne
     function slotTitle(w, si) {
       const d = new Date(w.monday); d.setDate(d.getDate() + Math.floor(si / 2));
       const txt = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
