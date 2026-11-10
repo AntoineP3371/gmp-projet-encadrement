@@ -629,12 +629,12 @@ function attach(win, deps) {
         })()`);
         await new Promise((r) => setTimeout(r, 400));
         const html = await win.webContents.executeJavaScript('window.PE.views.scheduling._report()');
-        const rw = new BrowserWindow({ show: false, width: 900, height: 1400, webPreferences: { javascript: false } });
+        const rw = new BrowserWindow({ show: false, width: 1123, height: 1500, webPreferences: { javascript: false } });
         const rt = path.join(app.getPath('temp'), 'projet-encadrement-smoke-report-' + Date.now() + '.html');
         fs.writeFileSync(rt, html, 'utf8');
         await rw.loadFile(rt);
         await new Promise((r) => setTimeout(r, 250));
-        const rbuf = await rw.webContents.printToPDF({ pageSize: 'A4', printBackground: true });
+        const rbuf = await rw.webContents.printToPDF(require('../lib/report-pdf').REPORT_PDF_OPTIONS);
         const rpng = await rw.webContents.capturePage();
         rw.destroy();
         try { fs.unlinkSync(rt); } catch (_) { /* ignore */ }
@@ -652,7 +652,7 @@ function attach(win, deps) {
           hasSlots: /\d\d:\d\d.\d\d:\d\d/.test(html),
           hasBilanSeance: html.indexOf('Bilan par seance') !== -1 && html.indexOf('<th>Disponibilites</th>') !== -1,
           hasPageBreaks: (html.match(/class="tb pagebreak"/g) || []).length > 0,
-          pdfBytes: rbuf.length,
+          pdfBytes: rbuf.length, landscape: /MediaBox \[0 0 84\d/.test(rbuf.toString('latin1')),
           isPdf: rbuf.slice(0, 5).toString('latin1') === '%PDF-'
         }));
       } catch (e) {

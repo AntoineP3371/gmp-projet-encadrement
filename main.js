@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { fetchText, parseICS } = require('./lib/ical');
 const { buildTemplateBuffer, parseWorkbook } = require('./lib/xlsx');
+const { REPORT_PDF_OPTIONS } = require('./lib/report-pdf');
 
 const APP_NAME = 'Encadrement projet';
 app.setName(APP_NAME);
@@ -123,11 +124,7 @@ ipcMain.handle('pdf:save', async (_e, { html, defaultName }) => {
     pdfWin = new BrowserWindow({ show: false, webPreferences: { javascript: false } });
     await pdfWin.loadFile(tmp);
     await new Promise((res) => setTimeout(res, 200));
-    const buf = await pdfWin.webContents.printToPDF({
-      printBackground: true,
-      pageSize: 'A4',
-      margins: { marginType: 'default' }
-    });
+    const buf = await pdfWin.webContents.printToPDF(REPORT_PDF_OPTIONS);
     fs.writeFileSync(r.filePath, buf);
     return { ok: true, filePath: r.filePath };
   } catch (err) {

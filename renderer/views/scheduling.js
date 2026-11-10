@@ -1161,7 +1161,7 @@
         ${mineAll.length ? `<table><thead><tr><th>Date</th><th>Horaire</th><th>Projet</th><th>Seance</th><th>Encadrement assure</th></tr></thead><tbody>
         ${mineAll.map((s) => {
           if (tmSet[s.id]) {
-            return `<tr><td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="st-warn">a deplacer &mdash; non comptee</td></tr>`;
+            return `<tr><td class="nw">${U.fmtDated(s.start)}</td><td class="nw">${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="st-warn">a deplacer &mdash; non comptee</td></tr>`;
           }
           const c = covFor(t.id, s);
           let cov;
@@ -1169,7 +1169,7 @@
           if (c.frac >= 1 - 1e-9) { cov = 'toute la seance'; cls = 'st-ok'; }
           else if (c.frac <= 1e-9) { cov = 'indisponible'; cls = 'st-bad'; }
           else { cov = fmtH(hoursOf(c.freeMs)) + ' &middot; ' + fmtSlots(c.free); cls = 'st-warn'; }
-          return `<tr><td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="${cls}">${cov}</td></tr>`;
+          return `<tr><td class="nw">${U.fmtDated(s.start)}</td><td class="nw">${U.fmtRange(s.start, s.end)}</td><td>${esc(s.project)}</td><td>${esc(s.label)}</td><td class="${cls}">${cov}</td></tr>`;
         }).join('')}
         </tbody></table>` : ''}
       </div>`;
@@ -1183,7 +1183,7 @@
         return part.indexOf(tid) === -1 ? nm : nm + ' <span class="muted">(' + fmtSlots(covFor(tid, s).free) + ')</span>';
       });
       if (altOf(s)) names.push(esc(altOf(s)) + ' <span class="muted">(hors liste)</span>');
-      return names.length ? names.join(', ') : '<span class="muted">—</span>';
+      return names.length ? names.join('<br>') : '<span class="muted">—</span>';
     };
     const cmtLine = (s) => (cmtMap[s.id] ? '<br><span class="muted">💬 ' + esc(String(cmtMap[s.id])) + '</span>' : '');
 
@@ -1215,14 +1215,19 @@
       const blocked = T.filter((t) => PE.isEligible(s.projectId, t.id) && !shown[t.id])
         .map((t) => ({ t: t, why: reasonPdf(t.id, s) })).filter((b) => b.why).slice(0, 8);
       const blockedTxt = blocked.length
-        ? '<br><span class="muted">non dispo : ' + blocked.map((b) => esc(b.t.name) + ' (' + esc(b.why) + ')').join(', ') + '</span>'
+        ? '<div class="dl bl"><b>Non dispo</b> : ' + blocked.map((b) => esc(b.t.name) + ' (' + esc(b.why) + ')').join(' ; ') + '</div>'
         : '';
       if (!list.length) return (blockedTxt ? '' : '<span class="muted">aucun encadrant eligible disponible</span>') + blockedTxt;
-      return list.map((x) => {
-        const slots = x.full ? '' : ' (' + fmtSlots(covFor(x.tid, s).free) + ')';
-        const why = x.full ? '' : (reasonPdf(x.tid, s) ? ' — ' + esc(reasonPdf(x.tid, s)) : '');
-        return esc(x.name) + ' ' + fmtH(x.hours) + (x.full ? '' : ' ⚠' + slots + why);
-      }).join(', ') + blockedTxt;
+      // disponibles sur toute la séance : une seule ligne (liste compacte) ;
+      // partiels : une ligne chacun, car le créneau couvert et le motif comptent.
+      const full = list.filter((x) => x.full).map((x) => esc(x.name));
+      const fullTxt = full.length ? '<div class="dl"><b>Libres</b> : ' + full.join(', ') + '</div>' : '';
+      const partTxt = list.filter((x) => !x.full).map((x) => {
+        const slots = ' (' + fmtSlots(covFor(x.tid, s).free) + ')';
+        const why = reasonPdf(x.tid, s) ? ' — ' + esc(reasonPdf(x.tid, s)) : '';
+        return '<div class="dl part"><b>' + esc(x.name) + '</b> ' + fmtH(x.hours) + ' ⚠' + slots + why + '</div>';
+      }).join('');
+      return fullTxt + partTxt + blockedTxt;
     };
 
     const allSessions = sessions.slice().sort((x, y) => (x.start < y.start ? -1 : 1));
@@ -1231,11 +1236,11 @@
     const bilanSeanceRows = allSessions.map((s) => {
       const st = statusOf(s);
       return `<tr>
-        <td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td>
+        <td class="nw">${U.fmtDated(s.start)}</td><td class="nw">${U.fmtRange(s.start, s.end)}</td><td class="nw">${s.hours} h</td>
         <td><span class="sw" style="background:${projectColor[s.projectId] || '#999'}"></span> ${esc(s.project)}</td>
         <td>${esc(s.label)}${s.location ? '<br><span class="muted">' + esc(s.location) + '</span>' : ''}${cmtLine(s)}</td>
         <td>${encCell(s)}</td>
-        <td>${dispoCellPdf(s)}</td>
+        <td class="dispo">${dispoCellPdf(s)}</td>
         <td class="${st.c}">${st.t}</td></tr>`;
     }).join('');
 
@@ -1248,7 +1253,7 @@
         <table><thead><tr><th>Date</th><th>Horaire</th><th>Duree</th><th>Seance</th><th>Encadrant(s)</th><th>Statut</th></tr></thead><tbody>
         ${ps.map((s) => {
           const st = statusOf(s);
-          return `<tr><td>${U.fmtDated(s.start)}</td><td>${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td><td>${esc(s.label)}${cmtLine(s)}</td><td>${encCell(s)}</td><td class="${st.c}">${st.t}</td></tr>`;
+          return `<tr><td class="nw">${U.fmtDated(s.start)}</td><td class="nw">${U.fmtRange(s.start, s.end)}</td><td>${s.hours} h</td><td>${esc(s.label)}${cmtLine(s)}</td><td>${encCell(s)}</td><td class="${st.c}">${st.t}</td></tr>`;
         }).join('')}
         </tbody></table></div>`;
     }).join('');
@@ -1257,9 +1262,9 @@
     const editedOn = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(now);
     return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Rapport d'affectation</title>
     <style>
-      @page { size: A4; margin: 14mm; }
+      @page { size: A4 landscape; margin: 10mm 10mm 14mm; }
       * { box-sizing: border-box; }
-      body { font: 12px -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2430; }
+      body { font: 11.5px -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2430; }
       h1 { font-size: 19px; margin: 0 0 2px; color: #1e3a8a; }
       h2 { font-size: 14px; margin: 22px 0 6px; color: #fff; background: #2563eb; padding: 4px 8px; border-radius: 4px;
         page-break-after: avoid; break-after: avoid; }
@@ -1267,7 +1272,14 @@
       .edited { color: #b45309; font-weight: 600; margin: 0 0 2px; }
       p.meta { color: #666; margin: 0 0 12px; }
       p.sub { color: #666; margin: 0 0 4px; font-size: 11px; }
-      table { border-collapse: collapse; width: 100%; margin: 4px 0 10px; font-size: 11px; }
+      table { border-collapse: collapse; width: 100%; margin: 4px 0 10px; font-size: 10.5px; }
+      table.fixed { table-layout: fixed; }
+      thead { display: table-header-group; }
+      td.nw { white-space: nowrap; }
+      td.dispo { font-size: 9.5px; line-height: 1.35; }
+      .dl { margin: 0 0 1px; }
+      .dl.part { color: #b45309; }
+      .dl.bl { color: #888; margin-top: 3px; }
       th, td { border: 1px solid #cbd5e1; padding: 3px 6px; text-align: left; vertical-align: top; }
       th { background: #e8f0fe; color: #1e3a8a; }
       td.r, th.r { text-align: right; }
@@ -1316,7 +1328,8 @@
       </tbody></table>
 
       <h2>Bilan par seance</h2>
-      <table><thead><tr><th>Date</th><th>Horaire</th><th>Duree</th><th>Projet</th><th>Seance</th><th>Encadrant(s)</th><th>Disponibilites</th><th>Statut</th></tr></thead><tbody>
+      <table class="fixed"><colgroup><col style="width:11%"><col style="width:7.5%"><col style="width:5%"><col style="width:11%"><col style="width:17%"><col style="width:13%"><col style="width:26%"><col style="width:9.5%"></colgroup>
+      <thead><tr><th>Date</th><th>Horaire</th><th>Duree</th><th>Projet</th><th>Seance</th><th>Encadrant(s)</th><th>Disponibilites</th><th>Statut</th></tr></thead><tbody>
       ${bilanSeanceRows || '<tr><td colspan="8" class="muted">Aucune seance.</td></tr>'}
       </tbody></table>
 
