@@ -270,6 +270,10 @@
     <li>Filtres par <span class="ui">type</span> (encadrant / projet), par <span class="ui">agenda</span>
     (cases à cocher) et recherche plein texte.</li>
     <li>Chaque ligne : horaire, pastille de couleur de l'agenda, intitulé, lieu.</li>
+    <li>Un tableau <span class="ui">Totaux par agenda</span> donne, pour chaque agenda affiché, le nombre
+    d'événements, de <b>séances</b> et d'<b>heures</b> : séances affectées et heures encadrées pour un
+    encadrant (avec sa cible) ; séances et durée totale pour un projet (dont heures encadrées et séances en
+    autonomie).</li>
     <li><span class="ui">Exporter CSV</span> pour retravailler la liste dans un tableur.</li>
   </ul>
 </section>
@@ -389,6 +393,9 @@
     dans l'application (vacataire, intervenant extérieur…). Il <b>compte pour un encadrant</b> : la séance
     n'est plus « manque » et l'affectation automatique n'y place personne d'office. Il apparaît en gris
     « (hors liste) » dans la Répartition, le rapport et les exports.</li>
+    <li><span class="ui">valider l'autonomie</span> — sur une séance en autonomie : la fige et la compte comme
+    <b>couverte</b> et <b>validée</b> dans les décomptes (elle reste comptée dans les heures et séances en
+    autonomie). Ajouter un encadrant ou décocher l'autonomie lève la validation.</li>
     <li><span class="ui">encadrement validé</span> — <b>fige</b> la séance sur ses encadrants du moment.
     Une séance validée garde exactement ses encadrants au prochain <span class="ui">Affecter
     automatiquement</span> <b>et après une mise à jour des agendas</b>, n'est jamais comptée « manque »

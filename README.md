@@ -117,6 +117,12 @@ Pour un agenda de type **Projet**, on choisit son mode d'**encadrement** :
 Vue chronologique de tous les événements des agendas actifs. Filtres par type,
 par agenda, recherche plein texte. Bouton *Exporter CSV*.
 
+Un tableau **« Totaux par agenda »** donne, pour chaque agenda affiché : le nombre
+d'événements, le nombre de **séances** et le total d'**heures**. Agenda enseignant :
+séances de projet affectées et heures encadrées (avec la cible). Agenda projet : séances
+et durée totale, dont heures encadrées, séances en autonomie et séances « à déplacer »
+(non comptées), d'après l'affectation courante.
+
 ### 3. Onglet *Périodes communes*
 Cochez ≥ 2 agendas, choisissez :
 - *Créneaux libres communs* : moments où **aucun** des agendas n'a d'événement,
@@ -281,6 +287,12 @@ intervenant extérieur…). Il **compte pour un encadrant** vis-à-vis du minimu
 de la cible : la séance n'est alors plus « manque » et l'affectation automatique
 n'y place personne d'office. Il apparaît en gris « (hors liste) » dans la
 Répartition, le rapport et les exports.
+
+**Autonomie validée** : sur une séance en autonomie, le bouton *valider l'autonomie*
+(Affectation et Calendrier) la fige comme telle (elle n'est plus modifiée par un
+recalcul) et la compte comme **couverte** et **validée** dans les décomptes ; elle reste
+comptée dans les heures et séances « en autonomie » du projet. Ajouter un encadrant ou
+décocher l'autonomie lève la validation.
 
 **Encadrement validé** : le bouton *encadrement validé* (colonne *Encadrant(s)*)
 **fige** la séance sur ses encadrants du moment. Une séance validée :

@@ -513,6 +513,60 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-CALENDAR ' + calendar);
 
+      // séance en autonomie VALIDÉE : compte comme couverte + validée ; Planning (liste) : totaux par agenda
+      const autoValid = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE;
+        const sch = PE.state.scheduling;
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        const kpi = (label) => {
+          const k = Array.from(document.querySelectorAll('.kpi .k')).find((x) => x.querySelector('span').textContent.trim() === label);
+          return k ? parseInt(k.querySelector('b').textContent, 10) : null;
+        };
+        sch.toMove = {}; sch.validated = {}; sch.noSup = {}; sch.locked = {};
+        PE.setTab('scheduling'); PE.rerender(); await wait(300);
+        const sid = PE.sessions()[0].id;
+        PE.sched.setAutonome(sid, true); PE.save(); PE.rerender(); await wait(250);
+        const cov0 = kpi('couvertes'); const val0 = kpi('validees');
+        const btn = document.querySelector('.validate-btn[data-sid="' + sid + '"][data-auto="1"]');
+        if (btn) { btn.click(); await wait(250); }
+        const cov1 = kpi('couvertes'); const val1 = kpi('validees');
+        const row = document.querySelector('.validate-btn[data-sid="' + sid + '"]');
+        const rowOk = !!row && row.classList.contains('primary') && /autonomie valid/.test(row.textContent)
+          && !!document.querySelector('tr.nosup.validated');
+        const kept = sch.noSup[sid] === true && sch.validated[sid] === true && (PE.assignments()[sid] || []).length === 0;
+        // ré-ouvre l'autonomie -> la validation tombe
+        PE.sched.setAutonome(sid, false); PE.save(); PE.rerender(); await wait(200);
+        const dropped = !sch.validated[sid] && !sch.noSup[sid];
+
+        // Planning (liste) : totaux par agenda cohérents avec l'affectation
+        sch.noSup = {}; sch.validated = {};
+        PE.state.planning.sources = null; PE.state.planning.type = 'all'; PE.state.planning.q = '';
+        PE.setTab('planning'); PE.rerender(); await wait(300);
+        const rows = Array.from(document.querySelectorAll('#view .panel table.grid tbody tr'));
+        const a = PE.assignments();
+        const T = PE.teacherModels();
+        const nOf = (tid) => PE.sessions().filter((s) => (a[s.id] || []).indexOf(tid) !== -1 && !(sch.toMove || {})[s.id]).length;
+        let teachersOk = true;
+        T.forEach((t) => {
+          const r = rows.find((x) => x.textContent.indexOf(t.name) !== -1);
+          if (!r) { teachersOk = false; return; }
+          const cells = r.querySelectorAll('td');
+          if (parseInt(cells[2].textContent, 10) !== nOf(t.id)) teachersOk = false;
+        });
+        const projSrc = PE.sourcesOfType('project')[0];
+        const prow = projSrc && rows.find((x) => x.textContent.indexOf(projSrc.name) !== -1);
+        const projOk = !!prow && parseInt(prow.querySelectorAll('td')[2].textContent, 10) === PE.sessions().filter((s) => s.projectId === projSrc.id).length
+          && /h/.test(prow.querySelectorAll('td')[3].textContent);
+        return JSON.stringify({
+          coveredPlusOne: cov1 === cov0 + 1, validatedPlusOne: val1 === (val0 || 0) + 1,
+          rowOk: rowOk, kept: kept, dropped: dropped,
+          planningHeader: /Totaux par agenda/.test(document.getElementById('view').textContent),
+          teachersOk: teachersOk, projOk: projOk, rows: rows.length, 
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-AUTOVALID ' + autoValid);
+
       await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
       const common = await win.webContents.executeJavaScript(`(async () => {

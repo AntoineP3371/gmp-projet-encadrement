@@ -24,18 +24,7 @@
     return PE.sourcesOfType('project').filter((s) => s.enabled !== false);
   }
 
-  function setNoSup(sid, on) {
-    const sch = PE.state.scheduling;
-    sch.noSup = sch.noSup || {};
-    if (on) {
-      sch.noSup[sid] = true;
-      if (sch.locked[sid]) delete sch.locked[sid];
-      const a = ensureAssignments();
-      a[sid] = [];
-    } else {
-      delete sch.noSup[sid];
-    }
-  }
+  const setNoSup = (sid, on) => PE.sched.setAutonome(sid, on);
 
   const ensureAssignments = PE.assignments;
 
@@ -163,8 +152,11 @@
     const hasAlt = (s) => !!(altSupMap[s.id] && String(altSupMap[s.id]).trim());
     const loads = T.map((t) => ev.load[t.id] || 0);
     const maxLoad = Math.max(1, ...loads);
-    const covered = sessions.filter((s) => !noSupSet[s.id] && !toMoveSet[s.id] &&
-      (validSet[s.id] || (assignments[s.id] || []).length + (hasAlt(s) ? 1 : 0) >= o.minPerSession)).length;
+    // « couverte » : encadrement suffisant, ou séance validée (y compris une
+    // séance en autonomie validée) ; une autonomie non validée reste à traiter.
+    const isCovered = (s) => !toMoveSet[s.id] && (validSet[s.id]
+      || (!noSupSet[s.id] && (assignments[s.id] || []).length + (hasAlt(s) ? 1 : 0) >= o.minPerSession));
+    const covered = sessions.filter(isCovered).length;
     const totalAssignedH = Math.round(loads.reduce((a, b) => a + b, 0) * 10) / 10;
     const arbitrer = sessions.filter((s) => !noSupSet[s.id] && !toMoveSet[s.id] && (ev.availFull[s.id] || 0) >= 2).length;
     const partielles = sessions.filter((s) => (ev.partial[s.id] || []).length).length;
@@ -190,10 +182,10 @@
         total: all.length,
         toMove: all.filter((s) => toMoveSet[s.id]).length,
         valide: ps.filter((s) => validSet[s.id]).length,
-        covered: ps.filter((s) => !noSupSet[s.id] &&
-          (validSet[s.id] || (assignments[s.id] || []).length + (hasAlt(s) ? 1 : 0) >= o.minPerSession)).length,
+        covered: ps.filter(isCovered).length,
         manque: ps.filter((s) => unfilledSet[s.id]).length,
         sansEnc: ps.filter((s) => noSupSet[s.id]).length,
+        sansEncValid: ps.filter((s) => noSupSet[s.id] && validSet[s.id]).length,
         unsupH: round1(ev.unsupHours[p.id] || 0),
         unsupTarget: round1(ev.unsupTarget[p.id] || 0),
         partial: ps.filter((s) => (ev.partial[s.id] || []).length).length,
@@ -203,9 +195,9 @@
     });
     const bTot = bilan.reduce((a, b) => ({
       total: a.total + b.total, toMove: a.toMove + b.toMove, valide: a.valide + b.valide, covered: a.covered + b.covered, manque: a.manque + b.manque,
-      sansEnc: a.sansEnc + b.sansEnc, unsupH: round1(a.unsupH + b.unsupH), unsupTarget: round1(a.unsupTarget + b.unsupTarget),
+      sansEnc: a.sansEnc + b.sansEnc, sansEncValid: a.sansEncValid + b.sansEncValid, unsupH: round1(a.unsupH + b.unsupH), unsupTarget: round1(a.unsupTarget + b.unsupTarget),
       partial: a.partial + b.partial, arbitrer: a.arbitrer + b.arbitrer, hours: round1(a.hours + b.hours)
-    }), { total: 0, toMove: 0, valide: 0, covered: 0, manque: 0, sansEnc: 0, unsupH: 0, unsupTarget: 0, partial: 0, arbitrer: 0, hours: 0 });
+    }), { total: 0, toMove: 0, valide: 0, covered: 0, manque: 0, sansEnc: 0, sansEncValid: 0, unsupH: 0, unsupTarget: 0, partial: 0, arbitrer: 0, hours: 0 });
 
     root.innerHTML = `
       <div class="view-head">
@@ -248,7 +240,7 @@
               <td style="text-align:right">${b.total}</td>
               <td style="text-align:right">${b.covered}</td>
               <td style="text-align:right"><b style="color:${b.manque ? 'var(--danger)' : 'inherit'}">${b.manque}</b></td>
-              <td style="text-align:right">${b.sansEnc}${(b.supervision === 'partial' || b.unsupTarget > 0)
+              <td style="text-align:right">${b.sansEnc}${b.sansEncValid ? ' <span class="badge ok" title="séances en autonomie validées">' + b.sansEncValid + ' validée(s)</span>' : ''}${(b.supervision === 'partial' || b.unsupTarget > 0)
                 ? ` <span style="color:${b.unsupH > b.unsupTarget + 0.05 ? 'var(--warn)' : 'var(--muted)'}">(${b.unsupH} h / ${b.unsupTarget} h)</span>`
                 : (b.sansEnc ? ` <span class="muted">(${b.unsupH} h)</span>` : '')}</td>
               <td style="text-align:right"><b style="color:${b.partial ? 'var(--warn)' : 'inherit'}">${b.partial}</b></td>
@@ -443,8 +435,8 @@
       // le total « seance(s) », mais pas dans couvertes / heures / par encadrant.
       const ps = all.filter((s) => !toMoveSet[s.id]);
       const sup = ev.supervisionOf[p.id] || (p.supervision === 'partial' ? 'partial' : 'full');
-      const cov = ps.filter((s) => !nos[s.id] &&
-        (vSet[s.id] || (assignments[s.id] || []).length + alt1(s) >= o.minPerSession)).length;
+      const cov = ps.filter((s) => vSet[s.id] ||
+        (!nos[s.id] && (assignments[s.id] || []).length + alt1(s) >= o.minPerSession)).length;
       const mq = ps.filter((s) => unf[s.id]).length;
       const se = ps.filter((s) => nos[s.id]).length;
       const dep = all.filter((s) => toMoveSet[s.id]).length;
@@ -702,7 +694,11 @@
     const moveBtn = `<button type="button" class="small tomove-btn ${isToMove ? 'primary' : ''}" data-sid="${s.id}" title="marquer cette seance comme « a deplacer » (ignoree par l'affectation auto)">${isToMove ? '✓ a deplacer' : 'a deplacer'}</button>`;
     const commentBox = `<textarea class="sess-comment" data-sid="${s.id}" rows="1" placeholder="commentaire…">${U.esc(comment)}</textarea>`;
     const altBox = `<label class="alt-sup-lbl">autre encadrant <input class="alt-sup" data-sid="${s.id}" value="${U.esc(altSup)}" placeholder="hors liste" /></label>`;
-    const validateBtn = `<button type="button" class="small validate-btn ${isValidated ? 'primary' : ''}" data-sid="${s.id}" title="verrouiller l'encadrement de cette seance : les encadrants ne bougent plus, meme apres un recalcul ou un rafraichissement des agendas">${isValidated ? '✓ encadrement validé' : 'encadrement validé'}</button>`;
+    const validateBtn = `<button type="button" class="small validate-btn ${isValidated ? 'primary' : ''}" data-sid="${s.id}" data-auto="${isNoSup ? '1' : '0'}" title="${isNoSup
+      ? 'valider l\'autonomie de cette seance : elle est figee (meme apres un recalcul) et compte comme couverte dans les decomptes'
+      : 'verrouiller l\'encadrement de cette seance : les encadrants ne bougent plus, meme apres un recalcul ou un rafraichissement des agendas'}">${isNoSup
+      ? (isValidated ? '✓ autonomie validée' : 'valider l\'autonomie')
+      : (isValidated ? '✓ encadrement validé' : 'encadrement validé')}</button>`;
 
     if (isToMove) {
       return `
@@ -740,7 +736,7 @@
     if (isNoSup) {
       const addOptN = optionList(eligT, s, { exclude: new Set(arr), current: '' }, covFor);
       return `
-        <tr class="nosup">
+        <tr class="nosup${isValidated ? ' validated' : ''}">
           <td>${U.fmtDated(s.start)}</td>
           <td>${U.fmtRange(s.start, s.end)}</td>
           <td>${s.hours} h ${durWarn ? '<span class="badge warn">&ne;' + o.sessionHours + 'h</span>' : ''}</td>
@@ -751,10 +747,10 @@
             <span class="enc-line"><span class="dot" style="background:transparent"></span>
               <select class="add-teacher" data-sid="${s.id}"><option value="">+ affecter un encadrant…</option>${addOptN}</select></span>
             ${altBox}
-            ${nosupToggle}
+            ${nosupToggle}${validateBtn}
           </td>
           <td class="dispo-cell">${dispoCell}</td>
-          <td><span class="badge" style="background:var(--bg);color:var(--muted)">en autonomie</span></td>
+          <td>${isValidated ? '<span class="badge ok">autonomie validée</span>' : '<span class="badge" style="background:var(--bg);color:var(--muted)">en autonomie</span>'}</td>
         </tr>`;
     }
 
@@ -962,15 +958,7 @@
 
     // "encadrement validé" : verrouille tous les encadrants affectes + fige la seance
     root.querySelectorAll('.validate-btn').forEach((b) => b.addEventListener('click', () => {
-      const sid = b.dataset.sid;
-      sch.validated = sch.validated || {};
-      if (sch.validated[sid]) {
-        delete sch.validated[sid];
-      } else {
-        sch.validated[sid] = true;
-        const a = ensureAssignments();
-        (a[sid] || []).forEach((tid) => lock(sid, tid));
-      }
+      PE.sched.toggleValidated(b.dataset.sid, b.dataset.auto === '1');
       PE.save();
       PE.rerender();
     }));
@@ -1022,11 +1010,7 @@
       const tid = sel.value;
       if (!tid) return;
       const sid = sel.dataset.sid;
-      if (sch.noSup && sch.noSup[sid]) delete sch.noSup[sid];
-      const a = ensureAssignments();
-      a[sid] = a[sid] || [];
-      if (a[sid].indexOf(tid) === -1) a[sid].push(tid);
-      lock(sid, tid);
+      PE.sched.addTeacher(sid, tid);
       PE.save();
       PE.rerender();
     }));
@@ -1099,8 +1083,9 @@
     const nameOf = (tid) => (byTeacher[tid] ? byTeacher[tid].name : tid);
     const sh = o.sessionHours || 4;
 
-    const covered = sessions.filter((s) => !noSupSet[s.id] && !tmSet[s.id] &&
-      (vSet[s.id] || (a[s.id] || []).length + (altOf(s) ? 1 : 0) >= o.minPerSession)).length;
+    const isCovered = (s) => !tmSet[s.id] && (vSet[s.id]
+      || (!noSupSet[s.id] && (a[s.id] || []).length + (altOf(s) ? 1 : 0) >= o.minPerSession));
+    const covered = sessions.filter(isCovered).length;
     const aDeplacer = (ev.toMove || []).length;
     const nValide = (ev.validated || []).length;
     const totalH = Math.round(T.reduce((x, t) => x + (ev.load[t.id] || 0), 0) * 10) / 10;
@@ -1118,10 +1103,10 @@
         sup: ev.supervisionOf[p.id] || (p.supervision === 'partial' ? 'partial' : 'full'),
         total: all.length,
         toMove: all.filter((s) => tmSet[s.id]).length,
-        covered: ps.filter((s) => !noSupSet[s.id] &&
-          (vSet[s.id] || (a[s.id] || []).length + (altOf(s) ? 1 : 0) >= o.minPerSession)).length,
+        covered: ps.filter(isCovered).length,
         manque: ps.filter((s) => unfSet[s.id]).length,
         sansEnc: ps.filter((s) => noSupSet[s.id]).length,
+        sansEncValid: ps.filter((s) => noSupSet[s.id] && vSet[s.id]).length,
         unsupH: Math.round((ev.unsupHours[p.id] || 0) * 10) / 10,
         unsupTarget: Math.round((ev.unsupTarget[p.id] || 0) * 10) / 10,
         partial: ps.filter((s) => (ev.partial[s.id] || []).length).length,
@@ -1131,7 +1116,7 @@
 
     const statusOf = (s) => {
       if (tmSet[s.id]) return { t: 'a deplacer', c: 'st-warn' };
-      if (vSet[s.id]) return { t: 'validé', c: 'st-ok' };
+      if (vSet[s.id]) return { t: noSupSet[s.id] ? 'autonomie validée' : 'validé', c: 'st-ok' };
       if (noSupSet[s.id]) return { t: 'en autonomie', c: 'st-neutral' };
       const arr = a[s.id] || [];
       const missing = Math.max(0, o.minPerSession - arr.length - (altOf(s) ? 1 : 0));
@@ -1357,7 +1342,7 @@
       const comment = String((sch.comment || {})[s.id] || '');
       const missing = Math.max(0, o.minPerSession - arr.length - (alt ? 1 : 0));
       const status = (sch.toMove || {})[s.id] ? 'A DEPLACER'
-        : (sch.validated || {})[s.id] ? 'VALIDE'
+        : (sch.validated || {})[s.id] ? (nos[s.id] ? 'AUTONOMIE VALIDEE' : 'VALIDE')
           : nos[s.id] ? 'EN AUTONOMIE'
             : missing ? ('MANQUE ' + missing)
               : (ev.indispo[s.id] || []).length ? 'INDISPO'

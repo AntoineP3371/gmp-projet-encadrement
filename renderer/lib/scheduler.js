@@ -279,13 +279,14 @@
       // belongs to a partially-supervised project and has no encadrant (ni
       // un "autre encadrant" saisi a la main).
       const isNoSup = !!noSupSet[s.id] || (sup === 'partial' && arr.length === 0 && !hasAlt(s));
+      // une séance en autonomie peut aussi être « validée » : elle est alors
+      // figée et compte comme traitée (couverte), au même titre qu'un encadrement validé.
+      if (validatedSet[s.id]) validated.push(s.id);
       if (isNoSup) {
         noSup.push(s.id);
         if (s.projectId != null) unsupHours[s.projectId] = (unsupHours[s.projectId] || 0) + (s.hours || 0);
         return;
       }
-
-      if (validatedSet[s.id]) validated.push(s.id);
 
       arr.forEach((tid) => {
         const t = byId[tid];

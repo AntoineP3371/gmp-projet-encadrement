@@ -117,8 +117,9 @@
     }
 
     function statusOf(s, matched) {
-      if ((sch.validated || {})[s.id]) return { t: 'validé', c: 'ok' };
-      if ((ev.noSup || []).indexOf(s.id) !== -1) return { t: 'en autonomie', c: 'neutral' };
+      const auto = (ev.noSup || []).indexOf(s.id) !== -1;
+      if ((sch.validated || {})[s.id]) return { t: auto ? 'autonomie validée' : 'validé', c: 'ok' };
+      if (auto) return { t: 'en autonomie', c: 'neutral' };
       const arr = assignments[s.id] || [];
       const alt = String((sch.altSup || {})[s.id] || '').trim();
       const missing = Math.max(0, o.minPerSession - arr.length - (alt ? 1 : 0));
@@ -193,6 +194,7 @@
       const comment = String((sch.comment || {})[s.id] || '');
       const isValid = !!(sch.validated || {})[s.id];
       const isAuto = !!(sch.noSup || {})[s.id];
+      const isAutoEff = (ev.noSup || []).indexOf(s.id) !== -1; // déclarée ou implicite (projet en encadrement partiel)
 
       const list = ev.availList[s.id] || [];
       const shown = {}; list.forEach((x) => { shown[x.tid] = 1; });
@@ -230,7 +232,7 @@
         <div class="cx-enc">${encChips || '<span class="muted">—</span>'}
           <select class="cx-add" data-sid="${s.id}"><option value="">+ encadrant…</option>${addOptions(s)}</select></div>
         <div class="cx-ctrls">
-          <button type="button" class="small cx-valid ${isValid ? 'primary' : ''}" data-sid="${s.id}" title="verrouiller l'encadrement : les encadrants ne bougent plus, même après un recalcul ou un rafraîchissement">${isValid ? '✓ validé' : 'valider'}</button>
+          <button type="button" class="small cx-valid ${isValid ? 'primary' : ''}" data-sid="${s.id}" data-auto="${isAutoEff ? '1' : '0'}" title="${isAutoEff ? 'valider l\'autonomie : la séance est figée et compte comme couverte dans les décomptes' : 'verrouiller l\'encadrement : les encadrants ne bougent plus, même après un recalcul ou un rafraîchissement'}">${isValid ? (isAutoEff ? '✓ autonomie validée' : '✓ validé') : (isAutoEff ? 'valider l\'autonomie' : 'valider')}</button>
           <button type="button" class="small cx-auto ${isAuto ? 'primary' : ''}" data-sid="${s.id}" title="séance en autonomie : les étudiants travaillent seuls, aucun encadrant placé">${isAuto ? '✓ en autonomie' : 'en autonomie'}</button>
         </div>
       </div>`;
@@ -349,7 +351,7 @@
       done();
     }));
     root.querySelectorAll('.cx-valid').forEach((b) => b.addEventListener('click', () => {
-      PE.sched.toggleValidated(b.dataset.sid);
+      PE.sched.toggleValidated(b.dataset.sid, b.dataset.auto === '1');
       done();
     }));
     root.querySelectorAll('.cx-auto').forEach((b) => b.addEventListener('click', () => {

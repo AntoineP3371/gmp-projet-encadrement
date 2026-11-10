@@ -18,10 +18,57 @@
     });
   }
 
+  const fmtH = (h) => (Math.round(h * 10) / 10).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' h';
+
+  /* Totaux par agenda, d'après l'affectation courante (mêmes règles que l'onglet
+     Affectation : les séances « à déplacer » ne comptent pas).
+     - agenda enseignant : séances affectées + heures encadrées (+ cible) ;
+     - agenda projet : séances + heures du projet, dont heures encadrées / en autonomie. */
+  function totalsBySource(srcs) {
+    const S = PE.scheduler;
+    const sessions = PE.sessions();
+    const assignments = PE.assignments();
+    const T = PE.teacherModels();
+    const sch = PE.state.scheduling;
+    const toMove = sch.toMove || {};
+    const ev = S.evaluate(sessions, T, PE.schedOptions(), assignments);
+    const noSup = {}; (ev.noSup || []).forEach((id) => { noSup[id] = 1; });
+    const sh = (sch.options && sch.options.sessionHours) || 4;
+    const out = {};
+    srcs.forEach((src) => {
+      if (src.type === 'teacher') {
+        const mine = sessions.filter((x) => !toMove[x.id] && (assignments[x.id] || []).indexOf(src.id) !== -1);
+        const tgtH = (ev.target && ev.target[src.id]) || 0;
+        out[src.id] = {
+          n: mine.length, h: ev.load[src.id] || 0,
+          detail: tgtH ? 'cible ≈ ' + Math.round(tgtH / sh) + ' séance(s) (' + fmtH(tgtH) + ')' : ''
+        };
+      } else if (src.type === 'project') {
+        const ps = sessions.filter((x) => x.projectId === src.id && !toMove[x.id]);
+        const nMove = sessions.filter((x) => x.projectId === src.id && toMove[x.id]).length;
+        const hTot = ps.reduce((a, x) => a + x.hours, 0);
+        const hEnc = ps.reduce((a, x) => a + (assignments[x.id] || []).length * x.hours, 0);
+        const auto = ps.filter((x) => noSup[x.id]);
+        const parts = [fmtH(hEnc) + ' encadrées (nb encadrants × durée)'];
+        if (auto.length) parts.push(auto.length + ' en autonomie (' + fmtH(auto.reduce((a, x) => a + x.hours, 0)) + ')');
+        if (nMove) parts.push(nMove + ' à déplacer (non comptée' + (nMove > 1 ? 's' : '') + ')');
+        out[src.id] = { n: ps.length, h: hTot, detail: parts.join(' · ') };
+      }
+    });
+    return out;
+  }
+
   function render(root) {
     const f = PE.state.planning;
     const srcs = PE.sortedSources();
     const evs = filtered();
+    const shownSrcs = srcs.filter((s) => s.enabled !== false
+      && (f.type === 'all' || s.type === f.type)
+      && (!Array.isArray(f.sources) || f.sources.indexOf(s.id) !== -1));
+    const totals = totalsBySource(shownSrcs);
+    const evCount = {}; evs.forEach((e) => { evCount[e.sourceId] = (evCount[e.sourceId] || 0) + 1; });
+    const sumT = shownSrcs.filter((s) => s.type === 'teacher').reduce((a, s) => ({ n: a.n + totals[s.id].n, h: a.h + totals[s.id].h }), { n: 0, h: 0 });
+    const sumP = shownSrcs.filter((s) => s.type === 'project').reduce((a, s) => ({ n: a.n + totals[s.id].n, h: a.h + totals[s.id].h }), { n: 0, h: 0 });
 
     const groups = {};
     evs.forEach((e) => {
@@ -59,6 +106,25 @@
             </label>`).join('')}
         </div>
       </div>
+
+      ${shownSrcs.length ? `<div class="panel">
+        <h2>Totaux par agenda</h2>
+        <div style="overflow:auto"><table class="grid">
+          <thead><tr><th>Agenda</th><th style="text-align:right">Événements</th><th style="text-align:right">Séances</th><th style="text-align:right">Heures</th><th>Détail</th></tr></thead>
+          <tbody>
+          ${shownSrcs.map((s) => { const t = totals[s.id] || { n: 0, h: 0, detail: '' }; return `<tr>
+            <td><span class="dot" style="background:${s.color}"></span> ${U.esc(s.name)} <span class="badge ${s.type}">${s.type === 'teacher' ? 'ens.' : 'proj.'}</span></td>
+            <td style="text-align:right">${evCount[s.id] || 0}</td>
+            <td style="text-align:right"><b>${t.n}</b></td>
+            <td style="text-align:right"><b>${fmtH(t.h)}</b></td>
+            <td class="muted">${t.detail}</td></tr>`; }).join('')}
+          ${(sumT.n || sumP.n) && shownSrcs.some((s) => s.type === 'teacher') && shownSrcs.some((s) => s.type === 'project') ? `
+          <tr style="font-weight:700;border-top:2px solid var(--border)"><td>Total enseignants (affecté)</td><td></td><td style="text-align:right">${sumT.n}</td><td style="text-align:right">${fmtH(sumT.h)}</td><td></td></tr>
+          <tr style="font-weight:700"><td>Total projets</td><td></td><td style="text-align:right">${sumP.n}</td><td style="text-align:right">${fmtH(sumP.h)}</td><td></td></tr>` : ''}
+          </tbody>
+        </table></div>
+        <p class="muted" style="margin:8px 0 0"><b>Enseignant</b> : séances de projet affectées et heures encadrées (affectation courante). <b>Projet</b> : séances du projet et leur durée totale. <b>Événements</b> : lignes de l'agenda visibles dans la liste ci-dessous.</p>
+      </div>` : ''}
 
       <div id="pl-list">
         ${keys.length ? keys.map((k) => {

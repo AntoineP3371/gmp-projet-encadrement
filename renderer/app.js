@@ -491,11 +491,16 @@
         a[sid] = [];
       } else {
         delete sch.noSup[sid];
+        // la validation portait sur l'autonomie : elle tombe avec elle
+        if (sch.validated) delete sch.validated[sid];
       }
     },
     addTeacher(sid, tid) {
       const sch = PE.state.scheduling;
-      if (sch.noSup && sch.noSup[sid]) delete sch.noSup[sid];
+      if (sch.noSup && sch.noSup[sid]) {
+        delete sch.noSup[sid];
+        if (sch.validated) delete sch.validated[sid]; // autonomie validée -> n'est plus valable
+      }
       const a = PE.assignments();
       a[sid] = a[sid] || [];
       if (a[sid].indexOf(tid) === -1) a[sid].push(tid);
@@ -506,10 +511,22 @@
       if (a[sid]) a[sid] = a[sid].filter((x) => x !== tid);
       PE.sched.unlock(sid, tid);
     },
-    toggleValidated(sid) {
+    /* valide / dé-valide une séance. `autonomous` : la séance est en autonomie
+       (déclarée, ou implicite sur un projet en encadrement partiel) -> on la
+       déclare explicitement en autonomie et on la fige ; sinon on verrouille
+       ses encadrants. Dans les deux cas elle compte comme traitée. */
+    toggleValidated(sid, autonomous) {
       const sch = PE.state.scheduling;
       sch.validated = sch.validated || {};
       if (sch.validated[sid]) { delete sch.validated[sid]; return false; }
+      if (autonomous) {
+        sch.noSup = sch.noSup || {};
+        sch.noSup[sid] = true;
+        if (sch.locked[sid]) delete sch.locked[sid];
+        PE.assignments()[sid] = [];
+        sch.validated[sid] = true;
+        return true;
+      }
       sch.validated[sid] = true;
       const a = PE.assignments();
       (a[sid] || []).forEach((tid) => PE.sched.lock(sid, tid));
