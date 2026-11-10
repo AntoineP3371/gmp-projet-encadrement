@@ -98,7 +98,7 @@
         result: null
       },
       planning: { sources: null, type: 'all', q: '' },
-      calendar: { hiddenWeeks: [], visibleTeachers: null }, // onglet Calendrier :
+      calendar: { hiddenWeeks: [], visibleTeachers: null, onlyAuto: false }, // onglet Calendrier :
                           // hiddenWeeks = cles ISO "AAAA-SS" masquees ;
                           // visibleTeachers = null (tous) ou [encadrantId] (calendrier filtre par encadrant)
       assistant: { log: [] },
@@ -173,6 +173,7 @@
     if (data.calendar && Array.isArray(data.calendar.hiddenWeeks)) {
       s.calendar.hiddenWeeks = data.calendar.hiddenWeeks.filter((k) => typeof k === 'string');
     }
+    if (data.calendar && data.calendar.onlyAuto === true) s.calendar.onlyAuto = true;
     if (data.calendar && Array.isArray(data.calendar.visibleTeachers)) {
       s.calendar.visibleTeachers = data.calendar.visibleTeachers.filter((k) => typeof k === 'string');
     }

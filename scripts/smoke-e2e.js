@@ -567,12 +567,51 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-AUTOVALID ' + autoValid);
 
+      // Calendrier : bouton « En autonomie » = n'afficher que les séances en autonomie
+      const calAuto = await win.webContents.executeJavaScript(`(async () => {
+        const PE = window.PE;
+        const sch = PE.state.scheduling;
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        sch.toMove = {}; sch.validated = {}; sch.noSup = {}; sch.locked = {};
+        PE.state.calendar.onlyAuto = false; PE.state.calendar.visibleTeachers = null; PE.state.calendar.hiddenWeeks = [];
+        sch.visibleProjects = null;
+        const ids = PE.sessions().slice(0, 2).map((s) => s.id);
+        ids.forEach((id) => PE.sched.setAutonome(id, true));
+        // une séance à 2 encadrants -> 2 bandes de couleur ; une à 1 encadrant -> 1 bande
+        const T2 = PE.teacherModels();
+        const sid2 = PE.sessions()[2].id; const sid1 = PE.sessions()[3].id;
+        PE.assignments()[sid2] = []; PE.assignments()[sid1] = [];
+        PE.sched.addTeacher(sid2, T2[0].id); PE.sched.addTeacher(sid2, T2[1].id); PE.sched.addTeacher(sid1, T2[0].id);
+        PE.setTab('calendar'); PE.rerender(); await wait(300);
+        const blkOf = (sid) => { const b = document.querySelector('.cx-valid[data-sid="' + sid + '"]'); return b && b.closest('.cxblk'); };
+        const b2 = blkOf(sid2); const b1 = blkOf(sid1); const ba = blkOf(ids[0]);
+        const bandsOk = !!b2 && b2.querySelectorAll('.cx-bands span').length === 2 && /linear-gradient/.test(b2.getAttribute('style') || '')
+          && !!b1 && b1.querySelectorAll('.cx-bands span').length === 1
+          && !!ba && ba.classList.contains('cx-neutral') && !ba.querySelector('.cx-bands');
+        const blocksAll = document.querySelectorAll('.cxblk').length;
+        const btn = document.getElementById('cx-only-auto');
+        const label = btn ? btn.textContent : '';
+        btn.click(); await wait(250);
+        const blocksAuto = document.querySelectorAll('.cxblk').length;
+        const onlyAutoBlocks = Array.from(document.querySelectorAll('.cxblk')).every((b) => b.classList.contains('cx-neutral') && !b.querySelector('.cx-bands'));
+        const persisted = PE.state.calendar.onlyAuto === true && document.getElementById('cx-only-auto').classList.contains('primary');
+        document.getElementById('cx-only-auto').click(); await wait(250);
+        const blocksBack = document.querySelectorAll('.cxblk').length;
+        sch.noSup = {}; sch.validated = {};
+        return JSON.stringify({
+          labelHasCount: (+((label.match(/\\((\\d+)/) || [])[1])) === blocksAuto, blocksAll: blocksAll, blocksAuto: blocksAuto,
+          bandsOk: bandsOk, autoFiltered: blocksAuto >= 2 && onlyAutoBlocks, persisted: persisted, restored: blocksBack === blocksAll,
+          errors: window.__errors.length
+        });
+      })()`);
+      console.log('SMOKE-E2E-CALAUTO ' + calAuto);
+
       await win.webContents.executeJavaScript('window.PE.setTab("common")');
       await new Promise((r) => setTimeout(r, 200));
       const common = await win.webContents.executeJavaScript(`(async () => {
         const PE = window.PE; const c = PE.state.common;
         c.selected = PE.state.sources.filter((s) => s.type === 'teacher').map((s) => s.id);
-        c.mode = 'free'; PE.rerender(); await new Promise((r) => setTimeout(r, 150));
+        c.mode = 'free'; c.work.ranges = [{ from: 8, to: 20 }]; c.work.durMin = 0; c.work.durMax = 0; PE.rerender(); await new Promise((r) => setTimeout(r, 150));
         // ajouter une 2e plage horaire
         document.querySelector('#cm-r-add').click(); await new Promise((r) => setTimeout(r, 150));
         const rangesAfterAdd = c.work.ranges.length;

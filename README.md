@@ -395,13 +395,18 @@ demi-journée **principale**). Chaque colonne est un petit agenda de la semaine.
   **et** les encadrants cochés (boutons *Encadrants :*, + *tous* / *aucun*) — ne
   garder qu'un ou plusieurs encadrants affiche **leur calendrier personnel**
   (une séance apparaît si l'un des encadrants cochés y est affecté). Les deux
-  filtres se combinent et sont mémorisés.
+  filtres se combinent et sont mémorisés. Le bouton **En autonomie (n)** n'affiche
+  que les **séances en autonomie** (le filtre par encadrant est alors mis de côté) ;
+  recliquer revient à toutes les séances.
 - **Colonnes** : toutes les semaines de la plage. Le bouton *Semaines affichées*
   (cases à cocher) et le **×** sur chaque en-tête permettent d'en **masquer** ;
   *tout afficher* les remet. Le choix est mémorisé.
-- **Couleur d'une case** : le **statut** (validé vert · manque/indispo rouge ·
-  partiel/hors équipe orange · plusieurs encadrants dispos bleu · en autonomie
-  hachuré).
+- **Couleur d'une case** : celle du ou des **encadrants affectés**. Avec plusieurs
+  encadrants, la largeur de la case est **partagée en bandes** de leurs couleurs
+  (liseré en haut + fond teinté) ; une séance **en autonomie** est **grise**
+  (hachurée). Le **statut** se lit sur le **bord gauche** (validé vert · manque/
+  indispo rouge · partiel/hors équipe orange · plusieurs encadrants dispos bleu)
+  et dans l'étiquette de la case.
 - Deux séances la même demi-journée → blocs **côte à côte**.
 
 **Contenu d'un bloc** : la séance (pastille projet + intitulé), la **salle** et

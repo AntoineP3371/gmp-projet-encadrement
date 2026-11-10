@@ -74,10 +74,17 @@
 
     const vt = Array.isArray(cal.visibleTeachers) ? cal.visibleTeachers : null;
     const visTea = {}; if (vt) vt.forEach((id) => { visTea[id] = 1; });
-    const sessions = allSessions.filter((s) => visIds[s.projectId]
-      && (!vt || (assignments[s.id] || []).some((tid) => visTea[tid])));
-
     const ev = S.evaluate(allSessions, T, PE.schedOptions(), assignments);
+
+    // bouton « En autonomie » : ne montrer que les séances en autonomie (déclarées
+    // ou implicites). Une séance en autonomie n'a pas d'encadrant : dans ce mode
+    // le filtre par encadrant est mis de côté.
+    const autoSet = {}; (ev.noSup || []).forEach((id) => { autoSet[id] = 1; });
+    const onlyAuto = !!cal.onlyAuto;
+    const nAuto = allSessions.filter((s) => visIds[s.projectId] && autoSet[s.id]).length;
+    const nAutoValid = allSessions.filter((s) => visIds[s.projectId] && autoSet[s.id] && (sch.validated || {})[s.id]).length;
+    const sessions = allSessions.filter((s) => visIds[s.projectId]
+      && (onlyAuto ? autoSet[s.id] : (!vt || (assignments[s.id] || []).some((tid) => visTea[tid]))));
 
     const busyMap = {}; T.forEach((t) => { busyMap[t.id] = S.teacherBusy(t.events, o.allDayBusy); });
     const ivsMap = {}; T.forEach((t) => { ivsMap[t.id] = []; });
@@ -225,7 +232,18 @@
       const pc = (PE.sourcesOfType('project').find((p) => p.id === s.projectId) || {}).color || '#999';
       const marks = anyMatched ? '<span class="badge ok" title="séance présente dans l\'agenda de l\'encadrant affecté">agenda&nbsp;✓</span> ' : '';
       const badgeCls = st.c === 'ok' ? 'ok' : st.c === 'danger' ? 'danger' : st.c === 'warn' ? 'warn' : '';
-      return `<div class="cxblk cx-${st.c}">
+      // couleurs de la séance = celles des encadrants affectés : la largeur de la
+      // case est partagée en bandes égales (une par encadrant) ; en autonomie : gris.
+      const bandCols = arr.map((tid) => (byT[tid] ? byT[tid].color : '#999'));
+      if (alt) bandCols.push('#94a3b8');
+      const bands = isAutoEff || !bandCols.length ? ''
+        : '<div class="cx-bands" title="' + U.esc(arr.map((tid) => (byT[tid] ? byT[tid].name : tid)).concat(alt ? [alt] : []).join(' + ')) + '">'
+          + bandCols.map((c) => '<span style="background:' + c + '"></span>').join('') + '</div>';
+      const n = bandCols.length;
+      const tint = isAutoEff || !n ? ''
+        : ' style="background:linear-gradient(to right,' + bandCols.map((c, i) => c + '38 ' + (i * 100 / n) + '% ' + ((i + 1) * 100 / n) + '%').join(',') + ')"';
+      const cls = isAutoEff ? 'cx-neutral' + (isValid ? ' cx-av' : '') : 'cx-' + st.c;
+      return `<div class="cxblk ${cls}"${tint}>${bands}
         <div class="t" title="${U.esc(s.project + ' — ' + s.label)}"><span class="dot" style="background:${pc}"></span>${U.esc(s.label)} ${marks}<span class="badge ${badgeCls}">${st.t}</span></div>
         <div class="m">${U.esc(s.location || 'salle ?')} · ${U.fmtRange(s.start, s.end)}${comment ? ' · 💬 ' + U.esc(comment) : ''}</div>
         <div class="cx-disp">${avail || '<span class="muted">aucun encadrant éligible disponible</span>'}${blocked ? ' <span class="muted">— indispo :</span> ' + blocked : ''}</div>
@@ -269,6 +287,7 @@
           ${projects.length ? `<span class="muted">Projets :</span>
             ${projects.map((p) => `<button class="small projvis-btn ${visIds[p.id] ? 'primary' : ''}" data-pid="${p.id}"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}</button>`).join('')}
             <button class="small" id="cx-proj-all">tous</button>` : ''}
+          <button class="small ${onlyAuto ? 'primary' : ''}" id="cx-only-auto" title="${onlyAuto ? 'cliquer pour revoir toutes les séances' : 'afficher uniquement les séances en autonomie (sans encadrant)'}">${onlyAuto ? '✓ ' : ''}En autonomie (${nAuto}${nAutoValid ? ', ' + nAutoValid + ' validée' + (nAutoValid > 1 ? 's' : '') : ''})</button>
           <span class="spacer" style="flex:1"></span>
           ${weeks.length ? `<details class="cx-weeks"><summary>Semaines affichées (${visWeeks.length}/${weeks.length})</summary>
             <div class="cx-weeks-list">
@@ -276,21 +295,23 @@
               ${weeks.map((w) => `<label><input type="checkbox" class="cx-wk" data-k="${w.key}" ${hidden[w.key] ? '' : 'checked'} /> S${w.n} <span class="muted">${w.label}</span></label>`).join('')}
             </div></details>` : ''}
         </div>
-        ${T.length ? `<div class="row wrap-tight" style="margin-bottom:8px">
+        ${T.length ? `<div class="row wrap-tight" style="margin-bottom:8px${onlyAuto ? ';opacity:.5' : ''}">
           <span class="muted">Encadrants :</span>
           ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="n'afficher que le calendrier de ${U.esc(t.name)}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
           <button class="small" id="cx-tea-all">tous</button>
           <button class="small" id="cx-tea-none">aucun</button>
         </div>` : ''}
         <p class="muted" style="margin:0 0 8px">
-          <span class="swatch" style="background:var(--ok-soft)"></span> validé / agenda ✓ &nbsp;
-          <span class="swatch" style="background:var(--danger-soft)"></span> manque / indispo &nbsp;
-          <span class="swatch" style="background:var(--warn-soft)"></span> partiel / hors équipe / à déplacer &nbsp;
-          <span class="swatch" style="background:var(--accent-soft)"></span> plusieurs encadrants dispos &nbsp;
-          <span class="swatch" style="background:repeating-linear-gradient(45deg,#fff,#fff 4px,#e9ebef 4px,#e9ebef 8px)"></span> en autonomie
+          <b>Couleur</b> = encadrant(s) affecté(s) (case partagée en bandes s'il y en a plusieurs) &nbsp;
+          <span class="swatch" style="background:rgba(148,163,184,.55)"></span> en autonomie &nbsp;&middot;&nbsp;
+          <b>Bord gauche</b> = statut :
+          <span class="swatch" style="background:var(--ok)"></span> validé / agenda ✓
+          <span class="swatch" style="background:var(--danger)"></span> manque / indispo
+          <span class="swatch" style="background:var(--warn)"></span> partiel / hors équipe / à déplacer
+          <span class="swatch" style="background:var(--accent)"></span> plusieurs encadrants dispos
         </p>
         ${!projects.length ? '<p class="muted">Ajoutez un agenda « projet ».</p>'
-        : !sessions.length ? '<p class="muted">Aucune séance pour les projets / encadrants cochés.</p>'
+        : !sessions.length ? '<p class="muted">' + (onlyAuto ? 'Aucune séance en autonomie pour les projets cochés.' : 'Aucune séance pour les projets / encadrants cochés.') + '</p>'
           : !visWeeks.length ? '<p class="muted">Toutes les semaines sont masquées.</p>'
             : gridHTML()}
         ${offGrid ? `<p class="muted" style="margin-top:8px">${offGrid} séance(s) hors lun.–ven. non affichée(s) ici.</p>` : ''}
@@ -315,6 +336,9 @@
     }));
     const pa = root.querySelector('#cx-proj-all');
     if (pa) pa.addEventListener('click', () => { sch.visibleProjects = null; done(); });
+
+    const oa = root.querySelector('#cx-only-auto');
+    if (oa) oa.addEventListener('click', () => { cal.onlyAuto = !cal.onlyAuto; done(); });
 
     root.querySelectorAll('.tv-btn').forEach((b) => b.addEventListener('click', () => {
       const tid = b.dataset.tid;
