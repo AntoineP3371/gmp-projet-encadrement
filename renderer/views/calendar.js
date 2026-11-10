@@ -7,6 +7,7 @@
   const fmtH = (h) => (Math.round(h * 10) / 10).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' h';
   const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
   const AUTO_ID = '__auto__'; // pseudo-encadrant « en autonomie » dans le filtre Encadrants
+  const NONE_ID = '__none__'; // pseudo-encadrant « non affecté » (aucun encadrant, pas en autonomie)
   const SLOTLBL = ['lun. matin', 'lun. après-midi', 'mar. matin', 'mar. après-midi', 'mer. matin', 'mer. après-midi',
     'jeu. matin', 'jeu. après-midi', 'ven. matin', 'ven. après-midi'];
 
@@ -80,10 +81,15 @@
     // « En autonomie » se coche comme un encadrant (pseudo-encadrant AUTO_ID) :
     // une séance en autonomie (déclarée ou implicite) s'affiche si cette case est cochée.
     const autoSet = {}; (ev.noSup || []).forEach((id) => { autoSet[id] = 1; });
+    // « Non affecté » : séance sans aucun encadrant affecté (ni « autre encadrant »),
+    // qui n'est pas en autonomie -> encadrement à faire / non validé.
+    const isUnassigned = (s) => !autoSet[s.id] && !(assignments[s.id] || []).length
+      && !String((sch.altSup || {})[s.id] || '').trim();
+    const nNone = allSessions.filter((s) => visIds[s.projectId] && isUnassigned(s)).length;
     const nAuto = allSessions.filter((s) => visIds[s.projectId] && autoSet[s.id]).length;
     const nAutoValid = allSessions.filter((s) => visIds[s.projectId] && autoSet[s.id] && (sch.validated || {})[s.id]).length;
     const sessions = allSessions.filter((s) => visIds[s.projectId]
-      && (!vt || (assignments[s.id] || []).some((tid) => visTea[tid]) || (autoSet[s.id] && visTea[AUTO_ID])));
+      && (!vt || (assignments[s.id] || []).some((tid) => visTea[tid]) || (autoSet[s.id] && visTea[AUTO_ID]) || (isUnassigned(s) && visTea[NONE_ID])));
 
     const busyMap = {}; T.forEach((t) => { busyMap[t.id] = S.teacherBusy(t.events, o.allDayBusy); });
     const ivsMap = {}; T.forEach((t) => { ivsMap[t.id] = []; });
@@ -293,10 +299,11 @@
               ${weeks.map((w) => `<label><input type="checkbox" class="cx-wk" data-k="${w.key}" ${hidden[w.key] ? '' : 'checked'} /> S${w.n} <span class="muted">${w.label}</span></label>`).join('')}
             </div></details>` : ''}
         </div>
-        ${T.length || nAuto ? `<div class="row wrap-tight" style="margin-bottom:8px">
+        ${T.length || nAuto || nNone ? `<div class="row wrap-tight" style="margin-bottom:8px">
           <span class="muted">Encadrants :</span>
           ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="${!vt ? 'ne voir que le calendrier de ' : 'afficher / masquer le calendrier de '}${U.esc(t.name)}${!vt ? ' (Ctrl+clic : le masquer seulement)' : ''}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
           <button class="small tv-btn ${!vt || visTea[AUTO_ID] ? 'primary' : ''}" data-tid="${AUTO_ID}" title="afficher / masquer les séances en autonomie (sans encadrant)${nAutoValid ? ' — dont ' + nAutoValid + ' validée' + (nAutoValid > 1 ? 's' : '') : ''}"><span class="dot" style="background:#94a3b8"></span> En autonomie (${nAuto})</button>
+          <button class="small tv-btn ${!vt || visTea[NONE_ID] ? 'primary' : ''}" data-tid="${NONE_ID}" title="afficher / masquer les séances sans encadrant affecté (encadrement à faire)"><span class="dot" style="background:transparent;border:1.5px dashed var(--muted)"></span> Non affecté (${nNone})</button>
           <button class="small" id="cx-tea-all">tous</button>
           <button class="small" id="cx-tea-none">aucun</button>
         </div>` : ''}
@@ -341,7 +348,7 @@
     // depuis « tous » décoche seulement celui-ci (tous les autres restent).
     root.querySelectorAll('.tv-btn').forEach((b) => b.addEventListener('click', (e) => {
       const tid = b.dataset.tid;
-      const allIds = PE.teacherModels().map((t) => t.id).concat(AUTO_ID);
+      const allIds = PE.teacherModels().map((t) => t.id).concat(AUTO_ID, NONE_ID);
       let vis;
       if (!Array.isArray(cal.visibleTeachers)) {
         vis = (e.ctrlKey || e.shiftKey || e.metaKey) ? allIds.filter((x) => x !== tid) : [tid];

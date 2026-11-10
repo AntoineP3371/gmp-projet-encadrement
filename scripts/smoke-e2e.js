@@ -617,6 +617,22 @@ function attach(win, deps) {
         // tout recocher -> retour à « tous »
         document.getElementById('cx-tea-all').click(); await wait(250);
         const blocksBack = document.querySelectorAll('.cxblk').length;
+        // « Non affecté » : séances sans aucun encadrant et pas en autonomie (projet en
+        // encadrement total -> elles « manquent »). On passe le projet en « total » le temps du test.
+        const proj0 = PE.sourcesOfType('project')[0]; const supBefore = proj0.supervision;
+        proj0.supervision = 'full'; PE.rerender(); await wait(250);
+        const noneBtn = () => document.querySelector('.tv-btn[data-tid="__none__"]');
+        const noneN = +((noneBtn().textContent.match(/\\((\\d+)/) || [])[1]);
+        noneBtn().click(); await wait(250);
+        const noneBlocks = Array.from(document.querySelectorAll('.cxblk'));
+        const noneOk = noneN >= 1 && noneBlocks.length === noneN
+          && noneBlocks.every((b) => !b.querySelector('.cx-enc-rm') && !b.classList.contains('cx-neutral'));
+        document.getElementById('cx-tea-all').click(); await wait(250);
+        // décochée seule (Ctrl+clic), « Non affecté » masque ces séances
+        noneBtn().dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true })); await wait(250);
+        const noneHidden = document.querySelectorAll('.cxblk').length === blocksAll - noneN;
+        document.getElementById('cx-tea-all').click(); await wait(250);
+        proj0.supervision = supBefore; PE.rerender(); await wait(200);
         // validée, une séance en autonomie garde la mise en page d'un bloc (pas d'inline-flex)
         PE.sched.toggleValidated(ids[0], true); PE.save(); PE.rerender(); await wait(250);
         const vb = blkOf(ids[0]);
@@ -628,7 +644,7 @@ function attach(win, deps) {
           bandsOk: bandsOk, autoSelAll: autoSelAll, isolates: isolates,
           autoToggle: noGrey && blocksNoAuto === blocksAll - greyAll,
           autoOnly: blocksOnlyAuto === greyAll && greyAll >= 2 && onlyAutoBlocks && stored === '["__auto__"]',
-          autoMix: blocksMix > blocksOnlyAuto, restored: blocksBack === blocksAll, validLayout: validLayout,
+          autoMix: blocksMix > blocksOnlyAuto, noneOk: noneOk, noneHidden: noneHidden, restored: blocksBack === blocksAll, validLayout: validLayout,
           errors: window.__errors.length
         });
       })()`);

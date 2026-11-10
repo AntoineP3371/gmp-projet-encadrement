@@ -98,7 +98,7 @@
         result: null
       },
       planning: { sources: null, type: 'all', q: '' },
-      calendar: { hiddenWeeks: [], visibleTeachers: null }, // onglet Calendrier :
+      calendar: { hiddenWeeks: [], visibleTeachers: null, filterV: 2 }, // onglet Calendrier :
                           // hiddenWeeks = cles ISO "AAAA-SS" masquees ;
                           // visibleTeachers = null (tous) ou [encadrantId] (calendrier filtre par encadrant)
       assistant: { log: [] },
@@ -173,7 +173,9 @@
     if (data.calendar && Array.isArray(data.calendar.hiddenWeeks)) {
       s.calendar.hiddenWeeks = data.calendar.hiddenWeeks.filter((k) => typeof k === 'string');
     }
-    if (data.calendar && Array.isArray(data.calendar.visibleTeachers)) {
+    // filtre Encadrants : le format a changé (pseudo-boutons « En autonomie » / « Non affecté ») ;
+    // un ancien filtre enregistré est abandonné -> toutes les séances s'affichent.
+    if (data.calendar && data.calendar.filterV === 2 && Array.isArray(data.calendar.visibleTeachers)) {
       s.calendar.visibleTeachers = data.calendar.visibleTeachers.filter((k) => typeof k === 'string');
     }
     if (data.assistant && Array.isArray(data.assistant.log)) s.assistant.log = data.assistant.log.slice(-24);
