@@ -500,6 +500,7 @@ function attach(win, deps) {
           cols: cols0, blocks: blocks, blkHasTime: /\\d\\d:\\d\\d[–-]\\d\\d:\\d\\d/.test(blkText),
           teacherFilterOk: teacherFilterOk, teacherFilterRestored: teacherFilterRestored,
           dayTitles: dayTitles,
+          isoWeeks: [[2027,0,4,1],[2026,11,28,53],[2026,0,5,2],[2021,0,4,1],[2026,8,7,37]].every(function (a) { return PE.util.isoWeek(new Date(a[0], a[1], a[2])) === a[3]; }) && /· S1$/.test(PE.util.fmtDated(new Date(2027, 0, 4))),
           agendaParity: agendaParity,
           addWrites: inAssign === true && inLocked === true,
           validated: validated, scrollKept: scrollKept, scrollInfo: [sc0, vs0], autoOk: autoOk, autoDistinct: autoSid !== sid,

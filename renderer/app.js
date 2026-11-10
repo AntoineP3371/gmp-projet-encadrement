@@ -30,8 +30,9 @@
       const t = new Date(d instanceof Date ? d.getTime() : +new Date(d));
       t.setHours(0, 0, 0, 0);
       t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7)); // jeudi de la semaine ISO
-      const jan1 = new Date(t.getFullYear(), 0, 1);
-      return 1 + Math.round(((t - jan1) / 86400000 - 3 + ((jan1.getDay() + 6) % 7)) / 7);
+      // la semaine 1 est celle qui contient le 4 janvier (norme ISO 8601)
+      const jan4 = new Date(t.getFullYear(), 0, 4);
+      return 1 + Math.round(((t - jan4) / 86400000 - 3 + ((jan4.getDay() + 6) % 7)) / 7);
     },
     fmtDated(d) { return PE.util.fmtDow(d) + ' ' + PE.util.fmtShort(d) + ' · S' + PE.util.isoWeek(d); },
     fmtRange(a, b) { return PE.util.fmtTime(a) + '–' + PE.util.fmtTime(b); },
