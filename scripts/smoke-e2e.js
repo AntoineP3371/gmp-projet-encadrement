@@ -594,8 +594,15 @@ function attach(win, deps) {
         const autoBtn = () => document.querySelector('.tv-btn[data-tid="__auto__"]');
         const label = autoBtn() ? autoBtn().textContent : '';
         const autoSelAll = !!autoBtn() && autoBtn().classList.contains('primary'); // coché par défaut, comme un encadrant
-        // « En autonomie » se décoche comme un encadrant -> les séances grises disparaissent
-        autoBtn().click(); await wait(250);
+        // depuis « tous », un clic ISOLE l'encadrant : que ses séances, aucune en autonomie
+        document.querySelector('.tv-btn[data-tid="' + T2[0].id + '"]').click(); await wait(250);
+        const isoBlocks = Array.from(document.querySelectorAll('.cxblk'));
+        const isolates = isoBlocks.length > 0 && nGrey() === 0
+          && isoBlocks.every((b) => Array.from(b.querySelectorAll('.cx-enc-rm')).some((r) => r.dataset.tid === T2[0].id))
+          && JSON.stringify(PE.state.calendar.visibleTeachers) === JSON.stringify([T2[0].id]);
+        document.getElementById('cx-tea-all').click(); await wait(250);
+        // Ctrl+clic sur « En autonomie » depuis « tous » = la décocher seulement -> les séances grises disparaissent
+        autoBtn().dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true })); await wait(250);
         const blocksNoAuto = document.querySelectorAll('.cxblk').length;
         const noGrey = nGrey() === 0 && !autoBtn().classList.contains('primary');
         // aucun, puis « En autonomie » seule -> uniquement les séances en autonomie
@@ -618,7 +625,7 @@ function attach(win, deps) {
         sch.noSup = {}; sch.validated = {};
         return JSON.stringify({
           labelHasCount: (+((label.match(/\\((\\d+)/) || [])[1])) === greyAll, blocksAll: blocksAll, greyAll: greyAll,
-          bandsOk: bandsOk, autoSelAll: autoSelAll,
+          bandsOk: bandsOk, autoSelAll: autoSelAll, isolates: isolates,
           autoToggle: noGrey && blocksNoAuto === blocksAll - greyAll,
           autoOnly: blocksOnlyAuto === greyAll && greyAll >= 2 && onlyAutoBlocks && stored === '["__auto__"]',
           autoMix: blocksMix > blocksOnlyAuto, restored: blocksBack === blocksAll, validLayout: validLayout,

@@ -396,9 +396,11 @@ demi-journée **principale**). Chaque colonne est un petit agenda de la semaine.
   garder qu'un ou plusieurs encadrants affiche **leur calendrier personnel**
   (une séance apparaît si l'un des encadrants cochés y est affecté). Les deux
   filtres se combinent et sont mémorisés. **En autonomie (n)** se coche / décoche
-  **comme un encadrant** (dernier bouton de la rangée *Encadrants :*, pastille grise) :
-  décoché, les séances en autonomie disparaissent ; avec *aucun* puis *En autonomie*,
-  on ne voit que ces séances ; cochable en plus d'un ou plusieurs encadrants.
+  **comme un encadrant** (dernier bouton de la rangée *Encadrants :*, pastille grise).
+  Depuis *tous*, un **clic sur un encadrant l'isole** (on ne voit que ses séances, aucune
+  séance en autonomie) ; ensuite chaque clic ajoute ou retire un encadrant. **Ctrl/Maj +
+  clic** depuis *tous* le décoche seulement. Même principe pour *En autonomie* (seul,
+  il n'affiche que ces séances) ; *tous* rétablit l'affichage complet.
 - **Colonnes** : toutes les semaines de la plage. Le bouton *Semaines affichées*
   (cases à cocher) et le **×** sur chaque en-tête permettent d'en **masquer** ;
   *tout afficher* les remet. Le choix est mémorisé.

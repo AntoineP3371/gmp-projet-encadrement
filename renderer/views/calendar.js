@@ -295,7 +295,7 @@
         </div>
         ${T.length || nAuto ? `<div class="row wrap-tight" style="margin-bottom:8px">
           <span class="muted">Encadrants :</span>
-          ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="afficher / masquer le calendrier de ${U.esc(t.name)}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
+          ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="${!vt ? 'ne voir que le calendrier de ' : 'afficher / masquer le calendrier de '}${U.esc(t.name)}${!vt ? ' (Ctrl+clic : le masquer seulement)' : ''}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
           <button class="small tv-btn ${!vt || visTea[AUTO_ID] ? 'primary' : ''}" data-tid="${AUTO_ID}" title="afficher / masquer les séances en autonomie (sans encadrant)${nAutoValid ? ' — dont ' + nAutoValid + ' validée' + (nAutoValid > 1 ? 's' : '') : ''}"><span class="dot" style="background:#94a3b8"></span> En autonomie (${nAuto})</button>
           <button class="small" id="cx-tea-all">tous</button>
           <button class="small" id="cx-tea-none">aucun</button>
@@ -336,12 +336,20 @@
     const pa = root.querySelector('#cx-proj-all');
     if (pa) pa.addEventListener('click', () => { sch.visibleProjects = null; done(); });
 
-    root.querySelectorAll('.tv-btn').forEach((b) => b.addEventListener('click', () => {
+    // Depuis « tous », un clic ISOLE l'encadrant (ou « En autonomie ») : on ne voit
+    // que lui. Ensuite chaque clic ajoute / retire un encadrant. Ctrl/Maj/Cmd + clic
+    // depuis « tous » décoche seulement celui-ci (tous les autres restent).
+    root.querySelectorAll('.tv-btn').forEach((b) => b.addEventListener('click', (e) => {
       const tid = b.dataset.tid;
       const allIds = PE.teacherModels().map((t) => t.id).concat(AUTO_ID);
-      let vis = Array.isArray(cal.visibleTeachers) ? cal.visibleTeachers.slice() : allIds.slice();
-      const i = vis.indexOf(tid);
-      if (i === -1) vis.push(tid); else vis.splice(i, 1);
+      let vis;
+      if (!Array.isArray(cal.visibleTeachers)) {
+        vis = (e.ctrlKey || e.shiftKey || e.metaKey) ? allIds.filter((x) => x !== tid) : [tid];
+      } else {
+        vis = cal.visibleTeachers.slice();
+        const i = vis.indexOf(tid);
+        if (i === -1) vis.push(tid); else vis.splice(i, 1);
+      }
       cal.visibleTeachers = (vis.length === allIds.length && allIds.every((x) => vis.indexOf(x) !== -1)) ? null : vis;
       done();
     }));
