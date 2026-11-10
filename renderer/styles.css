@@ -340,7 +340,7 @@ td.dispo-cell { min-width: 150px; font-size: 12px; line-height: 1.7; }
 .cxblk.cx-warn { border-left-color: var(--warn); background: var(--warn-soft); }
 .cxblk.cx-accent { border-left-color: var(--accent); background: var(--accent-soft); }
 .cxblk.cx-neutral { border-left-color: #94a3b8; background: repeating-linear-gradient(45deg, rgba(148,163,184,.34), rgba(148,163,184,.34) 7px, rgba(148,163,184,.16) 7px, rgba(148,163,184,.16) 14px); }
-.cxblk.cx-neutral.cx-av { border-left-color: var(--ok); }
+.cxblk.cx-neutral.cx-autovalid { border-left-color: var(--ok); }
 .cxblk { position: relative; }
 .cxblk .cx-bands { display: flex; height: 8px; margin: -5px -7px 5px -7px; border-radius: 5px 5px 0 0; overflow: hidden; }
 .cxblk .cx-bands span { flex: 1 1 0; min-width: 0; }

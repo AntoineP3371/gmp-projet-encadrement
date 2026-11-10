@@ -6,6 +6,7 @@
 
   const fmtH = (h) => (Math.round(h * 10) / 10).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' h';
   const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  const AUTO_ID = '__auto__'; // pseudo-encadrant « en autonomie » dans le filtre Encadrants
   const SLOTLBL = ['lun. matin', 'lun. après-midi', 'mar. matin', 'mar. après-midi', 'mer. matin', 'mer. après-midi',
     'jeu. matin', 'jeu. après-midi', 'ven. matin', 'ven. après-midi'];
 
@@ -76,15 +77,13 @@
     const visTea = {}; if (vt) vt.forEach((id) => { visTea[id] = 1; });
     const ev = S.evaluate(allSessions, T, PE.schedOptions(), assignments);
 
-    // bouton « En autonomie » : ne montrer que les séances en autonomie (déclarées
-    // ou implicites). Une séance en autonomie n'a pas d'encadrant : dans ce mode
-    // le filtre par encadrant est mis de côté.
+    // « En autonomie » se coche comme un encadrant (pseudo-encadrant AUTO_ID) :
+    // une séance en autonomie (déclarée ou implicite) s'affiche si cette case est cochée.
     const autoSet = {}; (ev.noSup || []).forEach((id) => { autoSet[id] = 1; });
-    const onlyAuto = !!cal.onlyAuto;
     const nAuto = allSessions.filter((s) => visIds[s.projectId] && autoSet[s.id]).length;
     const nAutoValid = allSessions.filter((s) => visIds[s.projectId] && autoSet[s.id] && (sch.validated || {})[s.id]).length;
     const sessions = allSessions.filter((s) => visIds[s.projectId]
-      && (onlyAuto ? autoSet[s.id] : (!vt || (assignments[s.id] || []).some((tid) => visTea[tid]))));
+      && (!vt || (assignments[s.id] || []).some((tid) => visTea[tid]) || (autoSet[s.id] && visTea[AUTO_ID])));
 
     const busyMap = {}; T.forEach((t) => { busyMap[t.id] = S.teacherBusy(t.events, o.allDayBusy); });
     const ivsMap = {}; T.forEach((t) => { ivsMap[t.id] = []; });
@@ -242,7 +241,7 @@
       const n = bandCols.length;
       const tint = isAutoEff || !n ? ''
         : ' style="background:linear-gradient(to right,' + bandCols.map((c, i) => c + '38 ' + (i * 100 / n) + '% ' + ((i + 1) * 100 / n) + '%').join(',') + ')"';
-      const cls = isAutoEff ? 'cx-neutral' + (isValid ? ' cx-av' : '') : 'cx-' + st.c;
+      const cls = isAutoEff ? 'cx-neutral' + (isValid ? ' cx-autovalid' : '') : 'cx-' + st.c;
       return `<div class="cxblk ${cls}"${tint}>${bands}
         <div class="t" title="${U.esc(s.project + ' — ' + s.label)}"><span class="dot" style="background:${pc}"></span>${U.esc(s.label)} ${marks}<span class="badge ${badgeCls}">${st.t}</span></div>
         <div class="m">${U.esc(s.location || 'salle ?')} · ${U.fmtRange(s.start, s.end)}${comment ? ' · 💬 ' + U.esc(comment) : ''}</div>
@@ -287,7 +286,6 @@
           ${projects.length ? `<span class="muted">Projets :</span>
             ${projects.map((p) => `<button class="small projvis-btn ${visIds[p.id] ? 'primary' : ''}" data-pid="${p.id}"><span class="dot" style="background:${p.color}"></span> ${U.esc(p.name)}</button>`).join('')}
             <button class="small" id="cx-proj-all">tous</button>` : ''}
-          <button class="small ${onlyAuto ? 'primary' : ''}" id="cx-only-auto" title="${onlyAuto ? 'cliquer pour revoir toutes les séances' : 'afficher uniquement les séances en autonomie (sans encadrant)'}">${onlyAuto ? '✓ ' : ''}En autonomie (${nAuto}${nAutoValid ? ', ' + nAutoValid + ' validée' + (nAutoValid > 1 ? 's' : '') : ''})</button>
           <span class="spacer" style="flex:1"></span>
           ${weeks.length ? `<details class="cx-weeks"><summary>Semaines affichées (${visWeeks.length}/${weeks.length})</summary>
             <div class="cx-weeks-list">
@@ -295,9 +293,10 @@
               ${weeks.map((w) => `<label><input type="checkbox" class="cx-wk" data-k="${w.key}" ${hidden[w.key] ? '' : 'checked'} /> S${w.n} <span class="muted">${w.label}</span></label>`).join('')}
             </div></details>` : ''}
         </div>
-        ${T.length ? `<div class="row wrap-tight" style="margin-bottom:8px${onlyAuto ? ';opacity:.5' : ''}">
+        ${T.length || nAuto ? `<div class="row wrap-tight" style="margin-bottom:8px">
           <span class="muted">Encadrants :</span>
-          ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="n'afficher que le calendrier de ${U.esc(t.name)}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
+          ${T.map((t) => `<button class="small tv-btn ${!vt || visTea[t.id] ? 'primary' : ''}" data-tid="${t.id}" title="afficher / masquer le calendrier de ${U.esc(t.name)}"><span class="dot" style="background:${t.color}"></span> ${U.esc(t.name)}</button>`).join('')}
+          <button class="small tv-btn ${!vt || visTea[AUTO_ID] ? 'primary' : ''}" data-tid="${AUTO_ID}" title="afficher / masquer les séances en autonomie (sans encadrant)${nAutoValid ? ' — dont ' + nAutoValid + ' validée' + (nAutoValid > 1 ? 's' : '') : ''}"><span class="dot" style="background:#94a3b8"></span> En autonomie (${nAuto})</button>
           <button class="small" id="cx-tea-all">tous</button>
           <button class="small" id="cx-tea-none">aucun</button>
         </div>` : ''}
@@ -311,7 +310,7 @@
           <span class="swatch" style="background:var(--accent)"></span> plusieurs encadrants dispos
         </p>
         ${!projects.length ? '<p class="muted">Ajoutez un agenda « projet ».</p>'
-        : !sessions.length ? '<p class="muted">' + (onlyAuto ? 'Aucune séance en autonomie pour les projets cochés.' : 'Aucune séance pour les projets / encadrants cochés.') + '</p>'
+        : !sessions.length ? '<p class="muted">Aucune séance pour les projets / encadrants cochés.</p>'
           : !visWeeks.length ? '<p class="muted">Toutes les semaines sont masquées.</p>'
             : gridHTML()}
         ${offGrid ? `<p class="muted" style="margin-top:8px">${offGrid} séance(s) hors lun.–ven. non affichée(s) ici.</p>` : ''}
@@ -337,12 +336,9 @@
     const pa = root.querySelector('#cx-proj-all');
     if (pa) pa.addEventListener('click', () => { sch.visibleProjects = null; done(); });
 
-    const oa = root.querySelector('#cx-only-auto');
-    if (oa) oa.addEventListener('click', () => { cal.onlyAuto = !cal.onlyAuto; done(); });
-
     root.querySelectorAll('.tv-btn').forEach((b) => b.addEventListener('click', () => {
       const tid = b.dataset.tid;
-      const allIds = PE.teacherModels().map((t) => t.id);
+      const allIds = PE.teacherModels().map((t) => t.id).concat(AUTO_ID);
       let vis = Array.isArray(cal.visibleTeachers) ? cal.visibleTeachers.slice() : allIds.slice();
       const i = vis.indexOf(tid);
       if (i === -1) vis.push(tid); else vis.splice(i, 1);

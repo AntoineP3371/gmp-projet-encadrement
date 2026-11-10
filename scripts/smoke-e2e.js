@@ -567,13 +567,13 @@ function attach(win, deps) {
       })()`);
       console.log('SMOKE-E2E-AUTOVALID ' + autoValid);
 
-      // Calendrier : bouton « En autonomie » = n'afficher que les séances en autonomie
+      // Calendrier : « En autonomie » se coche / décoche comme un encadrant (couleurs, bandes)
       const calAuto = await win.webContents.executeJavaScript(`(async () => {
         const PE = window.PE;
         const sch = PE.state.scheduling;
         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
         sch.toMove = {}; sch.validated = {}; sch.noSup = {}; sch.locked = {};
-        PE.state.calendar.onlyAuto = false; PE.state.calendar.visibleTeachers = null; PE.state.calendar.hiddenWeeks = [];
+        PE.state.calendar.visibleTeachers = null; PE.state.calendar.hiddenWeeks = [];
         sch.visibleProjects = null;
         const ids = PE.sessions().slice(0, 2).map((s) => s.id);
         ids.forEach((id) => PE.sched.setAutonome(id, true));
@@ -589,18 +589,39 @@ function attach(win, deps) {
           && !!b1 && b1.querySelectorAll('.cx-bands span').length === 1
           && !!ba && ba.classList.contains('cx-neutral') && !ba.querySelector('.cx-bands');
         const blocksAll = document.querySelectorAll('.cxblk').length;
-        const btn = document.getElementById('cx-only-auto');
-        const label = btn ? btn.textContent : '';
-        btn.click(); await wait(250);
-        const blocksAuto = document.querySelectorAll('.cxblk').length;
+        const nGrey = () => Array.from(document.querySelectorAll('.cxblk')).filter((b) => b.classList.contains('cx-neutral')).length;
+        const greyAll = nGrey();
+        const autoBtn = () => document.querySelector('.tv-btn[data-tid="__auto__"]');
+        const label = autoBtn() ? autoBtn().textContent : '';
+        const autoSelAll = !!autoBtn() && autoBtn().classList.contains('primary'); // coché par défaut, comme un encadrant
+        // « En autonomie » se décoche comme un encadrant -> les séances grises disparaissent
+        autoBtn().click(); await wait(250);
+        const blocksNoAuto = document.querySelectorAll('.cxblk').length;
+        const noGrey = nGrey() === 0 && !autoBtn().classList.contains('primary');
+        // aucun, puis « En autonomie » seule -> uniquement les séances en autonomie
+        document.getElementById('cx-tea-none').click(); await wait(200);
+        autoBtn().click(); await wait(250);
+        const blocksOnlyAuto = document.querySelectorAll('.cxblk').length;
         const onlyAutoBlocks = Array.from(document.querySelectorAll('.cxblk')).every((b) => b.classList.contains('cx-neutral') && !b.querySelector('.cx-bands'));
-        const persisted = PE.state.calendar.onlyAuto === true && document.getElementById('cx-only-auto').classList.contains('primary');
-        document.getElementById('cx-only-auto').click(); await wait(250);
+        const stored = JSON.stringify(PE.state.calendar.visibleTeachers);
+        // + un encadrant : ses séances s'ajoutent aux séances en autonomie
+        document.querySelector('.tv-btn[data-tid="' + T2[0].id + '"]').click(); await wait(250);
+        const blocksMix = document.querySelectorAll('.cxblk').length;
+        // tout recocher -> retour à « tous »
+        document.getElementById('cx-tea-all').click(); await wait(250);
         const blocksBack = document.querySelectorAll('.cxblk').length;
+        // validée, une séance en autonomie garde la mise en page d'un bloc (pas d'inline-flex)
+        PE.sched.toggleValidated(ids[0], true); PE.save(); PE.rerender(); await wait(250);
+        const vb = blkOf(ids[0]);
+        const validLayout = !!vb && vb.classList.contains('cx-autovalid') && getComputedStyle(vb).display !== 'inline-flex'
+          && vb.getBoundingClientRect().width > 150;
         sch.noSup = {}; sch.validated = {};
         return JSON.stringify({
-          labelHasCount: (+((label.match(/\\((\\d+)/) || [])[1])) === blocksAuto, blocksAll: blocksAll, blocksAuto: blocksAuto,
-          bandsOk: bandsOk, autoFiltered: blocksAuto >= 2 && onlyAutoBlocks, persisted: persisted, restored: blocksBack === blocksAll,
+          labelHasCount: (+((label.match(/\\((\\d+)/) || [])[1])) === greyAll, blocksAll: blocksAll, greyAll: greyAll,
+          bandsOk: bandsOk, autoSelAll: autoSelAll,
+          autoToggle: noGrey && blocksNoAuto === blocksAll - greyAll,
+          autoOnly: blocksOnlyAuto === greyAll && greyAll >= 2 && onlyAutoBlocks && stored === '["__auto__"]',
+          autoMix: blocksMix > blocksOnlyAuto, restored: blocksBack === blocksAll, validLayout: validLayout,
           errors: window.__errors.length
         });
       })()`);
